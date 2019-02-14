@@ -192,6 +192,7 @@ public class Aspect implements Instantiable, Settable
 				Body myBody = (Body) aspect;
 				for (Point p : myBody.getPoints() )
 					modelNode.add(p.getModule() );
+				modelNode.add(myBody.getModule());
 			}
 			else
 			{

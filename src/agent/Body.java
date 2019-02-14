@@ -14,8 +14,12 @@ import generalInterfaces.HasBoundingBox;
 import instantiable.Instantiable;
 import linearAlgebra.Matrix;
 import linearAlgebra.Vector;
+import referenceLibrary.AspectRef;
 import referenceLibrary.XmlRef;
+import settable.Attribute;
+import settable.Module;
 import settable.Settable;
+import settable.Module.Requirements;
 import shape.Shape;
 import surface.*;
 import utility.Helper;
@@ -29,7 +33,7 @@ import utility.Helper;
  * @author Bastiaan Cockx @BastiaanCockx (baco@env.dtu.dk), DTU, Denmark
  * @author Robert Clegg (r.j.clegg@bham.ac.uk) University of Birmingham, U.K.
  */
-public class Body implements Copyable, Instantiable
+public class Body implements Copyable, Instantiable, Settable
 {
 	/*
 	 * morphology specifications
@@ -39,6 +43,7 @@ public class Body implements Copyable, Instantiable
 		BACILLUS,
 		CUBOID,
 	}
+	
 	/**
 	 * Ordered list of the points that describe the body.
 	 */
@@ -66,6 +71,8 @@ public class Body implements Copyable, Instantiable
 	 * body
 	 */
 	protected LinkedList<Link> _links = new LinkedList<Link>();
+	
+	private Settable _parentNode;
 
 
 	/*************************************************************************
@@ -172,6 +179,47 @@ public class Body implements Copyable, Instantiable
 		}
 	}
 	
+	public Body(Morphology morphology, Point[] points, double length,
+			double radius)
+	{
+		switch (morphology)
+		{
+			case COCCOID :
+				this._points.add(points[0]);
+				this._surfaces.add( new Ball(this._points.get(0), radius) );
+				this._morphology = Morphology.COCCOID;
+				break;
+			case BACILLUS :
+				this._points.add( points[0] );
+				
+				/* 
+				 * Allows placement of rods with just one point provided
+				 */
+				if (points.length==1) {
+					this._points.add( new Point(
+							Vector.add( points[0].getPosition(), 
+							Vector.randomZeroOne( points[0].nDim() ) ) ) );
+				}
+				
+				else {
+					this._points.add(points[0]);
+					}
+				
+				this._surfaces.add( new Rod( (Point[]) this._points.toArray(), 
+						length, radius) );
+				this._morphology = Morphology.BACILLUS;
+				break;
+			case CUBOID :
+				this._points.add(points[0]);
+				this._points.add(points[1]);
+				this._morphology = Morphology.CUBOID;
+				//System.out.println(this._points.get(1).getPosition()[2]);
+			default: 
+				break;
+		}
+	}
+	
+	
 	/**
 	 * NOTE: work in progress
 	 * Hybrid: Coccoid, Rod, rods, TODO Chain
@@ -233,6 +281,7 @@ public class Body implements Copyable, Instantiable
 
 	public void instantiate(Element xmlElem, Settable parent)
 	{
+		this._parentNode = parent;
 		if( !Helper.isNullOrEmpty( xmlElem ))
 		{
 			//FIXME: not finished only accounts for simple coccoids
@@ -375,6 +424,27 @@ public class Body implements Copyable, Instantiable
 			p.setPosition(vector);
 		}
 	}
+	
+	public Module getModule() {
+		Module modelNode = new Module(AspectRef.agentBody, this);
+		modelNode.setRequirements(Requirements.EXACTLY_ONE);
+		modelNode.add(new Attribute(XmlRef.morphology, this._morphology.name(), 
+				Helper.enumToStringArray(Morphology.class), true ));
+		return modelNode;
+	}
+	
+	public String defaultXmlTag() {
+		return AspectRef.agentBody;
+	}
+	
+	public void setParent(Settable parent) {
+		this._parentNode = parent;
+	}
+	
+	public Settable getParent() {
+		return this._parentNode;
+	}
+	
 	
 	/**
 	 * returns a copy of this body and registers a new agent NOTE: does

@@ -3,6 +3,7 @@ package compartment.agentStaging;
 import org.w3c.dom.Element;
 import agent.Agent;
 import agent.Body;
+import agent.Body.Morphology;
 import dataIO.Log;
 import dataIO.XmlHandler;
 import dataIO.Log.Tier;
@@ -194,7 +195,8 @@ public class EpithelialLayerSpawner extends Spawner {
 		Point tCPoint = new Point(topCorner);
 		Point[] bothPoints = {bCPoint, tCPoint};
 		Agent newEpithelialCell = new Agent(this.getTemplate());
-		newEpithelialCell.set(AspectRef.agentBody, new Body(bothPoints, 0, 0));
+		newEpithelialCell.set(AspectRef.agentBody, new Body(
+				this.getMorphology(), bothPoints,0,0));
 		newEpithelialCell.setCompartment( this.getCompartment() );
 		newEpithelialCell.registerBirth();
 		

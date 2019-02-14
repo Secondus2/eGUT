@@ -83,9 +83,7 @@ public abstract class Spawner implements Settable, Instantiable {
 		 * Moved to Spawner class, and altered to use lower and upper corners,
 		 * rather than dimension measurements and lower corner (seems more
 		 * intuitive for user). - Tim
-		 */
-		
-		
+		 */		
 		if ( XmlHandler.hasAttribute(p, XmlRef.spawnDomain) )
 		{
 			double[][] input = 

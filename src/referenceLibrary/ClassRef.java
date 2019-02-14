@@ -224,6 +224,12 @@ public class ClassRef
 			aspect.event.RodDivision.class.getName();
 	
 	/**
+	 * the cuboid division event
+	 */
+	public final static String cuboidDivision =
+			aspect.event.CuboidDivision.class.getName();
+	
+	/**
 	 * the simple growth event
 	 */
 	public final static String simpleGrowth =
