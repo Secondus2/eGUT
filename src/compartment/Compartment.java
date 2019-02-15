@@ -235,7 +235,8 @@ public class Compartment implements CanPrelaunchCheck, Instantiable, Settable
 		 */
 		Spawner spawner;
 		TreeMap<Integer,Spawner> spawners = new TreeMap<Integer,Spawner>();
-		for ( Element e : XmlHandler.getElements( xmlElem, XmlRef.spawnNode) )
+		for ( Element e : 
+			XmlHandler.getDirectChildElements(xmlElem, XmlRef.spawnNode) )
 		{
 			spawner = (Spawner) Instance.getNew(e, this);
 			/* check for duplicate priority */

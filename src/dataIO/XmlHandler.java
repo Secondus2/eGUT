@@ -345,6 +345,29 @@ public class XmlHandler
 	}
 	
 	/**
+	 * Returns Collection<Element> consisting only of direct children (no other
+	 * descendants) that match the given tag.
+	 * 
+	 * @param parent
+	 * @param tag
+	 * @return
+	 */
+	public static Collection<Element> getDirectChildElements (
+			Element parent, String tag) {
+
+		LinkedList<Element> out = new LinkedList<Element>();
+		for(Node child = parent.getFirstChild(); child != null; 
+				child = child.getNextSibling())
+		    {
+		        if(child instanceof Element && tag.equals(child.getNodeName()))
+		        {
+		        	out.add((Element) child);
+		        }
+		    }
+		return out;
+	}
+	
+	/**
 	 * \brief TODO
 	 * 
 	 * @param parent

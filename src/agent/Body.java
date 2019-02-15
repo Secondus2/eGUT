@@ -294,8 +294,10 @@ public class Body implements Copyable, Instantiable, Settable
 						point.getAttribute(XmlRef.position))));
 			}
 			this._points.addAll(pointList);
-			if(this._points.size() == 1)
+			if(this._points.size() == 1) {
 				this._surfaces.add(new Ball(pointList.get(0), 0.0)); //FIXME
+				this._morphology = Morphology.COCCOID;
+			}
 			else
 			{
 				for(int i = 0; pointList.size()-1 > i; i++)
@@ -303,6 +305,7 @@ public class Body implements Copyable, Instantiable, Settable
 					this._surfaces.add(new Rod(pointList.get(i), 
 							pointList.get(i+1), 0.0, 0.0)); //FIXME
 				}
+				this._morphology = Morphology.BACILLUS;
 			}
 		}
 	}
@@ -427,7 +430,7 @@ public class Body implements Copyable, Instantiable, Settable
 	
 	public Module getModule() {
 		Module modelNode = new Module(AspectRef.agentBody, this);
-		modelNode.setRequirements(Requirements.EXACTLY_ONE);
+		modelNode.setRequirements(Requirements.ZERO_OR_ONE);
 		modelNode.add(new Attribute(XmlRef.morphology, this._morphology.name(), 
 				Helper.enumToStringArray(Morphology.class), true ));
 		return modelNode;
