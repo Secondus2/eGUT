@@ -3,7 +3,6 @@ package compartment.agentStaging;
 import org.w3c.dom.Element;
 import agent.Agent;
 import agent.Body;
-import agent.Body.Morphology;
 import dataIO.Log;
 import dataIO.XmlHandler;
 import dataIO.Log.Tier;
@@ -32,8 +31,7 @@ public class EpithelialLayerSpawner extends Spawner {
 	
 	private Plane _apicalSurface;
 	
-	private double[][] _layerShape;
-
+	private double[][] _layerCorners;
 
 	public void init(
 		
@@ -41,13 +39,15 @@ public class EpithelialLayerSpawner extends Spawner {
 		
 		super.init(xmlElem, agents, compartmentName);
 		
-		this._layerShape = this.calculateLayerCorners();
+		this._layerCorners = this.calculateLayerCorners();
 		
-		this._layerSideLengths = this.getSideLengths(_layerShape);
+		this._numberOfDimensions = _layerCorners[0].length;
 		
-		this._bottomCorner = _layerShape[0];
+		this._layerSideLengths = this.getSideLengths(_layerCorners);
 		
-		this._topCorner = _layerShape[1];
+		this._bottomCorner = _layerCorners[0];
+		
+		this._topCorner = _layerCorners[1];
 		
 		if ( XmlHandler.hasAttribute(xmlElem, XmlRef.cellShape) )
 		{
@@ -56,60 +56,37 @@ public class EpithelialLayerSpawner extends Spawner {
 		}
 		
 		this.checkDimensions();
-		
-		this._numberOfDimensions = _layerShape[0].length;
-		
+
 		this.setNumberOfAgents(this.calculateNumberOfAgents());
-		
 	}
 
 
 	public void spawn() {
-	
-		double[] bottomCorner = new double[3];
+		
+		double[] bottomCorner = new double[this._numberOfDimensions];
 		for (int i = 0; i < this._bottomCorner.length; i++) {
 			bottomCorner[i] = this._bottomCorner[i];			
 		}
-		double[] topCorner = new double[3];
-		for (int i = 0; i < this._topCorner.length; i++) {
-			topCorner[i] = this._topCorner[i];			
-		}
-		double[] cellSideLengths = new double[3];
-		for (int i = 0; i < this._cellSideLengths.length; i++) {
-			cellSideLengths[i] = this._cellSideLengths[i];			
-		}
 		
-		if (this._numberOfDimensions < 3) {
-			bottomCorner[2] = 0.0;
-			topCorner[2] = 1.0;
-			cellSideLengths[2] = 1.0;
-		}
-		
-		while (bottomCorner[2] < topCorner[2]) {
-			
-			while(bottomCorner[1] < topCorner[1]) {
-				
-				while (bottomCorner[0] < topCorner[0]) {
-					
-					createEpithelialCell(bottomCorner);
-	
-					bottomCorner[0] += cellSideLengths[0];
-				}
-				
-				bottomCorner[0] = this._bottomCorner[0];
-				
-				bottomCorner[1] += cellSideLengths[1];
+		//counter counts number of cells produced
+		int counter = 0;
+
+		while (counter < this.getNumberOfAgents()) {
+			/*shifter is the dimension in which the bottomCorner value will be
+			increased */
+			int shifter = 0;
+			createEpithelialCell(bottomCorner);
+			counter++;
+			bottomCorner[shifter] += this._cellSideLengths[shifter];
+			while (bottomCorner[shifter] == this._topCorner[shifter]
+					&& shifter < this._numberOfDimensions - 1) {
+					bottomCorner[shifter] = this._bottomCorner[shifter];
+					shifter ++;
+					bottomCorner[shifter] += this._cellSideLengths[shifter];
 			}
-			
-			bottomCorner[0] = this._bottomCorner[0];
-			
-			bottomCorner[1] = this._bottomCorner[1];
-			
-			bottomCorner[2] += cellSideLengths[2];
 		}
 	
 	}
-
 	
 	/*
 	 * Returns a 2D array of two rows by x columns, where x is the number of
@@ -127,8 +104,8 @@ public class EpithelialLayerSpawner extends Spawner {
 	
 	public double[] getSideLengths(double[][] corners) {
 		
-		double[] sideLengths = new double[corners[0].length];
-		for (int i = 0; i < corners[0].length; i++) {
+		double[] sideLengths = new double[this._numberOfDimensions];
+		for (int i = 0; i < this._numberOfDimensions; i++) {
 			sideLengths[i] = corners[1][i] - corners[0][i];			
 		}
 		return sideLengths;
@@ -137,10 +114,8 @@ public class EpithelialLayerSpawner extends Spawner {
 	
 	public void checkDimensions() {
 		
-		if ((_layerShape[0].length != 
-				this.getCompartment().getShape().getNumberOfDimensions())
-			|| (_layerShape[1].length != 
-					this.getCompartment().getShape().getNumberOfDimensions())) {
+		if (this._numberOfDimensions != 
+				this.getCompartment().getShape().getNumberOfDimensions()) {
 			if( Log.shouldWrite(Tier.CRITICAL))
 				Log.out(Tier.CRITICAL, "Warning: Compartment "
 						+ this.getCompartment().getName() + " and epithelial "
@@ -148,9 +123,17 @@ public class EpithelialLayerSpawner extends Spawner {
 			Idynomics.simulator.interupt("Interrupted due to dimension "
 					+ "mismatch between compartment and epithelial layer.");
 		}
-		
+		if (this._numberOfDimensions != this._cellSideLengths.length) {
+			if( Log.shouldWrite(Tier.CRITICAL))
+				Log.out(Tier.CRITICAL, "Warning: Epithelial layer and "
+						+ "epithelial cells have different numbers of"
+						+ " dimensions.");
+			Idynomics.simulator.interupt("Interrupted due to dimension "
+					+ "mismatch between epithelial cells and epithelial "
+					+ "layer.");
+		}
 		int multiCellDimensions = 0;
-		for (int i = 0; i < _layerShape[0].length; i++) {
+		for (int i = 0; i < _layerCorners[0].length; i++) {
 			if (this._layerSideLengths[i] % this._cellSideLengths[i] != 0.0) {
 				if( Log.shouldWrite(Tier.CRITICAL))
 					Log.out(Tier.CRITICAL, "Warning: Epithelial layer side"
@@ -163,13 +146,10 @@ public class EpithelialLayerSpawner extends Spawner {
 				multiCellDimensions ++;
 			}
 		}
-		if (multiCellDimensions == _layerShape[0].length) {
+		if (multiCellDimensions == _layerCorners[0].length) {
 			if( Log.shouldWrite(Tier.CRITICAL))
-				Log.out(Tier.CRITICAL, "Warning: Mismatch between cell"
-						+ " thickness and epithelial layer thickness. All"
-						+ " dimensions thicker than one cell.");
-			Idynomics.simulator.interupt("Interrupted because epithelial"
-					+ "layer is not exactly one cell thick");
+				Log.out(Tier.CRITICAL, "Warning: Epithelial layer is more than"
+						+ "one cell thick.");
 		}
 	}
 	
@@ -199,7 +179,6 @@ public class EpithelialLayerSpawner extends Spawner {
 				this.getMorphology(), bothPoints,0,0));
 		newEpithelialCell.setCompartment( this.getCompartment() );
 		newEpithelialCell.registerBirth();
-		
 	}
 	
 	

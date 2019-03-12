@@ -973,6 +973,13 @@ public abstract class Shape implements
 		int i = 0;
 		for ( Dimension dim : this._dimensions.values() )
 		{
+			/*
+			 * Skip getInside method if all points are within the domain. This
+			 * also prevents points equal to the dimension's _extreme[1] being
+			 * reset to 0.0.
+			 */
+			if (position[i] < dim.getExtreme(0) || 
+					position [i] > dim.getExtreme(1))
 			position[i] = dim.getInside(position[i]);
 			if ( ++i >= nDim )
 				break;

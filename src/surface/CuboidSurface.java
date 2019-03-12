@@ -9,8 +9,9 @@ import surface.BoundingBox;
  * \brief TODO
  * 
  * @author Bastiaan Cockx @BastiaanCockx (baco@env.dtu.dk), DTU, Denmark
+ * @author Tim Foster @Secondus2 (trf896@student.bham.ac.uk) 
  */
-public class Cuboid extends Surface implements HasBoundingBox {
+public class CuboidSurface extends Surface implements HasBoundingBox {
 	
     public Point[] _points;
 	
@@ -20,22 +21,22 @@ public class Cuboid extends Surface implements HasBoundingBox {
     public double _height;
 	
     
-    public Cuboid(Point[] points)
+    public CuboidSurface(Point[] points)
     {
     	this._points = points;
     	}
 
-	public Cuboid(Point pointA, Point pointB)
+	public CuboidSurface(Point pointA, Point pointB)
 	{
 		this._points = new Point[] { pointA , pointB };
     }
 	
-	public Cuboid(double[] pointA, double[] pointB)
+	public CuboidSurface(double[] pointA, double[] pointB)
 	{
 		this._points = new Point[] { new Point(pointA), new Point(pointB)};
 	}
 	
-	public Cuboid(Cuboid cuboid) 
+	public CuboidSurface(CuboidSurface cuboid) 
 	{
 		this._points = new Point[] {(Point) cuboid._points[0].copy(), 
 				(Point) cuboid._points[1].copy()};

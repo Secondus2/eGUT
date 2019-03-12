@@ -131,6 +131,7 @@ public class Body implements Copyable, Instantiable, Settable
 		this._points.add(points[0]);
 		this._points.add(points[1]);
 		this._morphology = Morphology.CUBOID;
+		this._surfaces.add(new CuboidSurface(points));
 	}
 		
 	/**
@@ -213,7 +214,7 @@ public class Body implements Copyable, Instantiable, Settable
 				this._points.add(points[0]);
 				this._points.add(points[1]);
 				this._morphology = Morphology.CUBOID;
-				//System.out.println(this._points.get(1).getPosition()[2]);
+				this._surfaces.add(new CuboidSurface(points));
 			default: 
 				break;
 		}

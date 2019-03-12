@@ -5,6 +5,7 @@ import instantiable.Instantiable;
 import linearAlgebra.Vector;
 import shape.Shape;
 import surface.Ball;
+import surface.CuboidSurface;
 import surface.Rod;
 import surface.Surface;
 
@@ -47,6 +48,8 @@ public interface GraphicalExporter extends Instantiable {
 			this.draw((Ball) surface, pigment);
 		if (surface instanceof Rod)
 			this.draw((Rod) surface, pigment);
+		if (surface instanceof CuboidSurface)
+			this.draw((CuboidSurface) surface, pigment);
 	}
 	
 	/**
@@ -60,6 +63,12 @@ public interface GraphicalExporter extends Instantiable {
 	 * @param rod
 	 */
 	public void draw(Rod rod, String pigment);
+	
+	/**
+	 * 
+	 * @param cuboidSurface
+	 */
+	public void draw(CuboidSurface cuboidSurface, String pigment);
 	
 	/*************************************************************************
 	 * Drawing basic shapes

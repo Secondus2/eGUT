@@ -38,7 +38,7 @@ public abstract class Spawner implements Settable, Instantiable {
 
 	private Settable _parentNode;
 	
-	private Morphology morphology;
+	private Morphology _morphology;
 	
 	private BoundingBox _spawnDomain = new BoundingBox();
 	
@@ -214,11 +214,11 @@ public abstract class Spawner implements Settable, Instantiable {
 	}
 
 	public Morphology getMorphology() {
-		return morphology;
+		return _morphology;
 	}
 
 	public void setMorphology(Morphology morphology) {
-		this.morphology = morphology;
+		this._morphology = morphology;
 	}
 
 	public Compartment getCompartment() {

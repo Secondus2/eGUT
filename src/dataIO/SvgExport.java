@@ -7,6 +7,7 @@ import idynomics.Idynomics;
 import linearAlgebra.Vector;
 import settable.Settable;
 import surface.Ball;
+import surface.CuboidSurface;
 import surface.Rod;
 
 /**
@@ -234,6 +235,14 @@ public class SvgExport implements GraphicalExporter
 		this.circle(posA, rod.getRadius(), pigment);
 		this.circle(posB, rod.getRadius(), pigment);
 		this.rectangle(posA, posB, rod.getRadius()*2.0, pigment);
+	}
+	
+	public void draw (CuboidSurface cuboidSurface, String pigment) {
+		
+		
+		
+		
+		
 	}
 
 	/**

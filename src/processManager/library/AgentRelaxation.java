@@ -409,7 +409,7 @@ public class AgentRelaxation extends ProcessManager
 					spineEvaluation(agent, s);
 			
 			/* Look for neighbors and resolve collisions */
-			neighboorhoodEvaluation(agent, agentSurfs, agents);
+			neighbourhoodEvaluation(agent, agentSurfs, agents);
 			
 			/*
 			 * Boundary collisions
@@ -437,7 +437,7 @@ public class AgentRelaxation extends ProcessManager
 	 * @param surfaces (the surfaces of the agent).
 	 * @param agents (all agents in the compartment).
 	 */
-	private void neighboorhoodEvaluation(Agent agent, List<Surface> surfaces, 
+	private void neighbourhoodEvaluation(Agent agent, List<Surface> surfaces, 
 			AgentContainer agents)
 	{
 		double searchDist = (agent.isAspect(SEARCH_DIST) ?

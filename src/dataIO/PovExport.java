@@ -9,6 +9,7 @@ import idynomics.Idynomics;
 import settable.Settable;
 import shape.Shape;
 import surface.Ball;
+import surface.CuboidSurface;
 import surface.Rod;
 
 /**
@@ -240,6 +241,16 @@ public class PovExport implements GraphicalExporter
 	/**
 	 * 
 	 */
+	public void draw(CuboidSurface cuboidSurface, String pigment) 
+	{
+		double[] posA = this.to3D(cuboidSurface._points[0].getPosition());
+		double[] posB = this.to3D(cuboidSurface._points[1].getPosition());
+		this.cube(posA, posB, pigment);
+	}
+	
+	/**
+	 * 
+	 */
 	public void sphere(double[] center, double radius, String pigment) 
 	{
 		_povFile.write("sphere { \n" + toPov(this.to3D(center)) + radius + "\n pigment { " 
@@ -281,12 +292,16 @@ public class PovExport implements GraphicalExporter
 	}
 
 	/**
-	 * 
+	 * Creates a cuboid (box) object, using upper and lower corners.
 	 */
-	public void cube(double[] lowerCorner, double[] dimensions, String pigment) 
+	public void cube(double[] cornerA, double[] cornerB, String pigment) 
 	{
-		// TODO Auto-generated method stub
-		
+		String out = "box {";
+		out += toPov(cornerA);
+		out += ",";
+		out += toPov(cornerB);
+		out += "pigment { " + pigment + " } }\n";
+		_povFile.write(out);
 	}
 
 	/**

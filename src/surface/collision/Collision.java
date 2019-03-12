@@ -9,6 +9,7 @@ import instantiable.Instance;
 import linearAlgebra.Vector;
 import shape.Shape;
 import surface.Ball;
+import surface.CuboidSurface;
 import surface.Plane;
 import surface.Rod;
 import surface.Surface;
@@ -94,7 +95,7 @@ public class Collision
 			} catch (InstantiationException | IllegalAccessException | 
 					ClassNotFoundException e) {
 				temp = new DefaultPushFunction();
-				Log.out(Tier.CRITICAL, "Catched erroneous collision function"
+				Log.out(Tier.CRITICAL, "Caught erroneous collision function"
 						+ "input, using default instead.\n" + e.getMessage());
 			}
 			this._collisionFun = temp;
@@ -114,7 +115,7 @@ public class Collision
 			} catch (InstantiationException | IllegalAccessException | 
 					ClassNotFoundException e) {
 				temp = new DefaultPullFunction();
-				Log.out(Tier.CRITICAL, "Catched erroneous attraction function"
+				Log.out(Tier.CRITICAL, "Caught erroneous attraction function"
 						+ "input, using default instead.\n" + e.getMessage());
 			}
 			this._pullFun = temp;
@@ -354,6 +355,11 @@ public class Collision
 			var.flip = false;
 			return this.assessSphere((Ball) a, b, var);
 		}
+		if ( a.type() == Surface.Type.CUBOID )
+		{
+			var.flip = false;
+			return this.assessCuboid((CuboidSurface) a, b, var);
+		}
 		else
 		{
 			System.out.println("WARNING: undefined Surface type");
@@ -413,6 +419,10 @@ public class Collision
 	{
 		if ( otherSurface.type() == Surface.Type.SPHERE )
 			return this.planeSphere(plane, (Ball) otherSurface, var);
+		// This should work for now as collisions between planes and cuboids should not produce force
+		else if ( otherSurface.type() == Surface.Type.CUBOID ) {
+			return var;
+		}
 		else
 			return this.planeRod(plane, (Rod) otherSurface, var);
 	}
@@ -448,8 +458,20 @@ public class Collision
 			return this.sphereSphere(sphere, (Ball) otherSurface, var);
 		else if ( otherSurface.type() == Surface.Type.VOXEL )
 			return this.voxelSphere((Voxel) otherSurface, sphere, var);
+		else if ( otherSurface.type() == Surface.Type.CUBOID )
+			return this.cuboidSphere((CuboidSurface) otherSurface, sphere, var);
 		else
 			return null; // TODO sphere plane
+	}
+	
+	
+	private CollisionVariables assessCuboid (CuboidSurface cuboidSurface, 
+			Surface otherSurface, CollisionVariables var)
+	{
+		if (otherSurface.type() == Surface.Type.SPHERE )
+			return this.cuboidSphere(cuboidSurface, (Ball) otherSurface, var);
+		else
+			return var;
 	}
 	/*************************************************************************
 	 * PRIVATE DISTANCE METHODS
@@ -478,7 +500,7 @@ public class Collision
 	 * 
 	 * @param a One point in space.
 	 * @param b Another point in space.
-	 * @return The minmum distance between them.
+	 * @return The minimum distance between them.
 	 */
 	private double[] minDistance(double[] a, double[] b, CollisionVariables var)
 	{
@@ -980,6 +1002,26 @@ public class Collision
 		}
 		return this.spherePoint(sphere, p, var);
 	}
+	
+	
+	
+	private CollisionVariables cuboidSphere(CuboidSurface cuboidSurface,
+			Ball sphere, CollisionVariables var)
+	{
+		double[] p = Vector.copy( sphere._point.getPosition() );
+		for(int i=0; i < p.length ; i++) 
+		{ 
+			p[i] = Math.max( p[i], cuboidSurface.boundingBox().lowerCorner()[i] );
+			p[i] = Math.min( p[i], cuboidSurface.boundingBox().higherCorner()[i] );
+		}
+		if (extend) 
+		{ 
+			var.radiusEffective = sphere.getRadius(); 
+		}
+		return this.spherePoint(sphere, p, var);
+	}
+	
+	
 
 	/**
 	 * TODO real-time collsion detection pp 229
