@@ -56,6 +56,8 @@ public class EpithelialLayerSpawner extends Spawner {
 		}
 		
 		this.checkDimensions();
+		
+		this.createApicalSurface();
 
 		this.setNumberOfAgents(this.calculateNumberOfAgents());
 	}
@@ -88,7 +90,7 @@ public class EpithelialLayerSpawner extends Spawner {
 	
 	}
 	
-	/*
+	/**
 	 * Returns a 2D array of two rows by x columns, where x is the number of
 	 * dimensions. The "top" row (corners[0][i]) contains the min values (lower
 	 * corner), while the "bottom" row (corners[1][i]) contains the max values
@@ -153,8 +155,45 @@ public class EpithelialLayerSpawner extends Spawner {
 		}
 	}
 	
-
+	/**
+	 * Calculates the orientation of the epithelial layer, interrupting the 
+	 * simulation if it cannot be calculated, and adds a plane to the
+	 * Compartment, corresponding to the apical surface of the epithelium
+	 */
+	public void createApicalSurface()
+	{
+		//count tracks how many dimensions the epithelium does not fully span
+		int count = 0;
+		double[] normal = new double[this._numberOfDimensions];
+		for (int i = 0; i < this._numberOfDimensions; i++) {
+			if (this._layerSideLengths[i] == 
+					this.getCompartment().getShape().getDimensionLengths()[i]) {
+				normal[i] = 0.0;
+			}
+			
+			else {
+				normal[i] = 1.0;
+				count++;
+			}
+		}
+		
+		if (count != 1) {
+			if( Log.shouldWrite(Tier.CRITICAL))
+				Log.out(Tier.CRITICAL, "Warning: There is more than one "
+						+ "dimension in which the epithelial layer does not "
+						+ "span the compartment. Therefore its orientation "
+						+ "cannot be calculated.");
+			Idynomics.simulator.interupt("Interrupted as epithelial layer does "
+					+ "not span the compartment");
+		}
+		
+		this._apicalSurface = new Plane(normal, this._topCorner);
+		this.getCompartment().addSurface(this._apicalSurface);
+	}
 	
+	/**
+	 * Calculate the number of cells in the epithelial layer.
+	 */
 	public int calculateNumberOfAgents () {
 		int numberOfEpithelialCells = 1;
 		for (int i = 0; i < this._numberOfDimensions; i++) {
@@ -164,7 +203,12 @@ public class EpithelialLayerSpawner extends Spawner {
 		return numberOfEpithelialCells;
 	}
 	
-
+	/**
+	 * Create cuboidal epithelial cell, given co-ordinates for the bottom corner
+	 * and calculating the top corner from this._cellSideLengths.
+	 * 
+	 * @param bottomCorner
+	 */
 	public void createEpithelialCell(double[] bottomCorner) {
 		double[] topCorner = new double[bottomCorner.length];
 		for (int j = 0; j < bottomCorner.length; j++) {

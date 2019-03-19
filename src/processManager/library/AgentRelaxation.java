@@ -135,9 +135,9 @@ public class AgentRelaxation extends ProcessManager
 	private Shape _shape;
 	
 	/**
-	 * Collection holds all solid surfaces of the {@link #_shape}.
+	 * Collection holds all solid surfaces of the Compartment.
 	 */
-	private Collection<Surface> _shapeSurfs;
+	private Collection<Surface> _compartmentSurfs;
 	
 	/**
 	 * value under which the relaxation may be considered completed
@@ -202,7 +202,7 @@ public class AgentRelaxation extends ProcessManager
 		
 		/* Surface objects of compartment, FIXME discovered circle returns a 
 		 * rod type shape (2 points) instead of circle (2d sphere, 1 point). */
-		this._shapeSurfs  = this._shape.getSurfaces();
+		this._compartmentSurfs  = agents.getSurfaces();
 		
 		/* Collision iterator */
 		this._iterator = this._shape.getCollision();
@@ -417,7 +417,7 @@ public class AgentRelaxation extends ProcessManager
 			 * TODO friction
 			 * FIXME here we need to selectively apply surface collision methods
 			 */
-			this._iterator.collision(this._shapeSurfs, agentSurfs, 0.0);
+			this._iterator.collision(this._compartmentSurfs, agentSurfs, 0.0);
 			
 			/* NOTE: testing purposes only */
 			if (this._gravity)

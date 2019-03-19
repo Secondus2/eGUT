@@ -1,5 +1,6 @@
 package compartment;
 
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedList;
@@ -33,6 +34,7 @@ import settable.Settable;
 import settable.Module.Requirements;
 import shape.Shape;
 import spatialRegistry.TreeType;
+import surface.Surface;
 import utility.Helper;
 import shape.Dimension.DimName;
 
@@ -77,6 +79,11 @@ public class Compartment implements CanPrelaunchCheck, Instantiable, Settable
 	 * TODO also the resolution calculators?
 	 */
 	protected Shape _shape;
+	/**
+	 * A collection containing the compartment's surfaces, including bounding
+	 * surfaces and potentially the apical surface of the epithelial layer.
+	 */
+	protected Collection<Surface> _compartmentSurfaces;
 	/**
 	 * Scaling factor determines the ratio of real to modelled size.
 	 * All calculations for boundary movement will use this for scaling up from
@@ -153,8 +160,11 @@ public class Compartment implements CanPrelaunchCheck, Instantiable, Settable
 					"\" taking shape \""+aShape.getName()+"\"");
 		this._shape = aShape;
 		this.environment = new EnvironmentContainer(this._shape);
-		this.agents = new AgentContainer(this._shape);
+		this._compartmentSurfaces = this._shape.getSurfaces();
+		this.agents = new AgentContainer(
+				this._shape, this._compartmentSurfaces);
 	}
+
 	/**
 	 * \brief Initialise this {@code Compartment} from an XML node. 
 	 * 
@@ -313,6 +323,11 @@ public class Compartment implements CanPrelaunchCheck, Instantiable, Settable
 		return this._shape;
 	}
 	
+	public Collection<Surface> getSurfaces()
+	{
+		return this._compartmentSurfaces;
+	}
+	
 	public boolean isDimensionless()
 	{
 		return this._shape.getNumberOfDimensions() == 0;
@@ -328,6 +343,13 @@ public class Compartment implements CanPrelaunchCheck, Instantiable, Settable
 		this._shape.setDimensionLengths(sideLengths);
 	}
 	
+	/**
+	 * Add a given surface to this compartment's list of surfaces.
+	 */
+	public void addSurface (Surface surface)
+	{
+		this._compartmentSurfaces.add(surface);
+	}
 	/**
 	 * \brief Add a boundary to this compartment's shape.
 	 * 

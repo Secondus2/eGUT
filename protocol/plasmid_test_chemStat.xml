@@ -47,7 +47,7 @@
 		<compartment name="first">
 			<shape class="Dimensionless" volume="250.0" />
 			<solutes>
-				<solute name="solute1" concentration="0.2" />
+				<solute name="solute1" concentration="0.2" defaultDiffisivity="0.1"/>
 			</solutes>
 			<reactions>
 			</reactions>

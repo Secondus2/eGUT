@@ -180,6 +180,7 @@ public class PlasmidDynamics extends ProcessManager {
 		
 		/*
 		 * Cool down period for the plasmid after conjugation.
+		 * FIXME - cool_down is an aspect, not an item
 		 */
 		double cool_down = (Double) newPlasmid.get(COOL_DOWN_PERIOD);
 		

@@ -49,6 +49,13 @@ public class AgentContainer implements Settable
 	 * {@code Compartment} this {@code AgentContainer} belongs to.
 	 */
 	protected Shape _shape;
+	
+	/**
+	 * Collection of surfaces (generally Planes) that are inherited from the 
+	 * {@code Compartment}
+	 */
+	protected Collection <Surface> _surfaces;
+	
 	/**
 	 * All agents with a spatial location are stored in here (e.g. an RTree).
 	 */
@@ -76,7 +83,7 @@ public class AgentContainer implements Settable
 	 */
 	private Settable _parentNode;
 	
-	/* NOTE removed predicates, use agent.predicate.HasAspect instad.
+	/* NOTE removed predicates, use agent.predicate.HasAspect instead.
 
 	/**
 	 * the type of spatial registry ( setting default value but can be 
@@ -93,15 +100,16 @@ public class AgentContainer implements Settable
 	 * 
 	 * @param aShape {@code Shape} object (see shape.ShapeLibrary).
 	 */
-	public AgentContainer(Shape aShape)
+	public AgentContainer(Shape aShape, Collection <Surface> surfaces)
 	{
 		this._shape = aShape;
 		this.makeAgentTree();
 		this._agentList = new LinkedList<Agent>();
+		this._surfaces = surfaces;
 	}
 
 	/**
-	 * \brief set the spatial tree type used for neighborhood searches
+	 * \brief set the spatial tree type used for neighbourhood searches
 	 * 
 	 * @param type
 	 */
@@ -199,7 +207,15 @@ public class AgentContainer implements Settable
 	{
 		return this._shape;
 	}
-
+	
+	/**
+	 * @return The compartment's surfaces
+	 */
+	public Collection <Surface> getSurfaces()
+	{
+		return this._surfaces;
+	}
+	
 	/**
 	 * @return A count of all {@code Agent}s, including both located and
 	 * non-located.

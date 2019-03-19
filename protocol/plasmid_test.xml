@@ -51,7 +51,7 @@
 				<dimension name="Y" isCyclic="false" targetResolution="1.0" max="50.0"/>
 			</shape>
 			<solutes>
-				<solute name="solute1" concentration="0.2" />
+				<solute name="solute1" concentration="0.2" defaultDiffusivity="0.1"/>
 			</solutes>
 			<reactions>
 			</reactions>
