@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<document>
+	<simulation name="emptyCompartment" outputfolder="../results" log="DEBUG" randomSeed="23"
+						comment="this is a file for testing purposes only.">
+		
+		<timer stepSize="1.0" endOfSimulation="30.0" />
+
+		<compartment name="main">
+			<shape class="Cuboid">
+				<dimension name="X" isCyclic="true" targetResolution="1" max="16.0">
+				</dimension> 
+				<dimension name="Y" isCyclic="false" targetResolution="1" max="32.0">
+				</dimension> 
+				<dimension name="Z" isCyclic="true" targetResolution="1" max="16.0">
+				</dimension> 
+			</shape>
+			<solutes>
+				<solute name="solute1" concentration="0.0" defaultDiffusivity="1"  />
+			</solutes>
+			<reactions>
+				<reaction name="slowInflow">
+					<expression value="1.0 * inflow">
+						<constant name="inflow" value="0.04" />
+					</expression>
+					<stoichiometric component="solute1" coefficient="1.0" />
+				</reaction>
+			</reactions>
+			<processManagers>
+				<process name="svgWriter" class="GraphicalOutput"  priority="-3"
+					firstStep="0.0"  timerStepSize="1.0">
+					<aspect name="outputWriter" type="PRIMARY" class="String" value="SvgExport" />
+				</process>
+				<process name="povWriter" class="GraphicalOutput"  priority="-3"
+					firstStep="0.0"  timerStepSize="1.0">
+					<aspect name="outputWriter" type="PRIMARY" class="String" value="PovExport" />
+				</process>
+				<process name="svgWriter" class="GraphicalOutput"  priority="-3"
+					firstStep="0.0"  timerStepSize="1.0">
+					<aspect name="solute" type="PRIMARY" class="String" value="solute1" />
+					<aspect name="maxConcentration" type="PRIMARY" class="Double" value="2.0" />
+					<aspect name="outputWriter" type="PRIMARY" class="String" value="SvgExport" />
+				</process>
+				<process name="svgWriter" class="GraphicalOutput"  priority="-3"
+					firstStep="0.0"  timerStepSize="1.0">
+					<aspect name="maxConcentration" type="PRIMARY" class="Double" value="2.0" />
+					<aspect name="solute" type="PRIMARY" class="String" value="solute1" />
+					<aspect name="outputWriter" type="PRIMARY" class="String" value="SvgExport" />
+				</process>
+				<process name="svgWriter" class="GraphicalOutput"  priority="-3"
+					firstStep="0.0"  timerStepSize="1.0">
+					<aspect name="maxConcentration" type="PRIMARY" class="Double" value="2.0" />
+					<aspect name="solute" type="PRIMARY" class="String" value="solute1" />
+					<aspect name="arrayType" type="PRIMARY" class="String" value="PRODUCTIONRATE" />
+					<aspect name="outputWriter" type="PRIMARY" class="String" value="SvgExport" />
+				</process>
+				<process name="agentRelax" class="AgentRelaxation"  priority="-2"
+					firstStep="0.0"  timerStepSize="0.1">
+					<aspect name="maxMovement" type="PRIMARY" class="Double" value="0.05" />
+					<aapwxr name="stressThreshold" type="PRIMARY" class="Double" value="1000.0" />
+					<aspect name="relaxationMethod" type="PRIMARY" class="String" value="EULER" />
+				</process>
+				<process name="solveDiffusionTransient" class="SolveDiffusionTransient"  priority="-1"
+					firstStep="0.0" timerStepSize="0.1">
+					<aspect name="soluteNames" type="PRIMARY" class="String[]" value="solute1" /> 
+				</process>
+			</processManagers>
+		</compartment>
+	</simulation>
+</document>

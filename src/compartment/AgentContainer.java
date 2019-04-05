@@ -9,6 +9,7 @@ import java.util.Map;
 
 import agent.Agent;
 import agent.Body;
+import agent.predicate.IsEpithelial;
 import agent.predicate.IsLocated;
 import boundary.Boundary;
 import boundary.SpatialBoundary;
@@ -72,6 +73,11 @@ public class AgentContainer implements Settable
 	 */
 	protected LinkedList<Agent> _agentList = new LinkedList<Agent>();
 
+	/**
+	 * List containing all epithelial agents.
+	 */
+	private LinkedList<Agent> _epithelialAgentList = new LinkedList<Agent>();
+	
 	/**
 	 * All dead agents waiting for their death to be recorded as output before
 	 * they can be removed from memory.
@@ -184,6 +190,8 @@ public class AgentContainer implements Settable
 	{
 		for ( Agent a : this._agentList )
 			a.setCompartment(aCompartment);
+		for ( Agent a : this._epithelialAgentList )
+			a.setCompartment(aCompartment);
 		for ( Agent a : this._locatedAgentList )
 			a.setCompartment(aCompartment);
 	}
@@ -217,13 +225,21 @@ public class AgentContainer implements Settable
 	}
 	
 	/**
-	 * @return A count of all {@code Agent}s, including both located and
-	 * non-located.
+	 * @return A count of all {@code Agent}s, including located, non-located 
+	 * and epithelial.
 	 */
 	public int getNumAllAgents()
 	{
+		return this._agentList.size() + this._locatedAgentList.size()
+		+ this._epithelialAgentList.size();
+	}
+	
+	
+	public int getNumAllNonEpithelialAgents()
+	{
 		return this._agentList.size() + this._locatedAgentList.size();
 	}
+	
 
 	/**
 	 * @return A list of all {@code Agent}s which have a location.
@@ -256,9 +272,31 @@ public class AgentContainer implements Settable
 		LinkedList<Agent> out = new LinkedList<Agent>();
 		out.addAll(this._agentList);
 		out.addAll(this._locatedAgentList);
+		out.addAll(this._epithelialAgentList);
 		return out;
 	}
 
+	/**
+	 * @return A list of all located and epithelial agents.
+	 */
+	public LinkedList<Agent> getAllLocatedAndEpithelialAgents()
+	{
+		LinkedList<Agent> out = new LinkedList<Agent>();
+		out.addAll(this._locatedAgentList);
+		out.addAll(this._epithelialAgentList);
+		return out;	
+	}
+	
+	/**
+	 * A list of all epithelial agents
+	 * @return
+	 */
+	public LinkedList <Agent> getAllEpithelialAgents()
+	{
+		LinkedList<Agent> out = new LinkedList<Agent>();
+		out.addAll(this._epithelialAgentList);
+		return out;	
+	}
 	/* ***********************************************************************
 	 * LOCATED SEARCHES
 	 * **********************************************************************/
@@ -525,6 +563,8 @@ public class AgentContainer implements Settable
 	{
 		if ( IsLocated.isLocated(agent) )
 			this.addLocatedAgent(agent);
+		else if (IsEpithelial.isEpithelial(agent))
+			this._epithelialAgentList.add(agent);
 		else
 			this._agentList.add(agent);
 	}
@@ -659,6 +699,10 @@ public class AgentContainer implements Settable
 		if ( IsLocated.isLocated(anAgent) )
 		{
 			this._locatedAgentList.remove(anAgent);
+		}
+		else if ( IsEpithelial.isEpithelial(anAgent) )
+		{
+			this._epithelialAgentList.remove(anAgent);
 		}
 		else
 			this._agentList.remove(anAgent);

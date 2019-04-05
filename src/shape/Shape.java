@@ -4,6 +4,7 @@ import static dataIO.Log.Tier.BULK;
 import static shape.Dimension.DimName.R;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
@@ -1352,7 +1353,7 @@ public abstract class Shape implements
 	 * @return Continuous location of the corner of this voxel that is furthest
 	 * from its origin.
 	 */
-	protected double[] getVoxelUpperCorner(int[] coord)
+	public double[] getVoxelUpperCorner(int[] coord)
 	{
 		return this.getLocation(coord, VOXEL_All_ONE_HELPER);
 	}
@@ -1372,6 +1373,57 @@ public abstract class Shape implements
 			rC = this.getResolutionCalculator(coord, dim);
 			destination[dim] = rC.getResolution();
 		}
+	}
+	
+	public Collection <int[]> getVoxelsFromVolume (double[] bottomCorner,
+			double[]topCorner) 
+	{
+		Collection <int[]> out = new ArrayList <int[]>();
+		int numDims = bottomCorner.length;
+		int[] bottomCornerVoxel = getCoords (bottomCorner);
+		double[] dimensions = new double[numDims];
+		for (int i = 0; i < numDims; i++)
+			dimensions[i] = topCorner[i] - bottomCorner[i];
+		int[] voxelArray = new int[numDims];
+		for (int i = 0; i < numDims; i++)
+		{
+			ResolutionCalculator rC;
+			rC = this.getResolutionCalculator(bottomCornerVoxel,i);
+			voxelArray[i] = (int) (dimensions[i] / rC.getResolution());
+		}
+		
+		for (int i = 0; i < numDims; i++)
+		{
+			if (voxelArray[i] ==0)
+				voxelArray[i]++;
+		}
+		
+		//countArray counts number of voxels added
+		int[] countArray = new int[numDims];
+		for (int i = 0; i < numDims; i++)
+			countArray[i] = 0;
+		int[] currentVoxel = bottomCornerVoxel.clone();
+		while (countArray[countArray.length - 1] != 
+				voxelArray[voxelArray.length - 1]) 
+		{
+			/*shifter is the dimension in which the currentVoxel index will be
+			increased */
+			int shifter = 0;
+			out.add(currentVoxel.clone());
+			countArray[shifter]++;
+			currentVoxel[shifter] ++;
+			while (countArray[shifter] == voxelArray[shifter]
+					&& shifter < numDims - 1) 
+			{
+					currentVoxel[shifter] = bottomCornerVoxel[shifter];
+					countArray[shifter] = 0;
+					shifter ++;
+					currentVoxel[shifter] ++;
+					countArray[shifter] ++;
+			}
+		}
+		
+		return out;
 	}
 	
 	/* ***********************************************************************

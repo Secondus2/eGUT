@@ -7,6 +7,7 @@ import java.util.List;
 import org.w3c.dom.Element;
 import org.w3c.dom.NodeList;
 
+import agent.Body.Morphology;
 import dataIO.Log;
 import dataIO.Log.Tier;
 import generalInterfaces.Copyable;
@@ -29,6 +30,8 @@ import utility.Helper;
  * collection of points connected by springs of length lengths. This results
  * in a single sphere for coccoid-type agents or a tube for agents described
  * by multiple points.
+ * A cuboid Body contains two Points - a bottom corner and a top corner. It is
+ * assumed that its sides are parallel to the dimensions of the compartment.
  * 
  * @author Bastiaan Cockx @BastiaanCockx (baco@env.dtu.dk), DTU, Denmark
  * @author Robert Clegg (r.j.clegg@bham.ac.uk) University of Birmingham, U.K.
@@ -391,6 +394,11 @@ public class Body implements Copyable, Instantiable, Settable
 			Vector.addEquals(center, p.getPosition());
 		}
 		return Vector.divideEqualsA(center, (double) this.getNumberOfPoints());
+	}
+	
+	public Morphology getMorphology() 
+	{
+		return this._morphology;
 	}
 
 	/*************************************************************************

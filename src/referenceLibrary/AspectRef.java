@@ -79,6 +79,11 @@ public class AspectRef
 	/**
 	 * TODO
 	 */
+	public final static String isEpithelial = "#isEpithelial";
+	
+	/**
+	 * TODO
+	 */
 	public final static String bodyUpdate = "updateBody";
 	
 	/**

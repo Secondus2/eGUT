@@ -15,9 +15,7 @@ public class CuboidSurface extends Surface implements HasBoundingBox {
 	
     public Point[] _points;
 	
-    /**
-     * Rest length of internal springs connecting the points.
-     */
+
     public double _height;
 	
     
@@ -77,10 +75,6 @@ public class CuboidSurface extends Surface implements HasBoundingBox {
 	}
 	
 
-	/*
-	 * FIXME rod bounding box is broken since it receives periodic point
-	 * positions but cannot correct it's bounding box for it
-	 */
 	protected BoundingBox boundingBox = new BoundingBox();
 	
 	 

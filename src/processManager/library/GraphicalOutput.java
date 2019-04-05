@@ -233,7 +233,7 @@ public class GraphicalOutput extends ProcessManager
 			}
 		}
 		/* Draw all located agents. */
-		for ( Agent a: _agents.getAllAgents() )
+		for ( Agent a: _agents.getAllLocatedAndEpithelialAgents() )
 			if ( a.isAspect(BODY) )
 			{
 				List<Surface> surfaces = ((Body) a.getValue(BODY)).getSurfaces();

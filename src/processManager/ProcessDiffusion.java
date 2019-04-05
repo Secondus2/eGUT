@@ -6,6 +6,7 @@ import static grid.ArrayType.PRODUCTIONRATE;
 
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -295,7 +296,7 @@ public abstract class ProcessDiffusion extends ProcessManager
 		 * Reset the agent biomass distribution maps.
 		 */
 		Map<Shape, HashMap<IntegerArray,Double>> mapOfMaps;
-		for ( Agent a : this._agents.getAllLocatedAgents() )
+		for ( Agent a : this._agents.getAllLocatedAndEpithelialAgents())
 		{
 			if ( a.isAspect(VD_TAG) )
 				mapOfMaps = (Map<Shape, HashMap<IntegerArray,Double>>)a.get(VD_TAG);
@@ -333,7 +334,7 @@ public abstract class ProcessDiffusion extends ProcessManager
 					/* Find all agents that overlap with this voxel. */
 					// TODO a method for getting a voxel's bounding box directly?
 					location = Vector.subset(shape.getVoxelOrigin(coord), nDim);
-					shape.getVoxelSideLengthsTo(dimension, coord); //FIXME returns arc lengths with polar coords
+					shape.getVoxelSideLengthsTo(dimension, coord); //FIXME returns arc lengths with polar coords 
 					// FIXME create a bounding box that always captures at least the complete voxel
 					sides = Vector.subset(dimension, nDim);
 					/* NOTE the agent tree is always the amount of actual dimension */
@@ -348,12 +349,12 @@ public abstract class ProcessDiffusion extends ProcessManager
 					nhbs = this._agents.getAllLocatedAgents();
 					
 					/* FIXME total mess, trying to get towards something that at
-					 * least makes some sence
+					 * least makes some sense
 					 */
 					shape.getVoxelSideLengthsTo(dimension, coord); //FIXME returns arc lengths with polar coords
 					// FIXME create a bounding box that always captures at least the complete voxel
 					sides = Vector.subset(dimension, nDim);
-					// FIXME because it does not make any sence to use the ark, try the biggest (probably the R dimension) and half that to be safe.
+					// FIXME because it does not make any sense to use the ark, try the biggest (probably the R dimension) and half that to be safe.
 					minRad = Vector.max(sides) / 2.0; 
 				}
 				
@@ -451,6 +452,90 @@ public abstract class ProcessDiffusion extends ProcessManager
 				distributionMap = mapOfMaps.get(shape);
 				distributionMap.put(coordArray, 1.0);
 			}
+			
+			for (Agent a: this._agents.getAllEpithelialAgents())
+			{
+				Body agentBody = (Body) a.get(AspectRef.agentBody);
+				double[] CornerA = agentBody.getPoints().get(0).getPosition();
+				double[] CornerB = agentBody.getPoints().get(1).getPosition();
+				double[] topCorner;
+				double[] bottomCorner;
+				if (CornerA[0] >= CornerB[0])
+				{
+					topCorner = CornerA;
+					bottomCorner = CornerB;
+				}
+				else
+				{
+					topCorner = CornerB;
+					bottomCorner = CornerA;
+				}
+				Collection <int[]> voxels = shape.getVoxelsFromVolume(
+						bottomCorner,topCorner);
+				mapOfMaps = (Map<Shape, HashMap<IntegerArray,Double>>)
+						a.getValue(VD_TAG);
+				distributionMap = mapOfMaps.get(shape);
+				int voxelNumber = voxels.size();
+				for (int[] coordArray: voxels)
+				{
+					IntegerArray iArray = new IntegerArray(coordArray);
+					distributionMap.put(iArray, (1.0/voxelNumber));
+				}
+			}
+			
+			for (Agent a: this._agents.getAllEpithelialAgents())
+			{
+				Body agentBody = (Body) a.get(AspectRef.agentBody);
+				double[] CornerA = agentBody.getPoints().get(0).getPosition();
+				double[] CornerB = agentBody.getPoints().get(1).getPosition();
+				double[] topCorner;
+				double[] bottomCorner;
+				if (CornerA[0] >= CornerB[0])
+				{
+					topCorner = CornerA;
+					bottomCorner = CornerB;
+				}
+				else
+				{
+					topCorner = CornerB;
+					bottomCorner = CornerA;
+				}
+				int[] bottomVoxel = shape.getCoords(bottomCorner);
+				int[] topVoxel = shape.getCoords(topCorner);
+				double[] bVBottomCorner = shape.getVoxelOrigin(bottomVoxel);
+				double[] tVTopCorner = shape.getVoxelUpperCorner(topVoxel);
+				double[] voxelSideLengths = new double[nDim];
+				shape.getVoxelSideLengthsTo(voxelSideLengths, bottomVoxel);
+				double[] dimensions = new double[nDim];
+				for (int i = 0; i < nDim; i++)
+					dimensions[i] = topCorner[i] - bottomCorner[i];
+				LinkedList<int[]> voxels = (LinkedList<int[]>) 
+						shape.getVoxelsFromVolume(bottomCorner,topCorner);
+				double[] proportions = new double[voxels.size()];
+				for (int v = 0; v < voxels.size(); v++) {
+					boolean skippable = true;
+					for (int i = 0; i < nDim; i++) {
+						if (((double) voxels.get(v)[i] <= bottomCorner[i]) ||
+								((double) voxels.get(v)[i] + voxelSideLengths[i]
+									>= topCorner[i]))
+							skippable = false;	
+					}
+					
+					if (!skippable) {
+						for (int i = 0; i < nDim; i++) {
+							double proportion = 1.0;
+							if ((double) voxels.get(v)[i] <= bottomCorner[i])
+								double proportionInThisDimension = ((double) 
+										voxels.get(v)[i] + voxelSideLengths[i] -
+										bottomCorner[i]) / voxelSideLengths[i];
+								proportion *= proportionInThisDimension;
+							
+						}
+					}
+					else proportions[v] = 1.0;
+				}
+			}
+			
 		}
 		if( Log.shouldWrite(level) )
 			Log.out(level, "Finished setting up agent distribution maps");
@@ -531,7 +616,7 @@ public abstract class ProcessDiffusion extends ProcessManager
 	 */
 	public void removeAgentDistibutionMaps()
 	{
-		for ( Agent a : this._agents.getAllLocatedAgents() )
+		for ( Agent a : this._agents.getAllLocatedAndEpithelialAgents() )
 			a.reg().remove(VD_TAG);
 	}
 }

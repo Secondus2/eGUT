@@ -3,6 +3,7 @@ package compartment.agentStaging;
 import org.w3c.dom.Element;
 import agent.Agent;
 import agent.Body;
+import agent.Body.Morphology;
 import dataIO.Log;
 import dataIO.XmlHandler;
 import dataIO.Log.Tier;
@@ -14,9 +15,18 @@ import referenceLibrary.XmlRef;
 import surface.BoundingBox;
 import surface.Plane;
 import surface.Point;
+import utility.ExtraMath;
 
-
-
+/**
+ * This class produces a layer of epithelial cells as defined in the XML file.
+ * The possible size and shape of the epithelium is tightly restricted, as
+ * can be seen from the checkDimensions() and createApicalSurface() methods.
+ * 
+ * 	 * TODO - this will only produce cuboidal cells. Could create more general
+	 * class for regularly spaced bacterial cells if needed.
+	 * 
+ * @author Tim Foster
+ */
 public class EpithelialLayerSpawner extends Spawner {
 
 	private int _numberOfDimensions;
@@ -32,6 +42,8 @@ public class EpithelialLayerSpawner extends Spawner {
 	private Plane _apicalSurface;
 	
 	private double[][] _layerCorners;
+	
+	private int[] _cellArray;
 
 	public void init(
 		
@@ -58,12 +70,13 @@ public class EpithelialLayerSpawner extends Spawner {
 		this.checkDimensions();
 		
 		this.createApicalSurface();
+		
+		this.calculateCellNumbers();
 
-		this.setNumberOfAgents(this.calculateNumberOfAgents());
 	}
 
 
-	public void spawn() {
+	public void sspawn() {
 		
 		double[] bottomCorner = new double[this._numberOfDimensions];
 		for (int i = 0; i < this._bottomCorner.length; i++) {
@@ -73,7 +86,7 @@ public class EpithelialLayerSpawner extends Spawner {
 		//counter counts number of cells produced
 		int counter = 0;
 
-		while (counter < this.getNumberOfAgents()) {
+		while (counter < this._numberOfAgents) {
 			/*shifter is the dimension in which the bottomCorner value will be
 			increased */
 			int shifter = 0;
@@ -88,6 +101,35 @@ public class EpithelialLayerSpawner extends Spawner {
 			}
 		}
 	
+	}
+	
+	
+	public void spawn() {
+		if (this._numberOfDimensions == 2)
+			spawn(false);
+		else if (this._numberOfDimensions == 3)
+			spawn(true);
+	}
+	
+	public void spawn (boolean thirdDimension) {
+		double[] bottomCorner = new double[this._numberOfDimensions];
+		int[] cellPosition;
+		int xWidth = this._cellArray[0];
+		int yHeight = this._cellArray[1];
+		for (int i = 0; i < this._numberOfAgents; i++) {
+			if (thirdDimension) {
+				cellPosition = ExtraMath.
+					CoordinatesFromLinearIndex(i, xWidth, yHeight);}
+			else {
+				cellPosition = ExtraMath.
+						CoordinatesFromLinearIndex(i, xWidth);
+			}
+			for (int j = 0; j < this._numberOfDimensions; j++) {
+				bottomCorner[j] = 
+						(double) cellPosition[j] * this._cellSideLengths[j];
+			}
+			createEpithelialCell(bottomCorner);
+		}
 	}
 	
 	/**
@@ -194,13 +236,17 @@ public class EpithelialLayerSpawner extends Spawner {
 	/**
 	 * Calculate the number of cells in the epithelial layer.
 	 */
-	public int calculateNumberOfAgents () {
-		int numberOfEpithelialCells = 1;
+	
+	public void calculateCellNumbers () {
+		this._cellArray = new int[this._numberOfDimensions];
+		int agentNumber = 1;
 		for (int i = 0; i < this._numberOfDimensions; i++) {
-			numberOfEpithelialCells *= 
-					this._layerSideLengths[i] / this._cellSideLengths[i];
+			this._cellArray[i] = (int) 
+					(this._layerSideLengths[i] / this._cellSideLengths[i]);
+			agentNumber *= 
+					(this._layerSideLengths[i] / this._cellSideLengths[i]);
 		}
-		return numberOfEpithelialCells;
+		this.setNumberOfAgents(agentNumber);
 	}
 	
 	/**
@@ -220,7 +266,7 @@ public class EpithelialLayerSpawner extends Spawner {
 		Point[] bothPoints = {bCPoint, tCPoint};
 		Agent newEpithelialCell = new Agent(this.getTemplate());
 		newEpithelialCell.set(AspectRef.agentBody, new Body(
-				this.getMorphology(), bothPoints,0,0));
+				Morphology.CUBOID, bothPoints,0,0));
 		newEpithelialCell.setCompartment( this.getCompartment() );
 		newEpithelialCell.registerBirth();
 	}

@@ -97,7 +97,7 @@ public class SpatialGrid implements Settable, Instantiable
 	protected static final Tier SET_VALUE_LEVEL = Tier.BULK;
 	/**
 	 * \brief Log file verbosity level used for debugging the flux from the
-	 * neighbor iterator voxel into the current iterator voxel.
+	 * neighbour iterator voxel into the current iterator voxel.
 	 * 
 	 * <ul><li>Set to {@code BULK} for normal simulations</li>
 	 * <li>Set to {@code DEBUG} when trying to debug an issue</li></ul>

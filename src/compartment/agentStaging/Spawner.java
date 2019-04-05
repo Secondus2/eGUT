@@ -30,7 +30,7 @@ public abstract class Spawner implements Settable, Instantiable {
 	
 	private Agent _template;
 	
-	private int _numberOfAgents;
+	protected int _numberOfAgents;
 	
 	private int _priority;
 	

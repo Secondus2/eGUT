@@ -955,5 +955,70 @@ public final class ExtraMath
 			out = mu + ( sd * getNormRand() );
 		} while ( ! sameSign(out, mu) );
 		return out;
-	}                           
+	}
+	
+	/**
+	 * Given the coordinates of an item in a 2D array, this gives the linear 
+	 * index of that item, assuming you count 0 to X in the X direction and
+	 * then jump down into the next line in the Y direction.
+	 * @param xCoord
+	 * @param yCoord
+	 * @param xWidth
+	 * @return
+	 */
+	public static int linearIndexFromCoordinates (
+			int xCoord, int yCoord, int xWidth) {
+		return xCoord + (yCoord*xWidth);
+	}
+	
+	/**
+	 * Given the coordinates of an item in a 3D array, this gives the linear 
+	 * index of that item, assuming you count in the X direction, then the Y
+	 * direction, then the Z direction.
+	 * @param xCoord
+	 * @param yCoord
+	 * @param zCoord
+	 * @param xWidth
+	 * @param yHeight
+	 * @return
+	 */
+	public static int linearIndexFromCoordinates (
+			int xCoord, int yCoord, int zCoord, int xWidth, int yHeight) {
+		return xCoord + (yCoord*xWidth) + (zCoord*xWidth*yHeight);
+	}
+	
+	/**
+	 * This gives the co-ordinates of an item in a 2D array given the array's
+	 * width in the X-direction and the linear index of the item. Assumes you
+	 * count in the X direction first.
+	 * @param linearIndex
+	 * @param xWidth
+	 * @return
+	 */
+	public static int[] CoordinatesFromLinearIndex (
+			int linearIndex, int xWidth){
+		int[] out = new int[2];
+		out[0] = linearIndex % xWidth;
+		out[1] = linearIndex/xWidth;
+		return out;
+	}
+	
+	/**
+	 * This gives the co-ordinates of an item in a 3D array given the array's
+	 * width in the X-direction, height in the Y direction and the linear index
+	 * of the item. Assumes you count in the X direction, then the Y direction,
+	 * then the Z direction.
+	 * @param linearIndex
+	 * @param xWidth
+	 * @param yHeight
+	 * @return
+	 */
+	public static int[] CoordinatesFromLinearIndex (
+			int linearIndex, int xWidth, int yHeight) {
+		int[] out = new int [3];
+		out[0] = linearIndex % xWidth;
+		out[1] = (linearIndex/xWidth) % yHeight;
+		out[2] = linearIndex/(xWidth*yHeight);
+		return out; 
+	}
 }
