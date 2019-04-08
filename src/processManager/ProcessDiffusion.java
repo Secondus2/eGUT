@@ -4,6 +4,7 @@ import static dataIO.Log.Tier.BULK;
 import static grid.ArrayType.CONCN;
 import static grid.ArrayType.PRODUCTIONRATE;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.LinkedList;
@@ -452,7 +453,7 @@ public abstract class ProcessDiffusion extends ProcessManager
 				distributionMap = mapOfMaps.get(shape);
 				distributionMap.put(coordArray, 1.0);
 			}
-			
+			/**
 			for (Agent a: this._agents.getAllEpithelialAgents())
 			{
 				Body agentBody = (Body) a.get(AspectRef.agentBody);
@@ -482,7 +483,7 @@ public abstract class ProcessDiffusion extends ProcessManager
 					distributionMap.put(iArray, (1.0/voxelNumber));
 				}
 			}
-			
+			**/
 			for (Agent a: this._agents.getAllEpithelialAgents())
 			{
 				Body agentBody = (Body) a.get(AspectRef.agentBody);
@@ -501,38 +502,60 @@ public abstract class ProcessDiffusion extends ProcessManager
 					bottomCorner = CornerA;
 				}
 				int[] bottomVoxel = shape.getCoords(bottomCorner);
-				int[] topVoxel = shape.getCoords(topCorner);
-				double[] bVBottomCorner = shape.getVoxelOrigin(bottomVoxel);
-				double[] tVTopCorner = shape.getVoxelUpperCorner(topVoxel);
 				double[] voxelSideLengths = new double[nDim];
 				shape.getVoxelSideLengthsTo(voxelSideLengths, bottomVoxel);
 				double[] dimensions = new double[nDim];
 				for (int i = 0; i < nDim; i++)
 					dimensions[i] = topCorner[i] - bottomCorner[i];
-				LinkedList<int[]> voxels = (LinkedList<int[]>) 
+				ArrayList<int[]> voxels = (ArrayList<int[]>) 
 						shape.getVoxelsFromVolume(bottomCorner,topCorner);
 				double[] proportions = new double[voxels.size()];
 				for (int v = 0; v < voxels.size(); v++) {
 					boolean skippable = true;
 					for (int i = 0; i < nDim; i++) {
-						if (((double) voxels.get(v)[i] <= bottomCorner[i]) ||
+						if (((double) voxels.get(v)[i] < bottomCorner[i]) ||
 								((double) voxels.get(v)[i] + voxelSideLengths[i]
-									>= topCorner[i]))
+									> topCorner[i]))
 							skippable = false;	
 					}
 					
 					if (!skippable) {
+						double proportion = 1.0;
 						for (int i = 0; i < nDim; i++) {
-							double proportion = 1.0;
 							if ((double) voxels.get(v)[i] <= bottomCorner[i])
-								double proportionInThisDimension = ((double) 
+							{
+								double proportionInThisDimension;
+								proportionInThisDimension = ((double) 
 										voxels.get(v)[i] + voxelSideLengths[i] -
 										bottomCorner[i]) / voxelSideLengths[i];
 								proportion *= proportionInThisDimension;
+							}
+							//A cell could span the whole layer in one dimension make this another if
+							else if ((double) voxels.get(v)[i] + voxelSideLengths[i] >= topCorner[i])
+							{
+								double proportionInThisDimension;
+								proportionInThisDimension = ((double) 
+										topCorner[i] - voxels.get(v)[i])
+										/ voxelSideLengths[i];
+								proportion *= proportionInThisDimension;
+							}
 							
+							else proportion *= 1.0;
 						}
+						proportions[v] = proportion;
 					}
 					else proportions[v] = 1.0;
+				}
+				double totalOfProportions = 0.0;
+				for (int i = 0; i < proportions.length; i++)
+				{totalOfProportions += proportions[i];}
+				mapOfMaps = (Map<Shape, HashMap<IntegerArray,Double>>)
+						a.getValue(VD_TAG);
+				distributionMap = mapOfMaps.get(shape);
+				for (int i = 0; i < voxels.size(); i++)
+				{
+					IntegerArray iArray = new IntegerArray(voxels.get(i));
+					distributionMap.put(iArray, (proportions[i]/totalOfProportions));
 				}
 			}
 			
