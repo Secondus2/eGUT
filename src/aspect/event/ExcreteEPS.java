@@ -4,6 +4,7 @@ import java.util.Map;
 
 import agent.Agent;
 import agent.Body;
+import agent.Body.Morphology;
 import aspect.AspectInterface;
 import aspect.Event;
 import compartment.Compartment;
@@ -11,6 +12,7 @@ import dataIO.Log;
 import dataIO.Log.Tier;
 import linearAlgebra.Vector;
 import referenceLibrary.AspectRef;
+import surface.CuboidSurface;
 import surface.Point;
 import utility.ExtraMath;
 
@@ -58,15 +60,49 @@ public class ExcreteEPS extends Event
 		 * While the agent has more EPS than the "blob", excrete EPS particles.
 		 */
 		Body body = (Body) initiator.getValue(BODY);
+		Morphology morphology = body.getMorphology();
 		String epsSpecies = initiator.getString(EPS_SPECIES);
 		Compartment comp = ((Agent) initiator).getCompartment();
+		double[] epsPos;
 		while ( currentEPS > epsBlob )
 		{
-			double[] originalPos = body.getPosition(0);
-			double[] shift = Vector.randomPlusMinus(originalPos.length, 
-					0.6 * initiator.getDouble(RADIUS));
-			double[] epsPos = Vector.minus(originalPos, shift);
-			// FIXME this is not correct, calculate with density
+			if (morphology == Morphology.CUBOID) {
+				CuboidSurface cuboidSurface = (CuboidSurface) body.
+						getSurfaces().get(0);
+				Point[] apicalFace = cuboidSurface.getApicalFace();
+				double[] corner1 = apicalFace[0].getPosition();
+				double[] corner2 = apicalFace[1].getPosition();
+				double[] randomPointOnFace = new double[corner1.length];
+				for (int i = 0; i < corner1.length; i++) {
+					randomPointOnFace[i] = 
+							ExtraMath.getUniRand(corner1[i], corner2[i]);
+				}
+				epsPos = randomPointOnFace;
+				}
+				//Fairly rough - allows EPS to be excreted at either "end" of a
+				//rod cell, but does not prevent the EPS appearing inside the
+				//cell.
+			else if (morphology == Morphology.BACILLUS) {
+				int rodEnd;
+				if (ExtraMath.getRandBool())
+					rodEnd = 0;
+				else
+					rodEnd = 1;
+				double[] originalPos = body.getPosition(rodEnd);
+				double[] shift = Vector.randomPlusMinus(originalPos.length, 
+						0.6 * initiator.getDouble(RADIUS));
+				epsPos = Vector.minus(originalPos, shift);
+				// FIXME this is not correct, calculate with density
+			}
+			
+			else {
+				double[] originalPos = body.getPosition(0);
+				double[] shift = Vector.randomPlusMinus(originalPos.length, 
+						0.6 * initiator.getDouble(RADIUS));
+				epsPos = Vector.minus(originalPos, shift);
+				// FIXME this is not correct, calculate with density
+			}
+			
 			compliant = new Agent(epsSpecies, 
 					new Body(new Point(epsPos),0.0),
 					comp); 

@@ -22,7 +22,8 @@
 							</expression>
 							<stoichiometric component="mass" coefficient="1.0" />
 							<stoichiometric component="solute1" coefficient="-5.0" />
-							<stoichiometric component="solute2" coefficient="5.0" />
+							<stoichiometric component="solute2" coefficient="4.0" />
+							<stoichiometric component="eps" coefficient="1.0" />
 						</reaction> 
  					</list>
 				</aspect>
@@ -36,6 +37,21 @@
 				<aspect name="divide" 			type="EVENT" 		class="CuboidDivision"		 />
 				<aspect name="#isEpithelial" 	type="PRIMARY" 		class="Boolean" value="true" />
 				<aspect name="updateBody" 		type="EVENT" 		class="UpdateBody" 	 />
+				<aspect name="epsExcretion" 	type="EVENT"		class="ExcreteEPS" 	 />
+				<aspect name="maxInternalEPS" 	type="PRIMARY" 		class="Double" value="0.03" />
+				<aspect name="epsSpecies" 		type="PRIMARY" 		class="String" value="particleEPS" />
+			</species>
+			<species name="particleEPS">
+				<aspect name="density" 			type="PRIMARY" 		class="Double" value="1" />
+				<aspect name="pigment" 			type="PRIMARY" 		class="String" value="BLUE" />
+				<aspect name="#isLocated" 		type="PRIMARY" 		class="Boolean" value="true" />
+				<aspect name="surfaces"			type="CALCULATED"	class="AgentSurfaces" />
+				<aspect name="morphology" 		type="PRIMARY" 		class="String" />
+				<aspect name="volume" 			type="CALCULATED" 	class="SimpleVolumeState" />
+				<aspect name="radius" 			type="CALCULATED" 	class="CoccoidRadius" />
+				<aspect name="updateBody" 		type="EVENT" 		class="UpdateBody" />
+				<aspect name="evaluatePull"		type="EVENT"		class="ResolveInteractionDistance" />
+				<aspect name="searchDist"		type="PRIMARY" 		class="Double"		value="0.1"  />
 			</species>
 			<species name="bacterium">
 				<aspect name="reactions" type="PRIMARY" class="InstantiableList">
@@ -69,22 +85,22 @@
 		</speciesLib>
 		<compartment name="main">
 			<shape class="Cuboid">
-				<dimension name="X" isCyclic="true" targetResolution="1" max="16.0">
+				<dimension name="X" isCyclic="true" targetResolution="2" max="30.0">
 				</dimension> 
-				<dimension name="Y" isCyclic="false" targetResolution="1" max="32.0">
+				<dimension name="Y" isCyclic="false" targetResolution="2" max="30.0">
 					<boundary class="FixedBoundary" extreme="1">
 						<solute name="solute1" concentration="1.0"/>
 						<solute name="solute2" concentration="0.0"/>
 					</boundary>
 				</dimension> 
-				<dimension name="Z" isCyclic="true" targetResolution="1" max="16.0">
+				<dimension name="Z" isCyclic="true" targetResolution="2" max="30.0">
 				</dimension> 
 			</shape>
 			<solutes>
 				<solute name="solute1" concentration="1.0" defaultDiffusivity="1"  />
 				<solute name="solute2" concentration="0.1"  defaultDiffusivity="1" />
 			</solutes>
-			<spawn class="epithelialLayerSpawner" domain="16.0, 2.0, 16.0" cellShape="2.0, 2.0, 2.0" priority="0">
+			<spawn class="epithelialLayerSpawner" domain="30.0, 3.0, 30.0" cellShape="3.0, 3.0, 3.0" priority="0">
 					<templateAgent>
 						<aspect name="volumeDistribution" type="PRIMARY" class="HashMap">
 						</aspect>
@@ -92,25 +108,9 @@
 						<aspect name="mass" type="PRIMARY" class="Double" value="0.2" />
 						<aspect name="density" type="PRIMARY" class="Double" value="1" />
 						<aspect name="pigment" type="PRIMARY" class="String" value="RED" />
+						<aspect name="eps" type="PRIMARY" class="Double" value="0.0" />
 					</templateAgent>
 			</spawn>
-			<agents>
-				<agent>
-					<aspect name="volumeDistribution" type="PRIMARY" class="HashMap">
-					</aspect>				
-					<aspect name="species" type="PRIMARY" class="String" value="bacterium" />
-					<aspect name="massMap" class="InstantiableMap">
-						<map entryClass="Double" keyType="String">
-							<item key="bioMass" value="0.2"  />
-						</map>
-					</aspect>
-					<aspect name="density" type="PRIMARY" class="Double" value="1" />
-					<aspect name="pigment" type="PRIMARY" class="String" value="GREEN" />
-					<aspect name="body" type="PRIMARY" class="Body">
-						<point position="8.0,5.0,8.0" />
-					</aspect>
-				</agent>
-			</agents>
 			<processManagers>
 				<process name="svgWriter" class="GraphicalOutput"  priority="-3"
 					firstStep="0.0"  timerStepSize="1.0">

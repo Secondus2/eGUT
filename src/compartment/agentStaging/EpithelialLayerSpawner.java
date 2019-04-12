@@ -16,11 +16,14 @@ import surface.BoundingBox;
 import surface.Plane;
 import surface.Point;
 import utility.ExtraMath;
+import shape.Dimension;
+import shape.Dimension.DimName;
+import shape.Shape;
 
 /**
  * This class produces a layer of epithelial cells as defined in the XML file.
  * The possible size and shape of the epithelium is tightly restricted, as
- * can be seen from the checkDimensions() and createApicalSurface() methods.
+ * can be seen from the checkDimensions() and orientEpithelialLayer() methods.
  * 
  * 	 * TODO - this will only produce cuboidal cells. Could create more general
 	 * class for regularly spaced bacterial cells if needed.
@@ -38,6 +41,8 @@ public class EpithelialLayerSpawner extends Spawner {
 	private double[] _bottomCorner;
 	
 	private double[] _topCorner;
+	
+	private double[] _apicalCorner;
 	
 	private Plane _apicalSurface;
 	
@@ -69,14 +74,14 @@ public class EpithelialLayerSpawner extends Spawner {
 		
 		this.checkDimensions();
 		
-		this.createApicalSurface();
+		this.orientEpithelialLayer();
 		
 		this.calculateCellNumbers();
 
 	}
 
-
-	public void sspawn() {
+/** SIMPLER METHOD. THIS MAY BE PREFERABLE.
+	public void spawn() {
 		
 		double[] bottomCorner = new double[this._numberOfDimensions];
 		for (int i = 0; i < this._bottomCorner.length; i++) {
@@ -87,8 +92,8 @@ public class EpithelialLayerSpawner extends Spawner {
 		int counter = 0;
 
 		while (counter < this._numberOfAgents) {
-			/*shifter is the dimension in which the bottomCorner value will be
-			increased */
+			//shifter is the dimension in which the bottomCorner value will be
+			//increased.
 			int shifter = 0;
 			createEpithelialCell(bottomCorner);
 			counter++;
@@ -102,8 +107,8 @@ public class EpithelialLayerSpawner extends Spawner {
 		}
 	
 	}
-	
-	
+**/
+
 	public void spawn() {
 		if (this._numberOfDimensions == 2)
 			spawn(false);
@@ -113,20 +118,21 @@ public class EpithelialLayerSpawner extends Spawner {
 	
 	public void spawn (boolean thirdDimension) {
 		double[] bottomCorner = new double[this._numberOfDimensions];
-		int[] cellPosition;
+		int[] cellCoordinates;
 		int xWidth = this._cellArray[0];
 		int yHeight = this._cellArray[1];
 		for (int i = 0; i < this._numberOfAgents; i++) {
 			if (thirdDimension) {
-				cellPosition = ExtraMath.
+				cellCoordinates = ExtraMath.
 					CoordinatesFromLinearIndex(i, xWidth, yHeight);}
 			else {
-				cellPosition = ExtraMath.
+				cellCoordinates = ExtraMath.
 						CoordinatesFromLinearIndex(i, xWidth);
 			}
 			for (int j = 0; j < this._numberOfDimensions; j++) {
 				bottomCorner[j] = 
-						(double) cellPosition[j] * this._cellSideLengths[j];
+						this._bottomCorner[j] + 
+						((double) cellCoordinates[j] * this._cellSideLengths[j]);
 			}
 			createEpithelialCell(bottomCorner);
 		}
@@ -202,19 +208,44 @@ public class EpithelialLayerSpawner extends Spawner {
 	 * simulation if it cannot be calculated, and adds a plane to the
 	 * Compartment, corresponding to the apical surface of the epithelium
 	 */
-	public void createApicalSurface()
+	public void orientEpithelialLayer()
 	{
 		//count tracks how many dimensions the epithelium does not fully span
 		int count = 0;
 		double[] normal = new double[this._numberOfDimensions];
+		Shape compartmentShape = this.getCompartment().getShape();
 		for (int i = 0; i < this._numberOfDimensions; i++) {
-			if (this._layerSideLengths[i] == 
-					this.getCompartment().getShape().getDimensionLengths()[i]) {
+			if (this._layerSideLengths[i] == compartmentShape.
+					getDimensionLengths()[i]) 
 				normal[i] = 0.0;
-			}
 			
 			else {
-				normal[i] = 1.0;
+				DimName dimName = compartmentShape.getDimensionName(i);
+				Dimension dim = compartmentShape.getDimension(dimName);
+				double dimBottom = dim.getExtreme(0);
+				double dimTop = dim.getExtreme(1);
+				if (this._bottomCorner[i] == dimBottom)
+				{
+					//The cells sit along the bottom of the dimension, so the 
+					//epithelial layer faces "up" (+1.0)
+					normal[i] = 1.0;
+					this._apicalCorner = this._topCorner;
+				}
+				else if (this._topCorner[i] == dimTop)
+				{
+					//The cells sit along the top of the dimension, so the 
+					//epithelial layer faces "down" (-1.0)
+					normal[i] = -1.0;
+					this._apicalCorner = this._bottomCorner;
+				}
+				else
+				{
+					if( Log.shouldWrite(Tier.CRITICAL))
+						Log.out(Tier.CRITICAL, "Epithelial layer must lie at "
+								+ "the extreme of a dimension.");
+					Idynomics.simulator.interupt("Epithelial layer must lie "
+							+ "at the extreme of a dimension");
+				}
 				count++;
 			}
 		}
@@ -229,7 +260,7 @@ public class EpithelialLayerSpawner extends Spawner {
 					+ "not span the compartment");
 		}
 		
-		this._apicalSurface = new Plane(normal, this._topCorner);
+		this._apicalSurface = new Plane(normal, this._apicalCorner);
 		this.getCompartment().addSurface(this._apicalSurface);
 	}
 	
@@ -266,7 +297,7 @@ public class EpithelialLayerSpawner extends Spawner {
 		Point[] bothPoints = {bCPoint, tCPoint};
 		Agent newEpithelialCell = new Agent(this.getTemplate());
 		newEpithelialCell.set(AspectRef.agentBody, new Body(
-				Morphology.CUBOID, bothPoints,0,0));
+				bothPoints, this._apicalSurface.normal));
 		newEpithelialCell.setCompartment( this.getCompartment() );
 		newEpithelialCell.registerBirth();
 	}

@@ -1,5 +1,6 @@
 package agent;
 
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
@@ -133,6 +134,9 @@ public class Body implements Copyable, Instantiable, Settable
 	{
 		this._points.add(points[0]);
 		this._points.add(points[1]);
+		orderPoints();
+		points[0] = this._points.get(0);
+		points[1] = this._points.get(1);
 		this._morphology = Morphology.CUBOID;
 		this._surfaces.add(new CuboidSurface(points));
 	}
@@ -216,6 +220,9 @@ public class Body implements Copyable, Instantiable, Settable
 			case CUBOID :
 				this._points.add(points[0]);
 				this._points.add(points[1]);
+				orderPoints();
+				points[0] = this._points.get(0);
+				points[1] = this._points.get(1);
 				this._morphology = Morphology.CUBOID;
 				this._surfaces.add(new CuboidSurface(points));
 			default: 
@@ -265,6 +272,23 @@ public class Body implements Copyable, Instantiable, Settable
 		this(points, 0.0, 0.0);
 	}
 
+	/**
+	 * Body is constructed with the normal vector of the 
+	 * EpithelialLayerSpawner._apicalSurface. This allows the cuboidal agent to
+	 * "know" its orientation with respect to the compartment (i.e. - it's 
+	 * lumen/apical side and basal/blood sides).
+	 * @param points
+	 * @param apicalNormal
+	 */
+	public Body(Point[] points, double[] apicalNormal) {
+		this._points.add(points[0]);
+		this._points.add(points[1]);
+		orderPoints();
+		points[0] = this._points.get(0);
+		points[1] = this._points.get(1);
+		this._morphology = Morphology.CUBOID;
+		this._surfaces.add(new CuboidSurface(points, apicalNormal));
+	}
 	/**
 	 * quick solution to create body from string
 	 * @param input
@@ -435,6 +459,18 @@ public class Body implements Copyable, Instantiable, Settable
 			Vector.addEquals(vector, p.getPosition());
 			p.setPosition(vector);
 		}
+	}
+	
+	//This method is used to ensure that two points in a Cuboid Body are in the
+	//correct order, with the bottom corner at index 0 and the top corner at
+	//index 1. This method could potentially be moved to the CuboidSurface.
+	public void orderPoints() {
+		for (int i = 0; i < this._points.size(); i++) {
+			if (this._points.get(1).getPosition()[i] > 
+			this._points.get(0).getPosition()[i])
+				return;
+		}
+		Collections.swap(this._points, 0, 1);
 	}
 	
 	public Module getModule() {

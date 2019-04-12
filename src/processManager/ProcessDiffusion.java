@@ -453,7 +453,10 @@ public abstract class ProcessDiffusion extends ProcessManager
 				distributionMap = mapOfMaps.get(shape);
 				distributionMap.put(coordArray, 1.0);
 			}
-			/**
+			
+/**			SIMPLE METHOD ASSUMING THAT CELLS ARE IN LINE WITH THE SPATIAL GRID.
+ * 			CAN BE IMPLEMENTED ONCE WE HAVE A METHOD FOR DETERMINING WHETHER
+ * 			THIS IS THE CASE.
 			for (Agent a: this._agents.getAllEpithelialAgents())
 			{
 				Body agentBody = (Body) a.get(AspectRef.agentBody);
@@ -483,79 +486,103 @@ public abstract class ProcessDiffusion extends ProcessManager
 					distributionMap.put(iArray, (1.0/voxelNumber));
 				}
 			}
-			**/
+**/			
+			
+			/**
+			 * Set up agent distribution maps for epithelial cells. This assumes
+			 * that the epithelial cells are at least as big as voxels in all 
+			 * dimensions.
+			 */
 			for (Agent a: this._agents.getAllEpithelialAgents())
 			{
 				Body agentBody = (Body) a.get(AspectRef.agentBody);
-				double[] CornerA = agentBody.getPoints().get(0).getPosition();
-				double[] CornerB = agentBody.getPoints().get(1).getPosition();
-				double[] topCorner;
-				double[] bottomCorner;
-				if (CornerA[0] >= CornerB[0])
-				{
-					topCorner = CornerA;
-					bottomCorner = CornerB;
-				}
-				else
-				{
-					topCorner = CornerB;
-					bottomCorner = CornerA;
-				}
-				int[] bottomVoxel = shape.getCoords(bottomCorner);
+				double[] cellBottomCorner = 
+						agentBody.getPoints().get(0).getPosition();
+				double[] cellTopCorner = 
+						agentBody.getPoints().get(1).getPosition();
+				int[] bottomVoxel = shape.getCoords(cellBottomCorner);
 				double[] voxelSideLengths = new double[nDim];
 				shape.getVoxelSideLengthsTo(voxelSideLengths, bottomVoxel);
 				double[] dimensions = new double[nDim];
+				
 				for (int i = 0; i < nDim; i++)
-					dimensions[i] = topCorner[i] - bottomCorner[i];
+					dimensions[i] = cellTopCorner[i] - cellBottomCorner[i];
+				
 				ArrayList<int[]> voxels = (ArrayList<int[]>) 
-						shape.getVoxelsFromVolume(bottomCorner,topCorner);
+					shape.getVoxelsFromVolume(cellBottomCorner,cellTopCorner);
+				
 				double[] proportions = new double[voxels.size()];
+				
+				//This loop calculates the proportion of a voxel that is taken
+				//by the given agent. It does this by finding the proportion in
+				//each dimension and multiplying these together.
 				for (int v = 0; v < voxels.size(); v++) {
-					boolean skippable = true;
-					for (int i = 0; i < nDim; i++) {
-						if (((double) voxels.get(v)[i] < bottomCorner[i]) ||
-								((double) voxels.get(v)[i] + voxelSideLengths[i]
-									> topCorner[i]))
-							skippable = false;	
-					}
 					
-					if (!skippable) {
-						double proportion = 1.0;
-						for (int i = 0; i < nDim; i++) {
-							if ((double) voxels.get(v)[i] <= bottomCorner[i])
+					double proportion = 1.0;
+					
+					for (int i = 0; i < nDim; i++) {
+						double proportionInThisDimension;
+						double voxelLower = 
+							(double) voxels.get(v)[i] * voxelSideLengths[i];
+						double voxelUpper = voxelLower + voxelSideLengths[i];
+						
+						if (voxelLower < cellBottomCorner[i])
+						{
+							if (voxelUpper > cellTopCorner[i])
 							{
-								double proportionInThisDimension;
-								proportionInThisDimension = ((double) 
-										voxels.get(v)[i] + voxelSideLengths[i] -
-										bottomCorner[i]) / voxelSideLengths[i];
-								proportion *= proportionInThisDimension;
-							}
-							//A cell could span the whole layer in one dimension make this another if
-							else if ((double) voxels.get(v)[i] + voxelSideLengths[i] >= topCorner[i])
-							{
-								double proportionInThisDimension;
-								proportionInThisDimension = ((double) 
-										topCorner[i] - voxels.get(v)[i])
-										/ voxelSideLengths[i];
-								proportion *= proportionInThisDimension;
+								proportionInThisDimension = (cellTopCorner[i] 
+									- cellBottomCorner[i])/voxelSideLengths[i];
 							}
 							
-							else proportion *= 1.0;
+							else
+							{	
+								proportionInThisDimension = (voxelUpper - 
+									cellBottomCorner[i]) / voxelSideLengths[i];
+							}
 						}
-						proportions[v] = proportion;
+						
+						else if (voxelUpper > cellTopCorner[i])
+						{
+							proportionInThisDimension = (cellTopCorner[i] - 
+								voxelLower) / voxelSideLengths[i];
+						}
+						
+						else proportionInThisDimension = 1.0;
+						proportion *= proportionInThisDimension;
 					}
-					else proportions[v] = 1.0;
+					
+					proportions[v] = proportion;
 				}
+				
+				ArrayList <Double> proportionList = new ArrayList <Double>();
+				
 				double totalOfProportions = 0.0;
+				
+				int removalCounter = 0;
 				for (int i = 0; i < proportions.length; i++)
-				{totalOfProportions += proportions[i];}
+				{
+					if (proportions[i] !=0)
+					{
+					totalOfProportions += proportions[i];
+					proportionList.add(proportions[i]);
+					}
+					else
+					{
+						voxels.remove(i - removalCounter);
+						removalCounter++;
+					}
+				}
+				
 				mapOfMaps = (Map<Shape, HashMap<IntegerArray,Double>>)
 						a.getValue(VD_TAG);
+				
 				distributionMap = mapOfMaps.get(shape);
+				
 				for (int i = 0; i < voxels.size(); i++)
 				{
 					IntegerArray iArray = new IntegerArray(voxels.get(i));
-					distributionMap.put(iArray, (proportions[i]/totalOfProportions));
+					distributionMap.put
+						(iArray, (proportionList.get(i)/totalOfProportions));
 				}
 			}
 			

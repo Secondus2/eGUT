@@ -1375,6 +1375,14 @@ public abstract class Shape implements
 		}
 	}
 	
+	/**
+	 * Returns a collection of voxels which at least cover the area between
+	 * the two given corners.
+	 * @param bottomCorner
+	 * @param topCorner
+	 * @return Collection <int[]> out (a collection of voxel coordinates 
+	 * (counted in voxel number, not the compartment's length units))
+	 */
 	public Collection <int[]> getVoxelsFromVolume (double[] bottomCorner,
 			double[]topCorner) 
 	{
@@ -1389,13 +1397,8 @@ public abstract class Shape implements
 		{
 			ResolutionCalculator rC;
 			rC = this.getResolutionCalculator(bottomCornerVoxel,i);
-			voxelArray[i] = (int) (dimensions[i] / rC.getResolution());
-		}
-		
-		for (int i = 0; i < numDims; i++)
-		{
-			if (voxelArray[i] ==0)
-				voxelArray[i]++;
+			//Calculate the number of voxels in each dimension
+			voxelArray[i] = (int) Math.ceil(dimensions[i] / rC.getResolution());
 		}
 		
 		//countArray counts number of voxels added
@@ -1404,7 +1407,7 @@ public abstract class Shape implements
 			countArray[i] = 0;
 		int[] currentVoxel = bottomCornerVoxel.clone();
 		while (countArray[countArray.length - 1] != 
-				voxelArray[voxelArray.length - 1]) 
+				voxelArray[voxelArray.length - 1])
 		{
 			/*shifter is the dimension in which the currentVoxel index will be
 			increased */
