@@ -287,7 +287,7 @@ public class Body implements Copyable, Instantiable, Settable
 		points[0] = this._points.get(0);
 		points[1] = this._points.get(1);
 		this._morphology = Morphology.CUBOID;
-		this._surfaces.add(new CuboidSurface(points, apicalNormal));
+		this._surfaces.add(new OrientedCuboidSurface(points, apicalNormal));
 	}
 	/**
 	 * quick solution to create body from string

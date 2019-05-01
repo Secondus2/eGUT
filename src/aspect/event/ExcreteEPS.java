@@ -13,6 +13,7 @@ import dataIO.Log.Tier;
 import linearAlgebra.Vector;
 import referenceLibrary.AspectRef;
 import surface.CuboidSurface;
+import surface.OrientedCuboidSurface;
 import surface.Point;
 import utility.ExtraMath;
 
@@ -67,8 +68,8 @@ public class ExcreteEPS extends Event
 		while ( currentEPS > epsBlob )
 		{
 			if (morphology == Morphology.CUBOID) {
-				CuboidSurface cuboidSurface = (CuboidSurface) body.
-						getSurfaces().get(0);
+				OrientedCuboidSurface cuboidSurface = 
+						(OrientedCuboidSurface) body.getSurfaces().get(0);
 				Point[] apicalFace = cuboidSurface.getApicalFace();
 				double[] corner1 = apicalFace[0].getPosition();
 				double[] corner2 = apicalFace[1].getPosition();

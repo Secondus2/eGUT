@@ -1,6 +1,5 @@
 package surface;
 
-import agent.Body;
 import generalInterfaces.HasBoundingBox;
 import shape.Shape;
 import surface.BoundingBox;
@@ -15,15 +14,9 @@ public class CuboidSurface extends Surface implements HasBoundingBox {
 	
     public Point[] _points;
 	
-    
-    private Point[] _apicalFace;
 
-    
     public double _height;
 
-
-	private double[] _apicalNormal;
-	
     
     public CuboidSurface(Point[] points)
     {
@@ -47,50 +40,10 @@ public class CuboidSurface extends Surface implements HasBoundingBox {
 	}
 
 
-	public CuboidSurface(Point[] points, double[] apicalNormal) {
-		this._points = points;
-		this._apicalNormal = apicalNormal;
-		this.calculateApicalFace();
-	}
-
 	public Type type() {
 		return Surface.Type.CUBOID;
 	}
 
-
-	//This will calculate the two corners of the apical face of a cell. In 2D,
-	//these will be two corners on a line (describing an edge). In 3D, they will
-	//be two corners of a square or rectangle.
-	public void calculateApicalFace()
-	{
-		this._apicalFace = new Point[2];
-		for (int i = 0; i < this._apicalNormal.length; i++) {
-			//If the apical normal is negative, it is "facing downwards", and 
-			//the bottom corner of the cell is part of its apical face.
-			if (this._apicalNormal[i] == -1.0)
-			{
-				this._apicalFace[0] = this._points[0];
-				Point partnerPoint = (Point) this._points[1].copy();
-				double [] partnerPointPosition = partnerPoint.getPosition();
-				partnerPointPosition[i] = this._points[0].getPosition()[i];
-				this._apicalFace[1] = partnerPoint;
-			}
-			//If the apical normal is positive, it is "facing upwards", and 
-			//the top corner of the cell is part of its apical face.
-			if (this._apicalNormal[i] == 1.0)
-			{
-				this._apicalFace[0] = this._points[1];
-				Point partnerPoint = (Point) this._points[0].copy();
-				double [] partnerPointPosition = partnerPoint.getPosition();
-				partnerPointPosition[i] = this._points[1].getPosition()[i];
-				this._apicalFace[1] = partnerPoint;
-			}
-		}
-	}
-
-	public Point[] getApicalFace() {
-		return this._apicalFace;
-	}
 	
 	public double[][] pointMatrix(Shape shape)
 	{
