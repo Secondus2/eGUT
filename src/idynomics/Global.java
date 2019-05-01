@@ -246,12 +246,7 @@ public class Global extends ParameterSet
 	 * Only determine location of agent based on primary mass point
 	 */
 	public static boolean fastAgentDistribution = true;
-	
-	/**
-	 * TODO
-	 */
-	public static double densityScale = 1.0;
-	
+		
 	/**
 	 * dynamic viscosity of the medium
 	 */
@@ -271,6 +266,11 @@ public class Global extends ParameterSet
 	 * 
 	 */
 	public static double agent_move_safety = 0.001;
+	
+	/**
+	 * default density difference of microbial cells with medium
+	 */
+	public static double density_difference = 0.1;
 	
 	/**
 	 * stress scaling introduced to prevent incompatibility with old protocol

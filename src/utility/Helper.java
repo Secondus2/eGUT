@@ -527,6 +527,31 @@ public final class Helper
 		return out;
 	}
 	
+	public static double totalMass(Object massObject)
+	{
+		double totalMass = 0.0;
+		if ( massObject instanceof Double )
+			totalMass = (double) massObject;
+		else if ( massObject instanceof Double[] )
+		{
+			Double[] massArray = (Double[]) massObject;
+			for ( Double m : massArray )
+				totalMass += m;
+		}
+		else if ( massObject instanceof Map )
+		{
+			// TODO assume all mass types used unless specified otherwise
+			@SuppressWarnings("unchecked")
+			Map<String,Double> massMap = (Map<String,Double>) massObject;
+			totalMass = Helper.totalValue(massMap);
+		}
+		else
+		{
+			// TODO safety?
+		}
+		return totalMass;
+	}
+	
 	public static boolean compartmentAvailable()
 	{
 		if (Idynomics.simulator == null || 
@@ -682,6 +707,21 @@ public final class Helper
 		for ( int i = start; i < stop; i++ )
 			out[i-start] = in[i];
 		return out;
+	}
+	
+	/**
+	 * return next available key that is not already present in integer 
+	 * key set
+	 * 
+	 * @param target
+	 * @param keySet
+	 * @return
+	 */
+	public static int nextAvailableKey(int target, Collection<Integer> keySet)
+	{
+		if (keySet.contains(target))
+			return nextAvailableKey( target+1 , keySet );
+		return target;
 	}
 	
 	/**

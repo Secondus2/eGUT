@@ -113,6 +113,7 @@ public class ClassRef
 		{
 			return name.split("\\$")[0] + "$";
 		}
+		name = name.replaceAll("\\[\\]", "");
 		String[] parts = name.split("\\.");
 		String[] path = name.split(parts[parts.length-1]);
 		return path[0];
@@ -170,6 +171,13 @@ public class ClassRef
 	 */
 	public final static String wetWeight = 
 			aspect.calculated.WetWeight.class.getName();
+	
+	/**
+	 * 
+	 */
+	public final static String densityScaled = 
+			aspect.calculated.DensityScaled.class.getName();
+	
 	
 	/* ************************************************************************
 	 * Class reference library : Aspects - Event
@@ -246,6 +254,19 @@ public class ClassRef
 	 */
 	public final static String updateBody =
 			aspect.event.UpdateBody.class.getName();
+	
+	/**
+	 * the update body event for surface scaled 2D simulations
+	 */
+	public final static String updateBodySurfaceScaled =
+			aspect.event.UpdateBodySurfaceScaled.class.getName();
+	
+	/**
+	 * the update species modules when passing threshold
+	 */
+	public final static String differentiate =
+			aspect.event.Differentiate.class.getName();
+	
 	
 	/**
 	 * the plasmid loss event
@@ -390,6 +411,9 @@ public class ClassRef
 	
 	public final static String randomSpawner =
 			compartment.agentStaging.RandomSpawner.class.getName();
+	
+	public final static String distributedSpawner =
+			compartment.agentStaging.DistributedSpawner.class.getName();
 	
 	public final static String epithelialLayerSpawner = 
 			compartment.agentStaging.EpithelialLayerSpawner.class.getName();
@@ -595,7 +619,7 @@ public class ClassRef
 	 */
 	public final static String string =
 			String.class.getName();
-			
+	
 	/**		
 	* String		
 	*/		
@@ -617,5 +641,8 @@ public class ClassRef
 	 */
 	public static final String chemical = 
 			chemical.Chemical.class.getName();
+
+	public static final String orientation = 
+			linearAlgebra.Orientation.class.getName();
 
 }

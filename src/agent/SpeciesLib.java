@@ -94,7 +94,7 @@ public class SpeciesLib implements Instantiable, Settable
 			name = s.getAttribute(XmlRef.nameAttribute);
 			if( Log.shouldWrite(Tier.DEBUG))
 				Log.out(Tier.DEBUG, "Loading SpeciesModule \""+name+"\"");
-			species._aspectRegistry.addSubModule(
+			species._aspectRegistry.addModule(
 					this.get(name), name );
 		}
 	}
@@ -141,9 +141,6 @@ public class SpeciesLib implements Instantiable, Settable
 		Tier level;
 		if ( this._species.containsKey(name) )
 		{
-			level = Tier.BULK;
-			if ( Log.shouldWrite(level) )
-				Log.out(level, "Species Library found \""+name+"\"");
 			return this._species.get(name);
 		}
 		else

@@ -598,4 +598,11 @@ public class XmlRef
 
 	public static final String morphology = "morphology";
 
+	
+	public final static String agentBody = "body";
+
+	/**
+	 * refers to linAlg orientation object (unit Vector)
+	 */
+	public static final String orientation = "orientation";
 }

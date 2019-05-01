@@ -23,6 +23,8 @@ import idynomics.Global;
 import idynomics.Idynomics;
 import instantiable.Instance;
 import instantiable.Instantiable;
+import linearAlgebra.Orientation;
+import linearAlgebra.Vector;
 import processManager.ProcessComparator;
 import processManager.ProcessManager;
 import reaction.RegularReaction;
@@ -122,6 +124,11 @@ public class Compartment implements CanPrelaunchCheck, Instantiable, Settable
 	 */
 	private Settable _parentNode;
 	
+	/**
+	 * Specifies the compartment orientation.
+	 */
+	private Orientation _orientation;
+	
 	/* ***********************************************************************
 	 * CONSTRUCTORS
 	 * **********************************************************************/
@@ -188,8 +195,9 @@ public class Compartment implements CanPrelaunchCheck, Instantiable, Settable
 		if ( str[0] == null )
 			str = Shape.getAllOptions();
 		this.setShape( (Shape) Instance.getNew(elem, this, str) );
-		if (this._shape.getNumberOfDimensions() < 3)
-			Global.densityScale = 0.82;
+		/* NOTE density scaling is done on individual basis {@Link 
+		 * DensityScaling} so agents can maintain constant radius for 2D and 3D 
+		 * cases. */
 		
 		double[] simulatedLengths = this.getShape().getDimensionLengths();
 		// Check for scale attribute, specifying explicitly provided scale.
@@ -248,17 +256,21 @@ public class Compartment implements CanPrelaunchCheck, Instantiable, Settable
 		for ( Element e : 
 			XmlHandler.getDirectChildElements(xmlElem, XmlRef.spawnNode) )
 		{
-			spawner = (Spawner) Instance.getNew(e, this);
-			/* check for duplicate priority */
-			if (spawners.containsKey(spawner.getPriority()))
-			{
-				if( Log.shouldWrite(Tier.CRITICAL))
-					Log.out(level, "ERROR: Spawner with duplicate priority. "
-							+ "Simulation will not proceed.");
-				Idynomics.simulator.interupt("interupted due to duplicate "
-						+ "spawner priority.");
-			}
-			spawners.put(spawner.getPriority(), spawner);
+			//if ( e.hasAttribute( XmlRef.classAttribute ) )
+			//{
+				spawner = (Spawner) Instance.getNew(e, this);
+				/* check for duplicate priority */
+				int priority = Helper.nextAvailableKey(
+						spawner.getPriority(),spawners.keySet() );
+				if (spawners.containsKey( spawner.getPriority() ))
+				{
+					if( Log.shouldWrite(Tier.NORMAL))
+						Log.out(level, "WARNING: Spawner with duplicate "
+								+ "priority next priority is picked by "
+								+ "simulator.");
+				}
+				spawners.put(priority, spawner);
+			//}
 		}
 		/* verify whether this always returns in correct order (it should) */
 		for( Spawner s : spawners.values() )
@@ -305,6 +317,17 @@ public class Compartment implements CanPrelaunchCheck, Instantiable, Settable
 					(ProcessManager) Instance.getNew(e, this, (String[])null));
 		}
 		/* NOTE: we fetch the class from the xml node */
+		
+		if (XmlHandler.hasChild( xmlElem, XmlRef.orientation) )
+		{
+			this._orientation = (Orientation) Instance.getNew( 
+					XmlHandler.findUniqueChild(xmlElem, XmlRef.orientation), 
+					this, Orientation.class.getName() );
+		} else {
+			this._orientation = new Orientation( Vector.zerosDbl(
+					this._shape.getNumberOfDimensions() ), this );
+		}
+
 	}
 	
 		
@@ -341,6 +364,11 @@ public class Compartment implements CanPrelaunchCheck, Instantiable, Settable
 	public void setSideLengths(double[] sideLengths)
 	{
 		this._shape.setDimensionLengths(sideLengths);
+	}
+	
+	public Orientation orientation()
+	{
+		return this._orientation;
 	}
 	
 	/**
@@ -618,6 +646,9 @@ public class Compartment implements CanPrelaunchCheck, Instantiable, Settable
 		/* Set title for GUI. */
 		if ( this.getName() != null )
 			modelNode.setTitle(this.getName());
+		/* orientation node */
+		if( !this._orientation.isNullVector() )
+			modelNode.add( this._orientation.getModule() );
 		/* Add the name attribute. */
 		modelNode.add( new Attribute(XmlRef.nameAttribute, 
 				this.getName(), null, true ) );
@@ -632,6 +663,7 @@ public class Compartment implements CanPrelaunchCheck, Instantiable, Settable
 		modelNode.add( this.agents.getModule() );
 		/* Add the process managers node. */
 		modelNode.add( this.getProcessNode() );
+		
 				
 		/* spatial registry NOTE we are handling this here since the agent
 		 * container does not have the proper init infrastructure */

@@ -1,6 +1,7 @@
 package agent;
 
 import java.util.Collections;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
@@ -11,6 +12,7 @@ import org.w3c.dom.NodeList;
 import agent.Body.Morphology;
 import dataIO.Log;
 import dataIO.Log.Tier;
+import dataIO.XmlHandler;
 import generalInterfaces.Copyable;
 import generalInterfaces.HasBoundingBox;
 import instantiable.Instantiable;
@@ -34,10 +36,15 @@ import utility.Helper;
  * A cuboid Body contains two Points - a bottom corner and a top corner. It is
  * assumed that its sides are parallel to the dimensions of the compartment.
  * 
+ * TODO amount of constructors gets quite big, consider to reduce and simplify
+ * if possible.
+ * 
  * @author Bastiaan Cockx @BastiaanCockx (baco@env.dtu.dk), DTU, Denmark
  * @author Robert Clegg (r.j.clegg@bham.ac.uk) University of Birmingham, U.K.
  */
-public class Body implements Copyable, Instantiable, Settable
+
+public class Body implements Copyable, Instantiable, Settable 
+
 {
 	/*
 	 * morphology specifications
@@ -68,6 +75,7 @@ public class Body implements Copyable, Instantiable, Settable
 	 */
 	protected Morphology _morphology;
 
+	private Settable _parentNode;
 	/**
 	 * NOTE: work in progress, subject to change
 	 * Links with other agents/bodies owned by this body
@@ -75,8 +83,6 @@ public class Body implements Copyable, Instantiable, Settable
 	 * body
 	 */
 	protected LinkedList<Link> _links = new LinkedList<Link>();
-	
-	private Settable _parentNode;
 
 
 	/*************************************************************************
@@ -152,6 +158,7 @@ public class Body implements Copyable, Instantiable, Settable
 	}
 	
 	/**
+	 * Full random body
 	 * 
 	 * @param morphology
 	 * @param domain
@@ -161,20 +168,48 @@ public class Body implements Copyable, Instantiable, Settable
 	public Body(Morphology morphology, BoundingBox domain, 
 			double radius, double length)
 	{
+		this(morphology, domain.getRandomInside(),  radius, length);
+	}
+	
+	/**
+	 * Body with random second point
+	 * 
+	 * @param morphology
+	 * @param domain
+	 * @param radius
+	 * @param length
+	 */
+	public Body(Morphology morphology, double[] position,  
+			double radius, double length)
+	{
+		this(morphology, position, Vector.add( position, 
+				Vector.randomZeroOne( position.length ) ),  radius, length);
+	}
+
+	/**
+	 * body at position
+	 * 
+	 * @param morphology
+	 * @param domain
+	 * @param radius
+	 * @param length
+	 */
+	public Body(Morphology morphology, double[] positionA, double[] positionB, 
+			double radius, double length)
+	{
 		switch (morphology)
 		{
 			case COCCOID :
-				this._points.add( new Point(domain.getRandomInside() ) );
+				this._points.add( new Point( positionA ) );
 				this._surfaces.add( new Ball(this._points.get(0), radius) );
 				this._morphology = Morphology.COCCOID;
 				break;
 			case BACILLUS :
-				Point p = new Point(domain.getRandomInside() );
+				Point p = new Point( positionA );
 				this._points.add( p );
-				this._points.add( new Point( Vector.add( p.getPosition(), 
-						Vector.randomZeroOne( p.nDim() ) ) ) );
-				this._surfaces.add( new Rod( (Point[]) this._points.toArray(), 
-						length, radius) );
+				this._points.add( new Point( positionB ) );
+				this._surfaces.add(new Rod(_points.get(0), _points.get(1), 
+						radius, length));
 				this._morphology = Morphology.BACILLUS;
 				break;
 			case CUBOID :
@@ -242,24 +277,8 @@ public class Body implements Copyable, Instantiable, Settable
 		// rods and balls depending on number of points.
 
 		this._points.addAll(points);
-		if(this._points.size() == 1)
-		{
-			this._surfaces.add(new Ball(points.get(0), radius));
-			this._morphology = Morphology.COCCOID;
-		}
-		else
-			
-			/**
-			 * Rod construction
-			 */
-		{
-			this._morphology = Morphology.BACILLUS;
-			for(int i = 0; points.size()-1 > i; i++)
-			{
-				this._surfaces.add(new Rod(points.get(i), points.get(i+1), 
-						length, radius));
-			}
-		}
+		this.assignMorphology(null);
+		this.constructBody(length, radius);
 	}
 
 	/**
@@ -271,7 +290,46 @@ public class Body implements Copyable, Instantiable, Settable
 	{
 		this(points, 0.0, 0.0);
 	}
+	
+	public void assignMorphology(String morphology)
+	{
+		if (morphology != null)
+			this._morphology = Morphology.valueOf(morphology);
+		else if(this._points.size() == 1)
+			this._morphology = Morphology.COCCOID;
+		else
+			this._morphology = Morphology.BACILLUS;
+	}
+	
+	public void constructBody()
+	{
+		constructBody( 0.0, 0.0 );
+	}
+	
+	public void constructBody( double length, double radius )
+	{
+		switch (this._morphology)
+		{
+		case COCCOID :
+			this._surfaces.add(new Ball(_points.get(0), radius));
+			break;
+		case BACILLUS :
+			for(int i = 0; _points.size()-1 > i; i++)
+			{
+				this._surfaces.add(new Rod(_points.get(i), 
+						_points.get(i+1), length, radius)); 
+			}
+			break;
+		case CUBOID :
+			/* TODO */
+			if (Log.shouldWrite(Tier.CRITICAL))
+				Log.out(Tier.CRITICAL, Morphology.CUBOID.name()
+						+ "body generation not suported yet, skipping..");
+		default: 
+			break;
+		}
 
+	}
 	/**
 	 * Body is constructed with the normal vector of the 
 	 * EpithelialLayerSpawner._apicalSurface. This allows the cuboidal agent to
@@ -303,7 +361,7 @@ public class Body implements Copyable, Instantiable, Settable
 		String[] points = input.split(Matrix.DELIMITER);
 		for (String s : points)
 			pointList.add(new Point(Vector.dblFromString(s)));
-
+		
 		return new Body(pointList);
 	}
 
@@ -312,30 +370,29 @@ public class Body implements Copyable, Instantiable, Settable
 		this._parentNode = parent;
 		if( !Helper.isNullOrEmpty( xmlElem ))
 		{
-			//FIXME: not finished only accounts for simple coccoids
+			/* obtain all body points */
 			List<Point> pointList = new LinkedList<Point>();
-			NodeList pointNodes = xmlElem.getElementsByTagName(XmlRef.point);
-			for (int k = 0; k < pointNodes.getLength(); k++) 
+			Collection<Element> pointNodes =
+			XmlHandler.getAllSubChild(xmlElem, XmlRef.point);
+			for (Element e : pointNodes) 
 			{
-				Element point = (Element) pointNodes.item(k);
+				Element point = e;
 				pointList.add(new Point(Vector.dblFromString(
 						point.getAttribute(XmlRef.position))));
 			}
 			this._points.addAll(pointList);
-			if(this._points.size() == 1) {
-				this._surfaces.add(new Ball(pointList.get(0), 0.0)); //FIXME
-				this._morphology = Morphology.COCCOID;
-			}
-			else
-			{
-				for(int i = 0; pointList.size()-1 > i; i++)
-				{
-					this._surfaces.add(new Rod(pointList.get(i), 
-							pointList.get(i+1), 0.0, 0.0)); //FIXME
-				}
-				this._morphology = Morphology.BACILLUS;
-			}
+
+			/* assign a body morphology */
+			String morphology = 
+					XmlHandler.gatherAttribute(xmlElem, XmlRef.morphology);
+			if (morphology == null )
+				morphology = XmlHandler.gatherAttributeFromUniqueNode(xmlElem, 
+						XmlRef.agentBody, XmlRef.morphology);
+			assignMorphology(morphology);
+			
+			constructBody();
 		}
+		
 	}
 
 	/*************************************************************************
@@ -419,12 +476,11 @@ public class Body implements Copyable, Instantiable, Settable
 		}
 		return Vector.divideEqualsA(center, (double) this.getNumberOfPoints());
 	}
-	
+
 	public Morphology getMorphology() 
 	{
 		return this._morphology;
 	}
-
 	/*************************************************************************
 	 * general methods
 	 ************************************************************************/
@@ -473,26 +529,6 @@ public class Body implements Copyable, Instantiable, Settable
 		Collections.swap(this._points, 0, 1);
 	}
 	
-	public Module getModule() {
-		Module modelNode = new Module(AspectRef.agentBody, this);
-		modelNode.setRequirements(Requirements.ZERO_OR_ONE);
-		modelNode.add(new Attribute(XmlRef.morphology, this._morphology.name(), 
-				Helper.enumToStringArray(Morphology.class), true ));
-		return modelNode;
-	}
-	
-	public String defaultXmlTag() {
-		return AspectRef.agentBody;
-	}
-	
-	public void setParent(Settable parent) {
-		this._parentNode = parent;
-	}
-	
-	public Settable getParent() {
-		return this._parentNode;
-	}
-	
 	
 	/**
 	 * returns a copy of this body and registers a new agent NOTE: does
@@ -511,4 +547,36 @@ public class Body implements Copyable, Instantiable, Settable
 			return null;
 		}
 	}
+	@Override
+	public Module getModule() {
+		Module modelNode = new Module(XmlRef.agentBody, this);
+		modelNode.setRequirements(Requirements.ZERO_OR_ONE);
+		
+		modelNode.add(new Attribute(XmlRef.morphology, 
+				this._morphology.toString(), null, false ));
+
+		for (Point p : this.getPoints() )
+			modelNode.add(p.getModule() );
+		
+		return modelNode;
+	}
+
+	@Override
+	public String defaultXmlTag()
+	{
+		return XmlRef.agentBody;
+	}
+
+	@Override
+	public void setParent(Settable parent) 
+	{
+		this._parentNode = parent;
+	}
+	
+	@Override
+	public Settable getParent() 
+	{
+		return this._parentNode;
+	}
+
 }
