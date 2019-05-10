@@ -3,7 +3,7 @@
 	<simulation name="EpithelialLayer" outputfolder="../results" log="DEBUG" randomSeed="23"
 						comment="this is a file for testing purposes only.">
 		
-		<timer stepSize="1.0" endOfSimulation="200.0" />
+		<timer stepSize="1.0" endOfSimulation="80.0" />
 		
 		<speciesLib>
 			<!-- species/species library The species library contains all agent species 
@@ -13,7 +13,7 @@
 				does allow you to overwrite states on agent level. Thus if a state is defined 
 				both on species level and on agent level, the agent state will be used in 
 				the simulation. small test -->
-			<species name="host">
+			<species name="gobletCell">
 				<aspect name="reactions" type="PRIMARY"  class="InstantiableList"> 
  					<list class="RegularReaction" nodeLabel="reaction" entryClass="RegularReaction" keyClass="String" keyLabel="name">
 						<reaction name="testReact">
@@ -23,7 +23,7 @@
 							<stoichiometric component="mass" coefficient="1.0" />
 							<stoichiometric component="solute1" coefficient="-5.0" />
 							<stoichiometric component="solute2" coefficient="4.0" />
-							<stoichiometric component="eps" coefficient="1.0" />
+							<stoichiometric component="eps" coefficient="20.0" />
 						</reaction> 
  					</list>
 				</aspect>
@@ -52,6 +52,7 @@
 				<aspect name="updateBody" 		type="EVENT" 		class="UpdateBody" />
 				<aspect name="evaluatePull"		type="EVENT"		class="ResolveInteractionDistance" />
 				<aspect name="searchDist"		type="PRIMARY" 		class="Double"		value="0.1"  />
+				<speciesModule name="stochasticMover" />
 			</species>
 			<species name="bacterium">
 				<aspect name="reactions" type="PRIMARY" class="InstantiableList">
@@ -82,6 +83,10 @@
 				<aspect name="#isLocated" 	type="PRIMARY" 		class="Boolean" value="true" />
 				<aspect name="updateBody" 	type="EVENT" 		class="UpdateBody" 		 />
 			</species>
+			<species name="stochasticMover">
+				<aspect name="stochasticStep" type="PRIMARY" class="Double" value="1.0" />
+				<aspect name="stochasticMove" type="EVENT" class="StochasticMove" />
+			</species>
 		</speciesLib>
 		<compartment name="main">
 			<shape class="Cuboid">
@@ -89,7 +94,7 @@
 				</dimension> 
 				<dimension name="Y" isCyclic="false" targetResolution="2" max="30.0">
 					<boundary class="FixedBoundary" extreme="1">
-						<solute name="solute1" concentration="1.0"/>
+						<solute name="solute1" concentration="3.0"/>
 						<solute name="solute2" concentration="0.0"/>
 					</boundary>
 				</dimension> 
@@ -100,11 +105,20 @@
 				<solute name="solute1" concentration="1.0" defaultDiffusivity="1"  />
 				<solute name="solute2" concentration="0.1"  defaultDiffusivity="1" />
 			</solutes>
-			<spawn class="epithelialLayerSpawner" domain="30.0, 3.0, 30.0" cellShape="3.0, 3.0, 3.0" priority="0">
-					<templateAgent>
+			<spawn class="differentiatedEpithelialLayerSpawner" domain="30.0, 5.0, 30.0" cellShape="5.0, 5.0, 5.0" priority="0">
+					<templateAgent number="18">
 						<aspect name="volumeDistribution" type="PRIMARY" class="HashMap">
 						</aspect>
-						<aspect name="species" type="PRIMARY" class="String" value="host" />
+						<aspect name="species" type="PRIMARY" class="String" value="gobletCell" />
+						<aspect name="mass" type="PRIMARY" class="Double" value="0.2" />
+						<aspect name="density" type="PRIMARY" class="Double" value="1" />
+						<aspect name="pigment" type="PRIMARY" class="String" value="GREEN" />
+						<aspect name="eps" type="PRIMARY" class="Double" value="0.0" />
+					</templateAgent>
+					<templateAgent number="18">
+						<aspect name="volumeDistribution" type="PRIMARY" class="HashMap">
+						</aspect>
+						<aspect name="species" type="PRIMARY" class="String" value="epithelium" />
 						<aspect name="mass" type="PRIMARY" class="Double" value="0.2" />
 						<aspect name="density" type="PRIMARY" class="Double" value="1" />
 						<aspect name="pigment" type="PRIMARY" class="String" value="RED" />

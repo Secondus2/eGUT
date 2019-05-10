@@ -418,6 +418,10 @@ public class ClassRef
 	public final static String epithelialLayerSpawner = 
 			compartment.agentStaging.EpithelialLayerSpawner.class.getName();
 	
+	public final static String differentiatedEpithelialLayerSpawner = 
+			compartment.agentStaging.DifferentiatedEpithelialLayerSpawner.
+			class.getName();
+	
 	/* ************************************************************************
 	 * Boundaries (non-spatial)
 	 */

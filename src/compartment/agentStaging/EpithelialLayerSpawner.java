@@ -44,7 +44,7 @@ public class EpithelialLayerSpawner extends Spawner {
 	
 	private double[] _apicalCorner;
 	
-	private Plane _apicalSurface;
+	protected Plane _apicalSurface;
 	
 	private double[][] _layerCorners;
 	
@@ -134,7 +134,8 @@ public class EpithelialLayerSpawner extends Spawner {
 						this._bottomCorner[j] + 
 						((double) cellCoordinates[j] * this._cellSideLengths[j]);
 			}
-			createEpithelialCell(bottomCorner);
+			Point[] position = positionNewCell(bottomCorner);
+			spawnEpithelialAgent (position);
 		}
 	}
 	
@@ -281,12 +282,12 @@ public class EpithelialLayerSpawner extends Spawner {
 	}
 	
 	/**
-	 * Create cuboidal epithelial cell, given co-ordinates for the bottom corner
+	 * Position epithelial cell, given co-ordinates for the bottom corner
 	 * and calculating the top corner from this._cellSideLengths.
 	 * 
 	 * @param bottomCorner
 	 */
-	public void createEpithelialCell(double[] bottomCorner) {
+	public Point[] positionNewCell(double[] bottomCorner) {
 		double[] topCorner = new double[bottomCorner.length];
 		for (int j = 0; j < bottomCorner.length; j++) {
 			topCorner[j] = bottomCorner[j] + this._cellSideLengths[j];
@@ -294,10 +295,14 @@ public class EpithelialLayerSpawner extends Spawner {
 		
 		Point bCPoint = new Point(bottomCorner);
 		Point tCPoint = new Point(topCorner);
-		Point[] bothPoints = {bCPoint, tCPoint};
+		Point[] out = {bCPoint, tCPoint};
+		return out;
+	}
+	
+	public void spawnEpithelialAgent(Point[] position) {
 		Agent newEpithelialCell = new Agent(this.getTemplate());
 		newEpithelialCell.set(AspectRef.agentBody, new Body(
-				bothPoints, this._apicalSurface.normal));
+				position, this._apicalSurface.normal));
 		newEpithelialCell.setCompartment( this.getCompartment() );
 		newEpithelialCell.registerBirth();
 	}

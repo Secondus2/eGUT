@@ -256,8 +256,6 @@ public class Compartment implements CanPrelaunchCheck, Instantiable, Settable
 		for ( Element e : 
 			XmlHandler.getDirectChildElements(xmlElem, XmlRef.spawnNode) )
 		{
-			//if ( e.hasAttribute( XmlRef.classAttribute ) )
-			//{
 				spawner = (Spawner) Instance.getNew(e, this);
 				/* check for duplicate priority */
 				int priority = Helper.nextAvailableKey(
@@ -270,7 +268,6 @@ public class Compartment implements CanPrelaunchCheck, Instantiable, Settable
 								+ "simulator.");
 				}
 				spawners.put(priority, spawner);
-			//}
 		}
 		/* verify whether this always returns in correct order (it should) */
 		for( Spawner s : spawners.values() )
