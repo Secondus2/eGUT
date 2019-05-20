@@ -554,5 +554,7 @@ public class AspectRef
 	 */
 	public static final String spawnerSpacing = "spacing";
 
+	
+	public static final String interactionFunctionMap = "interactionFunctionMap";
 
 }

@@ -274,6 +274,13 @@ public class ClassRef
 	public final static String plasmidLoss =
 			aspect.event.PlasmidLoss.class.getName();
 	
+	/**
+	 * the differential interaction force event
+	 */
+	
+	public final static String differentialInteractionForce = 
+			aspect.event.DifferentialInteractionForce.class.getName();
+	
 	/* ************************************************************************
 	 * Agents, Species and aspect modules
 	 */

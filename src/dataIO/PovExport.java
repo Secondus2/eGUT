@@ -155,6 +155,7 @@ public class PovExport implements GraphicalExporter
 				"	#declare RED = color rgb < 1.0 , 0.0 , 0.0 >;\n" +
 				"	#declare BLUE = color rgb < 0.0 , 0.0 , 1.0 >;\n" +
 				"	#declare GREEN = color rgb < 0.0 , 1.0 , 0.0 >;\n" +
+				"	#declare YELLOW = color rgb < 0.8 , 0.8 , 0.0 >;\n" +
 				"	#declare BLACK = color rgb < 0.0 , 0.0 , 0.0 >;\n" +
 				"	#declare WHITE = color rgb < 1.0 , 1.0 , 1.0 >;\n"
 				);

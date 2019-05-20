@@ -50,8 +50,13 @@
 				<aspect name="volume" 			type="CALCULATED" 	class="SimpleVolumeState" />
 				<aspect name="radius" 			type="CALCULATED" 	class="CoccoidRadius" />
 				<aspect name="updateBody" 		type="EVENT" 		class="UpdateBody" />
-				<aspect name="evaluatePull"		type="EVENT"		class="ResolveInteractionDistance" />
 				<aspect name="searchDist"		type="PRIMARY" 		class="Double"		value="0.1"  />
+				<aspect name="evaluatePull" 	type="EVENT"		class="DifferentialInteractionForce"/>
+				<aspect name="interactionFunctionMap" type="PRIMARY"  class="HashMap">
+					<item type="PRIMARY" class="String" value="2*distance*(e^(-distance))" key="epithelium" keyType="String" />
+					<item type="PRIMARY" class="String" value="2*distance*(e^(-distance))" key="particleEPS" keyType="String" />
+					<item type="PRIMARY" class="String" value="2*distance*(e^(-distance))" key="bacterium" keyType="String" />
+				</aspect>
 				<speciesModule name="stochasticMover" />
 			</species>
 			<species name="bacterium">
@@ -79,6 +84,7 @@
 				<aspect name="volume" 		type="CALCULATED" 	class="StateExpression" 	input="mass/density" />
 				<aspect name="radius"		type="CALCULATED"	class="CoccoidRadius" 	/>
 				<aspect name="divide" 		type="EVENT" 		class="CoccoidDivision"			 />
+				<aspect name="divisionMass" type="PRIMARY"		class="Double"		value="0.5" />
 				<aspect name="growth" 		type="EVENT" 		class="SimpleGrowth" />
 				<aspect name="#isLocated" 	type="PRIMARY" 		class="Boolean" value="true" />
 				<aspect name="updateBody" 	type="EVENT" 		class="UpdateBody" 		 />
@@ -89,24 +95,22 @@
 			</species>
 		</speciesLib>
 		<compartment name="main">
-			<shape class="Cuboid">
+			<shape class="Rectangle">
 				<dimension name="X" isCyclic="true" targetResolution="2" max="30.0">
 				</dimension> 
-				<dimension name="Y" isCyclic="false" targetResolution="2" max="30.0">
+				<dimension name="Y" isCyclic="false" targetResolution="2" max="20.0">
 					<boundary class="FixedBoundary" extreme="1">
 						<solute name="solute1" concentration="3.0"/>
 						<solute name="solute2" concentration="0.0"/>
 					</boundary>
-				</dimension> 
-				<dimension name="Z" isCyclic="true" targetResolution="2" max="30.0">
 				</dimension> 
 			</shape>
 			<solutes>
 				<solute name="solute1" concentration="1.0" defaultDiffusivity="1"  />
 				<solute name="solute2" concentration="0.1"  defaultDiffusivity="1" />
 			</solutes>
-			<spawn class="differentiatedEpithelialLayerSpawner" domain="30.0, 5.0, 30.0" cellShape="5.0, 5.0, 5.0" priority="0">
-					<templateAgent number="18">
+			<spawn class="differentiatedEpithelialLayerSpawner" domain="30.0, 5.0" cellShape="2.5, 5.0" priority="0">
+					<templateAgent number="6">
 						<aspect name="volumeDistribution" type="PRIMARY" class="HashMap">
 						</aspect>
 						<aspect name="species" type="PRIMARY" class="String" value="gobletCell" />
@@ -115,7 +119,7 @@
 						<aspect name="pigment" type="PRIMARY" class="String" value="GREEN" />
 						<aspect name="eps" type="PRIMARY" class="Double" value="0.0" />
 					</templateAgent>
-					<templateAgent number="18">
+					<templateAgent number="6">
 						<aspect name="volumeDistribution" type="PRIMARY" class="HashMap">
 						</aspect>
 						<aspect name="species" type="PRIMARY" class="String" value="epithelium" />
@@ -124,6 +128,18 @@
 						<aspect name="pigment" type="PRIMARY" class="String" value="RED" />
 						<aspect name="eps" type="PRIMARY" class="Double" value="0.0" />
 					</templateAgent>
+			</spawn>
+			<spawn class="randomSpawner" domain="0.0, 5.0; 30.0, 20.0" priority="-1" number="0" morphology="COCCOID">
+				<templateAgent>
+					<aspect name="species" type="PRIMARY" class="String" value="bacterium" />
+					<aspect  name="massMap" class="InstantiableMap">
+						<map entryClass="Double" keyType="String">
+							<item key="bioMass" value="0.2"  />
+						</map>
+					</aspect>
+					<aspect name="density" type="PRIMARY" class="Double" value="1" />
+					<aspect name="pigment" type="PRIMARY" class="String" value="YELLOW" />
+				</templateAgent>
 			</spawn>
 			<processManagers>
 				<process name="svgWriter" class="GraphicalOutput"  priority="-3"
