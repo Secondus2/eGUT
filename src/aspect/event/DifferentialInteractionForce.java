@@ -21,6 +21,7 @@ public class DifferentialInteractionForce extends Event {
 	private String BODY = AspectRef.agentBody;
 	private String RADIUS = AspectRef.bodyRadius;
 	private String SPECIES = XmlRef.species;
+	public String CURRENT_PULL_FORCE = AspectRef.collisionCurrentPullForce;
 	private Surface initiatorSurface;
 	private Surface compliantSurface;
 	
@@ -37,13 +38,16 @@ public class DifferentialInteractionForce extends Event {
 		Collision collision = new Collision(shape);
 		double distance = collision.distance(
 				compliantSurface, initiatorSurface);
-		Expression interactionFunction = 
-				new Expression(interactions.get(compliant.getValue(SPECIES)));
-		HashMap distanceMap = new HashMap();
-		distanceMap.put("distance", distance);
-		double force = interactionFunction.getValue((Map)distanceMap);
-		
-		
+		if (distance > 0.001)
+		{
+			Expression interactionFunction = 
+					new Expression(interactions.get(compliant.getValue(SPECIES)));
+			HashMap<String, Double> distanceMap = new HashMap<String, Double>();
+			distanceMap.put("distance", distance);
+			double force = interactionFunction.getValue((Map)distanceMap);
+			
+			initiator.set(CURRENT_PULL_FORCE, force);
+		}
 		
 		
 	}

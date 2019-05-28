@@ -219,9 +219,10 @@ public class Collision
 	 * @param pullDistance
 	 */
 	public void collision(Collection<Surface> allA, Collection<Surface> allB, 
-			double pullDistance)
+			double pullDistance, double pullForce)
 	{
 		_variables.setPullRange(pullDistance);
+		_variables.setPullForce(pullForce);
 		for ( Surface a : allA )
 		{
 			for ( Surface b : allB )

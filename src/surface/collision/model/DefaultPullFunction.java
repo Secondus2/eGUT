@@ -63,11 +63,20 @@ public class  DefaultPullFunction implements CollisionFunction
 		 */
 		if ( var.distance > 0.001 && var.distance < var.pullRange ) 
 		{
-			/* Linear. */
-			double c = Math.abs(this._forceScalar * var.distance);
-			/* dP is overwritten here. */
-			Vector.normaliseEuclidEquals(var.interactionVector, c);
-			return var;
+//			if (var.pullForce == 0.0)
+//			{
+//				/* Linear. */
+//				double c = Math.abs(this._forceScalar * var.distance);
+//				/* dP is overwritten here. */
+//				Vector.normaliseEuclidEquals(var.interactionVector, c);
+//				return var;
+//			}
+//			else
+//			{
+				Vector.normaliseEuclidEquals(var.interactionVector, var.pullForce);
+				return var;
+//			}
+			
 		} 
 		Vector.setAll(var.interactionVector, 0.0);
 		return var;

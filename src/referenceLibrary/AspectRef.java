@@ -282,11 +282,21 @@ public class AspectRef
 	 * TODO
 	 */
 	public final static String collisionPullEvaluation = "evaluatePull";
+	
+	/**
+	 * 
+	 */
+	public final static String collisionPullForceCalculation = "calculatePull";
 
 	/**
 	 * TODO
 	 */
 	public final static String collisionCurrentPullDistance = "#curPullDist";
+	
+	/**
+	 * 
+	 */
+	public final static String collisionCurrentPullForce = "#curPullForce";
 
 	/**
 	 * TODO
@@ -544,6 +554,11 @@ public class AspectRef
 	 */
 	public static final String agentDifferentiation = "differentiate";
 
+	/**
+	 * 
+	 */
+	public static final String differentiateLikelihood = "differentiateLikelihood";
+	
 	/**
 	 * Initial point for distributed spawner class
 	 */

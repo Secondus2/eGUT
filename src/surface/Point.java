@@ -237,6 +237,10 @@ public class Point implements Copyable, Settable
 	// rather than creating a new vector every time.
 	public double[] dxdt(double radius)
 	{
+		if (this.getForce()[0] < 1.0 && this.getForce()[0] > -1.0)
+		{
+			double b = 2.0;
+		}
 		return Vector.times(this.getForce(), 
 				1.0/Drag.dragOnSphere(radius, VISCOSITY));
 	}

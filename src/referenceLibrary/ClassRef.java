@@ -344,6 +344,12 @@ public class ClassRef
 			processManager.library.AgentRelaxation.class.getName();
 	
 	/**
+	 * 
+	 */
+	public static final String agentRandomDifferentiation = 
+			processManager.library.AgentRandomDifferentiation.class.getName();
+	
+	/**
 	 * Plasmid transfer(Conjugation) and loss process manager
 	 */
 	public final static String plasmidDynamics =

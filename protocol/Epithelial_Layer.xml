@@ -3,7 +3,7 @@
 	<simulation name="EpithelialLayer" outputfolder="../results" log="DEBUG" randomSeed="23"
 						comment="this is a file for testing purposes only.">
 		
-		<timer stepSize="1.0" endOfSimulation="80.0" />
+		<timer stepSize="1.0" endOfSimulation="30.0" />
 		
 		<speciesLib>
 			<!-- species/species library The species library contains all agent species 
@@ -51,11 +51,13 @@
 				<aspect name="radius" 			type="CALCULATED" 	class="CoccoidRadius" />
 				<aspect name="updateBody" 		type="EVENT" 		class="UpdateBody" />
 				<aspect name="searchDist"		type="PRIMARY" 		class="Double"		value="0.1"  />
-				<aspect name="evaluatePull" 	type="EVENT"		class="DifferentialInteractionForce"/>
+				<aspeg name ="pullDistance"		type="PRIMARY"		class="Double"		value="0.0"/>
+				<aspect name="evaluatePull" 	type="EVENT"		class="ResolveInteractionDistance"/>
+				<aspect name="calculatePull" 	type="EVENT"		class="DifferentialInteractionForce"/>
 				<aspect name="interactionFunctionMap" type="PRIMARY"  class="HashMap">
-					<item type="PRIMARY" class="String" value="2*distance*(e^(-distance))" key="epithelium" keyType="String" />
-					<item type="PRIMARY" class="String" value="2*distance*(e^(-distance))" key="particleEPS" keyType="String" />
-					<item type="PRIMARY" class="String" value="2*distance*(e^(-distance))" key="bacterium" keyType="String" />
+					<item type="PRIMARY" class="String" value="0.0" key="epithelium" keyType="String" />
+					<item type="PRIMARY" class="String" value="(000000.0)*(distance-0.001)*(#e^(0.0-((distance-0.001)/(200.0))))" key="particleEPS" keyType="String" />
+					<item type="PRIMARY" class="String" value="(000000.0)*(distance-0.001)*(#e^(0.0-((distance-0.001)/(200.0))))" key="bacterium" keyType="String" />
 				</aspect>
 				<speciesModule name="stochasticMover" />
 			</species>
@@ -90,12 +92,12 @@
 				<aspect name="updateBody" 	type="EVENT" 		class="UpdateBody" 		 />
 			</species>
 			<species name="stochasticMover">
-				<aspect name="stochasticStep" type="PRIMARY" class="Double" value="1.0" />
+				<aspect name="stochasticStep" type="PRIMARY" class="Double" value="0.02" />
 				<aspect name="stochasticMove" type="EVENT" class="StochasticMove" />
 			</species>
 		</speciesLib>
 		<compartment name="main">
-			<shape class="Rectangle">
+			<shape class="Cuboid">
 				<dimension name="X" isCyclic="true" targetResolution="2" max="30.0">
 				</dimension> 
 				<dimension name="Y" isCyclic="false" targetResolution="2" max="20.0">
@@ -103,14 +105,16 @@
 						<solute name="solute1" concentration="3.0"/>
 						<solute name="solute2" concentration="0.0"/>
 					</boundary>
-				</dimension> 
+				</dimension>
+				<dimension name="Z" isCyclic="true" targetResolution="2" max="30.0">
+				</dimension>
 			</shape>
 			<solutes>
 				<solute name="solute1" concentration="1.0" defaultDiffusivity="1"  />
 				<solute name="solute2" concentration="0.1"  defaultDiffusivity="1" />
 			</solutes>
-			<spawn class="differentiatedEpithelialLayerSpawner" domain="30.0, 5.0" cellShape="2.5, 5.0" priority="0">
-					<templateAgent number="6">
+			<spawn class="differentiatedEpithelialLayerSpawner" domain="30.0, 5.0, 30.0" cellShape="5.0, 5.0, 5.0" priority="0">
+					<templateAgent number="18">
 						<aspect name="volumeDistribution" type="PRIMARY" class="HashMap">
 						</aspect>
 						<aspect name="species" type="PRIMARY" class="String" value="gobletCell" />
@@ -119,7 +123,7 @@
 						<aspect name="pigment" type="PRIMARY" class="String" value="GREEN" />
 						<aspect name="eps" type="PRIMARY" class="Double" value="0.0" />
 					</templateAgent>
-					<templateAgent number="6">
+					<templateAgent number="18">
 						<aspect name="volumeDistribution" type="PRIMARY" class="HashMap">
 						</aspect>
 						<aspect name="species" type="PRIMARY" class="String" value="epithelium" />
@@ -129,7 +133,7 @@
 						<aspect name="eps" type="PRIMARY" class="Double" value="0.0" />
 					</templateAgent>
 			</spawn>
-			<spawn class="randomSpawner" domain="0.0, 5.0; 30.0, 20.0" priority="-1" number="0" morphology="COCCOID">
+			<spawn class="randomSpawner" domain="0.0, 5.0, 0.0; 30.0, 20.0, 30.0" priority="-1" number="0" morphology="COCCOID">
 				<templateAgent>
 					<aspect name="species" type="PRIMARY" class="String" value="bacterium" />
 					<aspect  name="massMap" class="InstantiableMap">
@@ -171,8 +175,8 @@
 				</process>
 				<process name="agentRelax" class="AgentRelaxation"  priority="-2"
 					firstStep="0.0"  timerStepSize="0.1">
-					<aspect name="maxMovement" type="PRIMARY" class="Double" value="0.05" />
-					<aapwxr name="stressThreshold" type="PRIMARY" class="Double" value="1000.0" />
+					<aspect name="maxMovement" type="PRIMARY" class="Double" value="0.03" />
+					<aspeg name="stressThreshold" type="PRIMARY" class="Double" value="1000.0" />
 					<aspect name="relaxationMethod" type="PRIMARY" class="String" value="EULER" />
 				</process>
 				<process name="solveDiffusionTransient" class="SolveDiffusionTransient"  priority="-1"

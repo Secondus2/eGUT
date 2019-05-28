@@ -19,6 +19,11 @@ public class CollisionVariables
 	{
 		this.pullRange = pullRange;
 	}
+	
+	public void setPullForce (double pullForce)
+	{
+		this.pullForce = pullForce;
+	}
 	/*
 	 * Vector that represents the direction and scale between: 
 	 * point-point, line-point segment and line segment-line segment.
@@ -76,4 +81,9 @@ public class CollisionVariables
 	 * Effective radius (required for Herz model).
 	 */
 	public double radiusEffective;
+	
+	/*
+	 * Pull force set by calculatePullForce event.
+	 */
+	public double pullForce;
 }

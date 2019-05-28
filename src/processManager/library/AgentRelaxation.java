@@ -35,7 +35,9 @@ public class AgentRelaxation extends ProcessManager
 	
 	public String SEARCH_DIST = AspectRef.collisionSearchDistance;
 	public String PULL_EVALUATION = AspectRef.collisionPullEvaluation;
+	public String PULL_FORCE_CALCULATION = AspectRef.collisionPullForceCalculation;
 	public String CURRENT_PULL_DISTANCE = AspectRef.collisionCurrentPullDistance;
+	public String CURRENT_PULL_FORCE = AspectRef.collisionCurrentPullForce;
 	public String RELAXATION_METHOD = AspectRef.collisionRelaxationMethod;
 	public String FAST_RELAXATION = AspectRef.fastAgentRelaxation;
 	public String STATIC_TIMESTEP = AspectRef.staticAgentTimeStep;
@@ -290,6 +292,10 @@ public class AgentRelaxation extends ProcessManager
 					{
 						if ( Vector.normSquare( point.dxdt( radius ) ) > vs )
 							vs = Vector.normSquare( point.dxdt( radius ) );	
+						if (vs < 1.0 && vs > 0.0) 
+						{
+							double a = 2;
+						}
 						if ( Vector.normSquare( point.getForce() ) > st )
 							st = Vector.normSquare( point.getForce() );
 					}
@@ -334,6 +340,9 @@ public class AgentRelaxation extends ProcessManager
 				else
 					dtMech = this._maxMove / Math.max( Math.sqrt(vs) + 
 							Global.agent_move_safety, 1.0 );
+					if (dtMech == this._maxMove) {
+						double a = 2.2;
+					}
 				/* TODO we may want to make the dt cap settable as well */
 			}
 			
@@ -432,7 +441,7 @@ public class AgentRelaxation extends ProcessManager
 			 * TODO friction
 			 * FIXME here we need to selectively apply surface collision methods
 			 */
-			this._iterator.collision(this._compartmentSurfs, agentSurfs, 0.0);
+			this._iterator.collision(this._compartmentSurfs, agentSurfs, 0.0, 0.0);
 			
 			/* NOTE: testing purposes only */
 			if (this._gravity)
@@ -473,9 +482,14 @@ public class AgentRelaxation extends ProcessManager
 				Body body = ((Body) neighbour.get(BODY));
 				List<Surface> t = body.getSurfaces();
 				
+				agent.event(PULL_FORCE_CALCULATION, neighbour);
+				Double pullForce = agent.getDouble(CURRENT_PULL_FORCE);
+				if ( pullForce == null || pullForce.isNaN() )
+					pullForce = 0.0;
+				
 				/* pass this agents and neighbor surfaces as well as the pull
 				 * region to the collision iterator to update the net forces. */
-				this._iterator.collision(surfaces, t, pull);
+				this._iterator.collision(surfaces, t, pull, pullForce);
 			}
 	}
 
