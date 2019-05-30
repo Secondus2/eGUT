@@ -557,7 +557,7 @@ public class AspectRef
 	/**
 	 * 
 	 */
-	public static final String differentiateLikelihood = "differentiateLikelihood";
+	public static final String randomDifferentiationVariable = "differentiationVariable";
 	
 	/**
 	 * Initial point for distributed spawner class

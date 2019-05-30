@@ -23,15 +23,6 @@
 			</species>
 			
 			<species name="bacterium">
-				<aspect name="differentiate" type="EVENT" class="Differentiate" />
-				<aspect name="differentiationMap" class="InstantiableMap">
-					<map entryClass="String" keyType="String">
-						<item key="mass smaller 0.02" value="inert"  />
-						<item key="randomDifferentiation" value="inert"/>
-					</map>
-				</aspect>
-				<aspect name="randomDifferentiation" type="PRIMARY" class="Boolean" value="false"/>
-				<aspect name="differentiateLikelihood" type="PRIMARY" class="Double" value="0.1"/>
 			</species>
 			
 			<species name="inert">
@@ -71,6 +62,16 @@
 						</reaction> 
 					</list>
 				</aspect>
+				<aspect name="differentiate" type="EVENT" class="Differentiate" />
+				<aspect name="differentiationMap" class="InstantiableMap">
+					<map entryClass="String" keyType="String">
+					<!--key = A Boolean as a string       value = The species type that the Agent will take on if the Boolean is true -->
+						<item key="mass smaller 0.02" value="inert"  />
+						<item key="differentiationVariable smaller 0.01" value="inert"/>
+					</map>
+				</aspect>
+				<aspect name="randomDifferentiation" type="EVENT" class="RandomDifferentiation"/>
+				<aspect name="differentiationVariable" type="PRIMARY" class="Double" value="1.0"/>
 			</species>
 			
 			<species name="CanonicalNOB">
@@ -263,7 +264,8 @@
 					<aspect name="maxConcentration" type="PRIMARY" class="Double" value="8.74E-6" />
 					<aspect name="outputWriter" type="PRIMARY" class="String" value="SvgExport" />
 				</process>
-				<process name="agentRandomDifferentiation" class="AgentRandomDifferentiation" priority="1" firstStep="0.0" timerStepSize="6.0">
+				<process name="agentEvents" class="AgentEvents" priority="1" firstStep="0.0" timerStepSize="6.0">
+					<aspect name="eventNames" type="PRIMARY" class="String[]" value="randomDifferentiation"/>
 				</process>
 			</processManagers>
 		</compartment>

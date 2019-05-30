@@ -247,7 +247,7 @@ public class ClassRef
 	 * the stochastic move event
 	 */
 	public final static String stochasticMove =
-			aspect.event.StochasticMove.class.getName();
+			aspect.event.PausingStochasticMove.class.getName();
 	
 	/**
 	 * the update body event
@@ -280,6 +280,12 @@ public class ClassRef
 	
 	public final static String differentialInteractionForce = 
 			aspect.event.DifferentialInteractionForce.class.getName();
+	
+	/**
+	 * 
+	 */
+	public static final String randomDifferentiation = 
+			aspect.event.RandomDifferentiation.class.getName();
 	
 	/* ************************************************************************
 	 * Agents, Species and aspect modules
@@ -346,8 +352,8 @@ public class ClassRef
 	/**
 	 * 
 	 */
-	public static final String agentRandomDifferentiation = 
-			processManager.library.AgentRandomDifferentiation.class.getName();
+//	public static final String agentRandomDifferentiation = 
+//			processManager.library.AgentRandomDifferentiation.class.getName();
 	
 	/**
 	 * Plasmid transfer(Conjugation) and loss process manager
