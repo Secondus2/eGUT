@@ -302,7 +302,7 @@ public class EpithelialLayerSpawner extends Spawner {
 	public void spawnEpithelialAgent(Point[] position) {
 		Agent newEpithelialCell = new Agent(this.getTemplate());
 		newEpithelialCell.set(AspectRef.agentBody, new Body(
-				position, this._apicalSurface.normal));
+				position, this._apicalSurface.getNormal()));
 		newEpithelialCell.setCompartment( this.getCompartment() );
 		newEpithelialCell.registerBirth();
 	}

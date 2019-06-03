@@ -380,7 +380,7 @@ public class XmlHandler
 		    }
 		return out;
 	}
-	
+
 	/**
 	 * \brief TODO
 	 * 

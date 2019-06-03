@@ -555,6 +555,7 @@ public class AspectRef
 	public static final String agentDifferentiation = "differentiate";
 
 	/**
+<<<<<<< HEAD
 	 * 
 	 */
 	public static final String randomDifferentiationVariable = "differentiationVariable";
@@ -571,5 +572,5 @@ public class AspectRef
 
 	
 	public static final String interactionFunctionMap = "interactionFunctionMap";
-
+	
 }

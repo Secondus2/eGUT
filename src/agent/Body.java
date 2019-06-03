@@ -39,6 +39,9 @@ import utility.Helper;
  * TODO amount of constructors gets quite big, consider to reduce and simplify
  * if possible.
  * 
+ * TODO amount of constructors gets quite big, consider to reduce and simplify
+ * if possible.
+ * 
  * @author Bastiaan Cockx @BastiaanCockx (baco@env.dtu.dk), DTU, Denmark
  * @author Robert Clegg (r.j.clegg@bham.ac.uk) University of Birmingham, U.K.
  */
@@ -330,6 +333,7 @@ public class Body implements Copyable, Instantiable, Settable
 		}
 
 	}
+
 	/**
 	 * Body is constructed with the normal vector of the 
 	 * EpithelialLayerSpawner._apicalSurface. This allows the cuboidal agent to
@@ -347,6 +351,7 @@ public class Body implements Copyable, Instantiable, Settable
 		this._morphology = Morphology.CUBOID;
 		this._surfaces.add(new OrientedCuboidSurface(points, apicalNormal));
 	}
+
 	/**
 	 * quick solution to create body from string
 	 * @param input

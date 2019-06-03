@@ -42,6 +42,8 @@ public abstract class Spawner implements Settable, Instantiable, AspectInterface
 	protected Settable _parentNode;
 	
 	private Morphology _morphology;
+
+	protected Morphology morphology;
 	
 	/**
 	 * The aspect registry

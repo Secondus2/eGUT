@@ -1,6 +1,7 @@
 package surface;
 
 import generalInterfaces.HasBoundingBox;
+import settable.Module;
 import shape.Shape;
 import surface.BoundingBox;
 
@@ -107,5 +108,13 @@ public class CuboidSurface extends Surface implements HasBoundingBox {
 	public BoundingBox boundingBox() {
 			return boundingBox.get(this._points[0].getPosition(), 
 					this._points[1].getPosition(), true);
+	}
+	
+	public Module appendToModule(Module modelNode) 
+	{
+		for (Point p : _points )
+			modelNode.add(p.getModule() );
+		
+		return modelNode;
 	}
 }
