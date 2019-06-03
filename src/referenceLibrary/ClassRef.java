@@ -246,8 +246,8 @@ public class ClassRef
 	/**
 	 * the stochastic move event
 	 */
-	public final static String stochasticMove =
-			aspect.event.PausingStochasticMove.class.getName();
+	public final static String stochasticMovement =
+			aspect.event.StochasticMovement.class.getName();
 	
 	/**
 	 * the update body event
