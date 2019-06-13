@@ -2,6 +2,8 @@ package physicalObject;
 
 import org.w3c.dom.Element;
 
+import aspect.AspectInterface;
+import aspect.AspectReg;
 import instantiable.Instantiable;
 import referenceLibrary.XmlRef;
 import settable.Attribute;
@@ -17,12 +19,13 @@ import surface.*;
  * @author Bastiaan Cockx @BastiaanCockx (baco@env.dtu.dk), DTU, Denmark.
  *
  */
-public class PhysicalObject implements Settable, Instantiable
+public class PhysicalObject implements Settable, Instantiable, AspectInterface
 {
 	private Settable _parentNode;
 	
 	private Surface _surface;
 	private boolean _mobile = false;
+	protected AspectReg _aspectRegistry = new AspectReg();
 	
 	public PhysicalObject()
 	{
@@ -104,6 +107,16 @@ public class PhysicalObject implements Settable, Instantiable
 	public Settable getParent() 
 	{
 		return this._parentNode;
+	}
+	
+	public void setSurface(Surface surface)
+	{
+		this._surface = surface;
+	}
+
+	@Override
+	public AspectReg reg() {
+		return this._aspectRegistry;
 	}
 
 }

@@ -7,7 +7,7 @@ import idynomics.Idynomics;
 import linearAlgebra.Vector;
 import settable.Settable;
 import surface.Ball;
-import surface.CuboidSurface;
+import surface.Cuboid;
 import surface.Rod;
 
 /**
@@ -237,7 +237,7 @@ public class SvgExport implements GraphicalExporter
 		this.rectangle(posA, posB, rod.getRadius()*2.0, pigment);
 	}
 	
-	public void draw (CuboidSurface cuboidSurface, String pigment) {
+	public void draw (Cuboid cuboid, String pigment) {
 		
 		
 		

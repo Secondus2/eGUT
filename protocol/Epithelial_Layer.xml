@@ -3,7 +3,7 @@
 	<simulation name="EpithelialLayer" outputfolder="../results" log="DEBUG" randomSeed="23"
 						comment="this is a file for testing purposes only.">
 		
-		<timer stepSize="1.0" endOfSimulation="30.0" />
+		<timer stepSize="1.0" endOfSimulation="3.0" />
 		
 		<speciesLib>
 			<!-- species/species library The species library contains all agent species 
@@ -23,7 +23,7 @@
 							<stoichiometric component="mass" coefficient="1.0" />
 							<stoichiometric component="solute1" coefficient="-5.0" />
 							<stoichiometric component="solute2" coefficient="4.0" />
-							<stoichiometric component="eps" coefficient="20.0" />
+							<stoichiometric component="eps" coefficient="30.0" />
 						</reaction> 
  					</list>
 				</aspect>
@@ -40,9 +40,10 @@
 				<aspect name="epsExcretion" 	type="EVENT"		class="ExcreteEPS" 	 />
 				<aspect name="maxInternalEPS" 	type="PRIMARY" 		class="Double" value="0.03" />
 				<aspect name="epsSpecies" 		type="PRIMARY" 		class="String" value="particleEPS" />
+				<aspect name="apicalFace"		type="CALCULATED" 	class="CuboidApicalFace" />
 			</species>
 			<species name="particleEPS">
-				<aspect name="density" 			type="PRIMARY" 		class="Double" value="1" />
+				<aspect name="density" 			type="CALCULATEDONCE" 		class="NumberWithUnit" input="2.0/2.0" />
 				<aspect name="pigment" 			type="PRIMARY" 		class="String" value="BLUE" />
 				<aspect name="#isLocated" 		type="PRIMARY" 		class="Boolean" value="true" />
 				<aspect name="surfaces"			type="CALCULATED"	class="AgentSurfaces" />
@@ -50,14 +51,15 @@
 				<aspect name="volume" 			type="CALCULATED" 	class="SimpleVolumeState" />
 				<aspect name="radius" 			type="CALCULATED" 	class="CoccoidRadius" />
 				<aspect name="updateBody" 		type="EVENT" 		class="UpdateBody" />
-				<aspect name="searchDist"		type="PRIMARY" 		class="Double"		value="0.2"  />
-				<aspect name ="pullDistance"		type="PRIMARY"		class="Double"		value="0.2"/>
+				<aspect name="searchDist"		type="PRIMARY" 		class="Double"		value="0.3"  />
+				<aspect name ="pullDistance"		type="PRIMARY"		class="Double"		value="0.5"/>
 				<aspect name="evaluatePull" 	type="EVENT"		class="ResolveInteractionDistance"/>
 				<aspect name="calculatePull" 	type="EVENT"		class="DifferentialInteractionForce"/>
 				<aspect name="interactionFunctionMap" type="PRIMARY"  class="HashMap">
 					<item type="PRIMARY" class="String" value="0.0" key="epithelium" keyType="String" />
-					<item type="PRIMARY" class="String" value="(000000.0)*(distance-0.001)*(#e^(0.0-((distance-0.001)/(200.0))))" key="particleEPS" keyType="String" />
-					<item type="PRIMARY" class="String" value="(000000.0)*(distance-0.001)*(#e^(0.0-((distance-0.001)/(200.0))))" key="bacterium" keyType="String" />
+					<item type="PRIMARY" class="String" value="(1000000.0)*(distance-0.001)*(#e^(0.0-(10.0*(distance-0.001))))" key="particleEPS" keyType="String" />
+					<item type="PRIMARY" class="String" value="(1000000.0)*(distance-0.001)*(#e^(0.0-(10.0*(distance-0.001))))" key="bacterium" keyType="String" />
+					<item type="PRIMARY" class="String" value="(2000000.0)*(distance-0.001)*(#e^(0.0-(10.0*(distance-0.001))))" key="gobletCell" keyType="String" />
 				</aspect>
 				<speciesModule name="stochasticMover" />
 			</species>
@@ -143,41 +145,20 @@
 					</aspect>
 					<aspect name="density" type="PRIMARY" class="Double" value="1" />
 					<aspect name="pigment" type="PRIMARY" class="String" value="YELLOW" />
+					<aspect name="radius" type="CALCULATED" class="CoccoidRadius" />
 				</templateAgent>
 			</spawn>
 			<processManagers>
-				<process name="svgWriter" class="GraphicalOutput"  priority="-3"
-					firstStep="0.0"  timerStepSize="1.0">
-					<aspect name="outputWriter" type="PRIMARY" class="String" value="SvgExport" />
-				</process>
 				<process name="povWriter" class="GraphicalOutput"  priority="-3"
 					firstStep="0.0"  timerStepSize="1.0">
 					<aspect name="outputWriter" type="PRIMARY" class="String" value="PovExport" />
-				</process>
-				<process name="svgWriter" class="GraphicalOutput"  priority="-3"
-					firstStep="0.0"  timerStepSize="1.0">
-					<aspect name="solute" type="PRIMARY" class="String" value="solute1" />
-					<aspect name="maxConcentration" type="PRIMARY" class="Double" value="2.0" />
-					<aspect name="outputWriter" type="PRIMARY" class="String" value="SvgExport" />
-				</process>
-				<process name="svgWriter" class="GraphicalOutput"  priority="-3"
-					firstStep="0.0"  timerStepSize="1.0">
-					<aspect name="maxConcentration" type="PRIMARY" class="Double" value="2.0" />
-					<aspect name="solute" type="PRIMARY" class="String" value="solute1" />
-					<aspect name="outputWriter" type="PRIMARY" class="String" value="SvgExport" />
-				</process>
-				<process name="svgWriter" class="GraphicalOutput"  priority="-3"
-					firstStep="0.0"  timerStepSize="1.0">
-					<aspect name="maxConcentration" type="PRIMARY" class="Double" value="2.0" />
-					<aspect name="solute" type="PRIMARY" class="String" value="solute1" />
-					<aspect name="arrayType" type="PRIMARY" class="String" value="PRODUCTIONRATE" />
-					<aspect name="outputWriter" type="PRIMARY" class="String" value="SvgExport" />
 				</process>
 				<process name="agentRelax" class="AgentRelaxation"  priority="-2"
 					firstStep="0.0"  timerStepSize="0.1">
 					<aspect name="maxMovement" type="PRIMARY" class="Double" value="0.03" />
 					<aspec name = "staticAgentTimeStep" type="PRIMARY" class="Boolean" value="true" />
 					<aspect name="relaxationMethod" type="PRIMARY" class="String" value="EULER" />
+					<aspect name="stressThreshold" type="PRIMARY" class="Double" value="10000.0" />
 				</process>
 				<process name="solveDiffusionTransient" class="SolveDiffusionTransient"  priority="-1"
 					firstStep="0.0" timerStepSize="0.1">

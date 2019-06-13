@@ -178,6 +178,24 @@ public class ClassRef
 	public final static String densityScaled = 
 			aspect.calculated.DensityScaled.class.getName();
 	
+	/**
+	 * 
+	 */
+	public final static String cuboidApicalFace = 
+			aspect.calculated.CuboidApicalFace.class.getName();
+	
+	
+	/* ************************************************************************
+	 * Class reference library : Aspects - Calculated Once
+	 */
+	
+	/**
+	 * Number with units for conversion to double.
+	 */
+	
+	public final static String numberWithUnit = 
+			aspect.calculatedOnce.NumberWithUnit.class.getName();
+	
 	
 	/* ************************************************************************
 	 * Class reference library : Aspects - Event

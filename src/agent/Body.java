@@ -10,6 +10,7 @@ import org.w3c.dom.Element;
 import org.w3c.dom.NodeList;
 
 import agent.Body.Morphology;
+import aspect.AspectInterface;
 import dataIO.Log;
 import dataIO.Log.Tier;
 import dataIO.XmlHandler;
@@ -143,11 +144,8 @@ public class Body implements Copyable, Instantiable, Settable
 	{
 		this._points.add(points[0]);
 		this._points.add(points[1]);
-		orderPoints();
-		points[0] = this._points.get(0);
-		points[1] = this._points.get(1);
 		this._morphology = Morphology.CUBOID;
-		this._surfaces.add(new CuboidSurface(points));
+		this._surfaces.add(new Cuboid(points));
 	}
 		
 	/**
@@ -258,11 +256,8 @@ public class Body implements Copyable, Instantiable, Settable
 			case CUBOID :
 				this._points.add(points[0]);
 				this._points.add(points[1]);
-				orderPoints();
-				points[0] = this._points.get(0);
-				points[1] = this._points.get(1);
 				this._morphology = Morphology.CUBOID;
-				this._surfaces.add(new CuboidSurface(points));
+				this._surfaces.add(new Cuboid(points));
 			default: 
 				break;
 		}
@@ -325,9 +320,7 @@ public class Body implements Copyable, Instantiable, Settable
 			break;
 		case CUBOID :
 			/* TODO */
-			if (Log.shouldWrite(Tier.CRITICAL))
-				Log.out(Tier.CRITICAL, Morphology.CUBOID.name()
-						+ "body generation not suported yet, skipping..");
+			this._surfaces.add(new Cuboid(this._points));
 		default: 
 			break;
 		}
@@ -345,12 +338,12 @@ public class Body implements Copyable, Instantiable, Settable
 	public Body(Point[] points, double[] apicalNormal) {
 		this._points.add(points[0]);
 		this._points.add(points[1]);
-		orderPoints();
-		points[0] = this._points.get(0);
-		points[1] = this._points.get(1);
 		this._morphology = Morphology.CUBOID;
 		this._surfaces.add(new OrientedCuboidSurface(points, apicalNormal));
 	}
+	
+
+	
 
 	/**
 	 * quick solution to create body from string
@@ -520,18 +513,6 @@ public class Body implements Copyable, Instantiable, Settable
 			Vector.addEquals(vector, p.getPosition());
 			p.setPosition(vector);
 		}
-	}
-	
-	//This method is used to ensure that two points in a Cuboid Body are in the
-	//correct order, with the bottom corner at index 0 and the top corner at
-	//index 1. This method could potentially be moved to the CuboidSurface.
-	public void orderPoints() {
-		for (int i = 0; i < this._points.size(); i++) {
-			if (this._points.get(1).getPosition()[i] > 
-			this._points.get(0).getPosition()[i])
-				return;
-		}
-		Collections.swap(this._points, 0, 1);
 	}
 	
 	

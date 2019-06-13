@@ -45,6 +45,8 @@ public abstract class Spawner implements Settable, Instantiable, AspectInterface
 
 	protected Morphology morphology;
 	
+	protected AgentContainer _agents;
+	
 	/**
 	 * The aspect registry
 	 */
@@ -70,6 +72,8 @@ public abstract class Spawner implements Settable, Instantiable, AspectInterface
 		
 		this.setCompartment(
 				Idynomics.simulator.getCompartment(compartmentName) );
+		
+		this._agents = agents;
 		
 		Element p = (Element) xmlElem;
 		

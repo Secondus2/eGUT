@@ -50,7 +50,11 @@ public class Aspect implements Instantiable, Settable
 		/**
 		 * An instance of {@code aspect.Event}.
 		 */
-		EVENT
+		EVENT,
+		/**
+		 * An instance of {@code aspect.CalculatedOnce}.
+		 */
+		CALCULATEDONCE
 	}
 
 	/**
@@ -80,11 +84,18 @@ public class Aspect implements Instantiable, Settable
 	protected Calculated calc;
 	
 	/**
-	 * Direct access field for an {@code Even} aspect (to prevent excessive
+	 * Direct access field for an {@code Event} aspect (to prevent excessive
 	 * casting).
 	 */
 	protected Event event;
+	
+	/**
+	 * Direct access field for an {@code CalculatedOnce} aspect (to prevent 
+	 * excessive casting).
+	 */	
+	protected CalculatedOnce calcOnce;
 
+	
 	private Settable _parentNode;
 	
 	/**
@@ -118,11 +129,20 @@ public class Aspect implements Instantiable, Settable
     {
     	this.aspect = (Object) aspect;
     	this.key = key;
+    	if (key == "density")
+    	{
+    		double x;
+    		x = 2.0;
+    	}
 		if ( this.aspect instanceof Calculated )
 		{
 			  this.type = Aspect.AspectClass.CALCULATED;
 			  this.calc = (Calculated) this.aspect;
 		}
+		else if ( this.aspect instanceof CalculatedOnce )
+		{
+			  this.type = Aspect.AspectClass.PRIMARY;
+		}	
 		else if ( this.aspect instanceof Event )
 		{
 			  this.type = Aspect.AspectClass.EVENT;
@@ -130,7 +150,7 @@ public class Aspect implements Instantiable, Settable
 		}
 		else if ( this.aspect == null )
 		{
-			Log.out(Tier.NORMAL, "attempt to load null object " + key +
+			  Log.out(Tier.NORMAL, "attempt to load null object " + key +
 					" as aspect, abort");
 		}
 		else
@@ -145,6 +165,15 @@ public class Aspect implements Instantiable, Settable
 		return this.key;
 	}
 
+	/**
+	 * Sets the type of an existing aspect. This is used to change the 
+	 * CALCULATEDONCE aspects to PRIMARY aspects.
+	 * @param type
+	 */
+	public void setType(AspectClass type)
+	{
+		this.type = type;
+	}
 
 	/**
 	 * Get the ModelNode object for this Aspect object
@@ -276,6 +305,12 @@ public class Aspect implements Instantiable, Settable
     	case CALCULATED:
     		objectClass = Helper.obtainInput( Helper.listToArray(
     				ClassRef.getAllOptions( PackageRef.calculatedPackage ) ), 
+    				"aspect class", false);
+    		this.set(  Instance.getNew(xmlElem, null, objectClass) , name );
+    		break;
+    	case CALCULATEDONCE:
+    		objectClass = Helper.obtainInput( Helper.listToArray(
+    				ClassRef.getAllOptions( PackageRef.calculatedOncePackage ) ), 
     				"aspect class", false);
     		this.set(  Instance.getNew(xmlElem, null, objectClass) , name );
     		break;

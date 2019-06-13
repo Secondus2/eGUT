@@ -10,9 +10,10 @@ import aspect.Event;
 import compartment.Compartment;
 import dataIO.Log;
 import dataIO.Log.Tier;
+import idynomics.Idynomics;
 import linearAlgebra.Vector;
 import referenceLibrary.AspectRef;
-import surface.CuboidSurface;
+import surface.Cuboid;
 import surface.OrientedCuboidSurface;
 import surface.Point;
 import utility.ExtraMath;
@@ -68,17 +69,31 @@ public class ExcreteEPS extends Event
 		while ( currentEPS > epsBlob )
 		{
 			if (morphology == Morphology.CUBOID) {
-				OrientedCuboidSurface cuboidSurface = 
-						(OrientedCuboidSurface) body.getSurfaces().get(0);
-				Point[] apicalFace = cuboidSurface.getApicalFace();
-				double[] corner1 = apicalFace[0].getPosition();
-				double[] corner2 = apicalFace[1].getPosition();
-				double[] randomPointOnFace = new double[corner1.length];
-				for (int i = 0; i < corner1.length; i++) {
-					randomPointOnFace[i] = 
+				Cuboid cuboidSurface = 
+					(Cuboid) body.getSurfaces().get(0);
+				if (initiator.isAspect(AspectRef.cuboidOrientation))
+					{
+					Point[] apicalFace = (Point[])((Agent)initiator).getValue(
+							AspectRef.apicalFace);
+					double[] corner1 = apicalFace[0].getPosition();
+					double[] corner2 = apicalFace[1].getPosition();
+					double[] randomPointOnFace = new double[corner1.length];
+					for (int i = 0; i < corner1.length; i++) 
+						{
+						randomPointOnFace[i] = 
 							ExtraMath.getUniRand(corner1[i], corner2[i]);
-				}
-				epsPos = randomPointOnFace;
+						}
+					epsPos = randomPointOnFace;
+					}
+				else 
+					{
+					if( Log.shouldWrite(Tier.CRITICAL))
+						Log.out(Tier.CRITICAL, "Cuboid cells without "
+								+ "orientation cannot excrete EPS");
+					Idynomics.simulator.interupt("Cuboid cells without " 
+								+ "orientation cannot excrete EPS");
+					epsPos = null;
+					}
 				}
 				//Fairly rough - allows EPS to be excreted at either "end" of a
 				//rod cell, but does not prevent the EPS appearing inside the

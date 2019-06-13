@@ -237,6 +237,7 @@ public class AspectReg
 		{
 		case PRIMARY: return a.aspect;
 		case CALCULATED: return a.calc.get(rootRegistry);
+		case CALCULATEDONCE: return a.calcOnce;
 		case EVENT: Log.out(Tier.CRITICAL, "Attempt to get event " +
 				key + " as Value!");
 		}

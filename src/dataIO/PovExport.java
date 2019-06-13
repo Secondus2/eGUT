@@ -9,7 +9,7 @@ import idynomics.Idynomics;
 import settable.Settable;
 import shape.Shape;
 import surface.Ball;
-import surface.CuboidSurface;
+import surface.Cuboid;
 import surface.Rod;
 
 /**
@@ -242,10 +242,10 @@ public class PovExport implements GraphicalExporter
 	/**
 	 * 
 	 */
-	public void draw(CuboidSurface cuboidSurface, String pigment) 
+	public void draw(Cuboid cuboid, String pigment) 
 	{
-		double[] posA = this.to3D(cuboidSurface._points[0].getPosition());
-		double[] posB = this.to3D(cuboidSurface._points[1].getPosition());
+		double[] posA = this.to3D(cuboid._points[0].getPosition());
+		double[] posB = this.to3D(cuboid._points[1].getPosition());
 		this.cube(posA, posB, pigment);
 	}
 	

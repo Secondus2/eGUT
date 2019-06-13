@@ -594,6 +594,10 @@ public class AgentContainer implements Settable
 		this.treeInsert(anAgent);
 	}
 
+	public void addPhysicalObject (PhysicalObject physicalObject)
+	{
+		this._physicalObjects.add(physicalObject);
+	}
 		// FIXME move all aspect related methods out of general classes
 	/**
 	 * \brief Insert the given agent into this container's spatial registry.

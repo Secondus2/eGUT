@@ -1,9 +1,15 @@
 package surface;
 
+import java.util.List;
+
+import org.w3c.dom.Element;
+
 import generalInterfaces.HasBoundingBox;
 import settable.Module;
 import shape.Shape;
 import surface.BoundingBox;
+import utility.Helper;
+import utility.StandardizedImportMethods;
 
 /**
  * \brief TODO
@@ -11,33 +17,47 @@ import surface.BoundingBox;
  * @author Bastiaan Cockx @BastiaanCockx (baco@env.dtu.dk), DTU, Denmark
  * @author Tim Foster @Secondus2 (trf896@student.bham.ac.uk) 
  */
-public class CuboidSurface extends Surface implements HasBoundingBox {
+public class Cuboid extends Surface implements HasBoundingBox {
 	
     public Point[] _points;
-	
 
     public double _height;
 
+    public Cuboid(List<Point> points)
+    {
+    	Point[] pointsArray = (Point[]) points.toArray();
+    	this._points = pointsArray;
+    }
     
-    public CuboidSurface(Point[] points)
+    
+    public Cuboid(Point[] points)
     {
     	this._points = points;
     }
 
-	public CuboidSurface(Point pointA, Point pointB)
+	public Cuboid(Point pointA, Point pointB)
 	{
 		this._points = new Point[] { pointA , pointB };
     }
 	
-	public CuboidSurface(double[] pointA, double[] pointB)
+	public Cuboid(double[] pointA, double[] pointB)
 	{
 		this._points = new Point[] { new Point(pointA), new Point(pointB)};
 	}
 	
-	public CuboidSurface(CuboidSurface cuboid) 
+	public Cuboid(Cuboid cuboid) 
 	{
 		this._points = new Point[] {(Point) cuboid._points[0].copy(), 
 				(Point) cuboid._points[1].copy()};
+	}
+	
+	public Cuboid(Element xmlElem)
+	{
+		if( !Helper.isNullOrEmpty( xmlElem ))
+		{
+			this._points = StandardizedImportMethods.
+					pointImport(xmlElem, this, 2);
+		}
 	}
 
 
@@ -72,7 +92,8 @@ public class CuboidSurface extends Surface implements HasBoundingBox {
 	{
 		double[] corner1 = _points[0].getPosition();
 		double[] corner2 = _points[1].getPosition();
-		if (corner1[0] > corner2[0]) {
+		if (corner1[0] > corner2[0]) 
+		{
 			for (int i = 0; i < corner1.length; i++) {
 				corner1[i] += margin;
 			}

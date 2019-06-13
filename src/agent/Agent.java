@@ -275,7 +275,16 @@ public class Agent implements AspectInterface, Settable, Instantiable
 	{
 		this._aspectRegistry.doEvent(this, compliant, timestep, event);
 	}
+	
+	public void event(String event, AspectInterface compliant)
+	{
+		this.event(event, compliant, 0.0);
+	}
 
+	public void event(String event, AspectInterface compliant, Double timeStep)
+	{
+		this._aspectRegistry.doEvent(this, compliant, timeStep, event);
+	}
 	/*************************************************************************
 	 * general methods
 	 ************************************************************************/

@@ -7,6 +7,7 @@ import org.w3c.dom.Element;
 
 import agent.Agent;
 import agent.Body;
+import agent.Body.Morphology;
 import compartment.AgentContainer;
 import dataIO.Log;
 import dataIO.XmlHandler;
@@ -85,7 +86,9 @@ public class DifferentiatedEpithelialLayerSpawner extends EpithelialLayerSpawner
 		this._template = _templates[i];
 		Agent newEpithelialCell = new Agent(this.getTemplate());
 		newEpithelialCell.set(AspectRef.agentBody, new Body(
-				position, this._apicalSurface.getNormal()));
+				Morphology.CUBOID, position, 0.0, 0.0));
+		newEpithelialCell.set(AspectRef.cuboidOrientation,
+				this._apicalSurface.getNormal());
 		newEpithelialCell.setCompartment( this.getCompartment() );
 		newEpithelialCell.registerBirth();
 		_templateFrequency[i] --;

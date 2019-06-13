@@ -9,6 +9,7 @@ import dataIO.XmlHandler;
 import dataIO.Log.Tier;
 import idynomics.Idynomics;
 import linearAlgebra.Vector;
+import physicalObject.PhysicalObject;
 import compartment.AgentContainer;
 import referenceLibrary.AspectRef;
 import referenceLibrary.XmlRef;
@@ -260,9 +261,13 @@ public class EpithelialLayerSpawner extends Spawner {
 			Idynomics.simulator.interupt("Interrupted as epithelial layer does "
 					+ "not span the compartment");
 		}
-		
 		this._apicalSurface = new Plane(normal, this._apicalCorner);
-		this.getCompartment().addSurface(this._apicalSurface);
+		//this.getCompartment().addSurface(this._apicalSurface);
+		PhysicalObject epithelialSurface = new PhysicalObject();
+		epithelialSurface.setParent(this._parentNode);
+		epithelialSurface.setSurface(this._apicalSurface);
+		epithelialSurface.set("species",this.get("species"));
+		this._agents.addPhysicalObject(epithelialSurface);
 	}
 	
 	/**
@@ -301,8 +306,10 @@ public class EpithelialLayerSpawner extends Spawner {
 	
 	public void spawnEpithelialAgent(Point[] position) {
 		Agent newEpithelialCell = new Agent(this.getTemplate());
+		newEpithelialCell.set(AspectRef.cuboidOrientation,
+					this._apicalSurface.getNormal());
 		newEpithelialCell.set(AspectRef.agentBody, new Body(
-				position, this._apicalSurface.getNormal()));
+				Morphology.CUBOID, position, 0.0, 0.0));
 		newEpithelialCell.setCompartment( this.getCompartment() );
 		newEpithelialCell.registerBirth();
 	}

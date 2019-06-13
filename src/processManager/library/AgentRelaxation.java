@@ -1,6 +1,7 @@
 package processManager.library;
 
 import java.util.List;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 
@@ -442,7 +443,22 @@ public class AgentRelaxation extends ProcessManager
 			 */
 			for( PhysicalObject p : this._agents.getAllPhysicalObjects() )
 			{
-				this._iterator.collision(p.getSurface(), agentSurfs, 0.0);
+				agent.event(PULL_EVALUATION, p);
+				Double pull = agent.getDouble(CURRENT_PULL_DISTANCE);
+				if ( pull == null || pull.isNaN() )
+					pull = 0.0;
+				
+				agent.event(PULL_FORCE_CALCULATION, p);
+				Double pullForce = agent.getDouble(CURRENT_PULL_FORCE);
+				if ( pullForce == null || pullForce.isNaN() )
+					pullForce = 0.0;
+				
+				ArrayList <Surface> physicalObjectSurfaces = 
+						new ArrayList <Surface>();
+				physicalObjectSurfaces.add(p.getSurface());
+				
+				this._iterator.collision((Collection<Surface>) 
+						physicalObjectSurfaces,	agentSurfs, pull, pullForce);
 			}
 			/*
 			 * TODO friction

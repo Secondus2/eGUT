@@ -13,6 +13,9 @@ public class PackageRef {
 	public final static String calculatedPackage =
 			new aspect.calculated.StateExpression().getClass().getPackage().getName();
 	
+	public final static String calculatedOncePackage =
+			new aspect.calculatedOnce.NumberWithUnit().getClass().getPackage().getName();
+	
 	public final static String processManagerPackage =
 			new processManager.library.GraphicalOutput().getClass().getPackage().getName();
 	

@@ -117,6 +117,11 @@ public abstract interface AspectInterface
 	 */
 	public default Double getDouble(String aspect)
 	{
+		if (aspect == "density")
+		{
+			int x;
+			x = 2;
+		}
 		return (Double) this.reg().getValue(this, aspect);
 	}
 	

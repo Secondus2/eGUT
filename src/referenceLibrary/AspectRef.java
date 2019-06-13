@@ -555,10 +555,20 @@ public class AspectRef
 	public static final String agentDifferentiation = "differentiate";
 
 	/**
-<<<<<<< HEAD
 	 * 
 	 */
 	public static final String randomDifferentiationVariable = "differentiationVariable";
+	
+	/**
+	 * Orientation of a cuboid cell.
+	 * This is either set in the protocol or by the epithelial spawner.
+	 */
+	public static final String cuboidOrientation = "cuboidOrientation";
+	
+	/**
+	 * 
+	 */
+	public static final String apicalFace = "apicalFace";
 	
 	/**
 	 * Initial point for distributed spawner class

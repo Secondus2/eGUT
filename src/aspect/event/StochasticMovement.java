@@ -21,7 +21,7 @@ public class StochasticMovement extends Event
 	private double temperature = 310;
 	//Water viscosity - find a better value for this
 	private double viscosityWater = 7e-4;
-	private double stochasticTimeStep = 1.0;
+	private double stochasticTimeStep = 30000000000000.0;
 
 	public void start(AspectInterface initiator, AspectInterface compliant, 
 			Double timeStep)

@@ -8,6 +8,7 @@ import agent.Body;
 import aspect.AspectInterface;
 import aspect.Event;
 import expression.Expression;
+import physicalObject.PhysicalObject;
 import referenceLibrary.AspectRef;
 import referenceLibrary.XmlRef;
 import shape.Shape;
@@ -33,8 +34,15 @@ public class DifferentialInteractionForce extends Event {
 				(Map<String,String>) initiator.getValue(INTERACTIONS);
 		initiatorSurface = ((Body) initiator.getValue(BODY))
 				.getSurfaces().get(0);
+		if (compliant.isAspect("body"))
+		{
 		compliantSurface = ((Body) compliant.getValue(BODY))
 				.getSurfaces().get(0);
+		}
+		else 
+		{
+			compliantSurface = ((PhysicalObject) compliant).getSurface();
+		}
 		Collision collision = new Collision(shape);
 		double distance = collision.distance(
 				compliantSurface, initiatorSurface);
