@@ -196,6 +196,9 @@ public class ClassRef
 	public final static String numberWithUnit = 
 			aspect.calculatedOnce.NumberWithUnit.class.getName();
 	
+	public final static String numWithUnit = 
+			aspect.calculated.NumWithUnit.class.getName();
+	
 	
 	/* ************************************************************************
 	 * Class reference library : Aspects - Event

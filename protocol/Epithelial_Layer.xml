@@ -43,7 +43,7 @@
 				<aspect name="apicalFace"		type="CALCULATED" 	class="CuboidApicalFace" />
 			</species>
 			<species name="particleEPS">
-				<aspect name="density" 			type="CALCULATEDONCE" 		class="NumberWithUnit" input="2.0/2.0" />
+				<aspect name="density" 			type="CALCULATEDONCE" 		class="NumWithUnit" input="2.0/2.0" />
 				<aspect name="pigment" 			type="PRIMARY" 		class="String" value="BLUE" />
 				<aspect name="#isLocated" 		type="PRIMARY" 		class="Boolean" value="true" />
 				<aspect name="surfaces"			type="CALCULATED"	class="AgentSurfaces" />
