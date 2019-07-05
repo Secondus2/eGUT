@@ -14,14 +14,17 @@ import utility.ExtraMath;
 
 public class StochasticMovement extends Event
 {
+	
+	/**
+	 * These constants need to be set in the protocol file, Global class or config.
+	 */
 	public String BODY = AspectRef.agentBody;
 	public String VOLUME = AspectRef.agentVolume;
-	private double boltzmannK = 1.38065e-23;
+	private double boltzmannK = 4.97e7;
 	//Temperature - settable in compartment??
 	private double temperature = 310;
 	//Water viscosity - find a better value for this
-	private double viscosityWater = 7e-4;
-	private double stochasticTimeStep = 30000000000000.0;
+	private double viscosityWater = 3e9;
 
 	public void start(AspectInterface initiator, AspectInterface compliant, 
 			Double timeStep)
@@ -51,7 +54,7 @@ public class StochasticMovement extends Event
 				(boltzmannK*temperature)/(6*Math.PI*viscosityWater*radius);
 		
 		double meanSquareDistance = 2*(numberOfDimensions)*
-				diffusionCoefficient*stochasticTimeStep;
+				diffusionCoefficient*timeStep;
 		
 		double standardDeviation = Math.sqrt(meanSquareDistance);
 		
