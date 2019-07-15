@@ -19,7 +19,7 @@ import utility.Helper;
 public class ResolveInteractionDistance extends Event
 {
 	
-	public String PULL_DIST = AspectRef.agentPulldistance;
+	public String PULL_DIST = AspectRef.agentPullDistance;
 	public String PREF_DIST = AspectRef.agentPreferencedistance;
 	public String PREF_ID = AspectRef.agentPreferenceIdentifier;
 	public String PREFERENCE = AspectRef.agentAttachmentPreference;
@@ -31,8 +31,8 @@ public class ResolveInteractionDistance extends Event
 								AspectInterface compliant, Double timeStep)
 	{
 		// NOTE currently they are added up not leveled
-		Double iDist = initiator.getDouble(AspectRef.agentPulldistance);
-		Double cDist = compliant.getDouble(AspectRef.agentPulldistance);
+		Double iDist = initiator.getDouble(AspectRef.agentPullDistance);
+		Double cDist = compliant.getDouble(AspectRef.agentPullDistance);
 		
 //		// NOTE they are currently not added up
 //		if ( initiator.isAspect(PREF_DIST) )

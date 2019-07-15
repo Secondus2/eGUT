@@ -2,11 +2,15 @@ package surface.collision;
 
 import java.util.Collection;
 
+import aspect.Aspect;
+import aspect.AspectInterface;
+import aspect.AspectReg;
 import dataIO.Log;
 import dataIO.Log.Tier;
 import idynomics.Global;
 import instantiable.Instance;
 import linearAlgebra.Vector;
+import referenceLibrary.AspectRef;
 import shape.Shape;
 import surface.Ball;
 import surface.Plane;
@@ -15,6 +19,7 @@ import surface.Surface;
 import surface.Voxel;
 import surface.Surface.Type;
 import surface.collision.model.*;
+
 
 /**
  * Distance methods are based on closest point algorithms from:
@@ -193,9 +198,7 @@ public class Collision
 		 */
 		else if ( var.pullRange > 0.0 )
 		{
-			if ( var.flip )
-				 Vector.reverseEquals(var.interactionVector);
-			
+
 			this._pullFun.interactionForce( var );
 
 			if( var.flip )
@@ -207,6 +210,46 @@ public class Collision
 			{
 				this.applyForce(b, var.interactionVector, var.s);
 				this.applyForce(a, Vector.reverse(var.interactionVector), var.t);
+			}
+		}
+	}
+	
+	
+	public void collision (Collection<Surface> allA, AspectInterface agent,
+			Collection<Surface> allB, AspectInterface neighbour,
+			double pullDistance)
+	{
+		_variables.setPullRange(pullDistance);
+		
+		AspectReg agentReg = agent.reg();
+		AspectReg neighbourReg = neighbour.reg();
+		
+		agentReg.doEvent(agent, neighbour, 0.0,
+				AspectRef.collisionPullForceCalculation);
+		neighbourReg.doEvent(neighbour, agent, 0.0,
+				AspectRef.collisionPullForceCalculation);
+		
+		double agentPull = (agent.isAspect(AspectRef.collisionCurrentPullForce) 
+				? agent.getDouble(AspectRef.collisionCurrentPullForce) : 0.0);
+		double neighbourPull = (neighbour.isAspect(AspectRef.
+				collisionCurrentPullForce) ? 
+				neighbour.getDouble(AspectRef.collisionCurrentPullForce) : 0.0);
+		
+		double pullForce = agentPull + neighbourPull;
+		
+		if (pullForce == 0.0)
+		{
+			int a;
+			a = 1;
+		}
+		
+		_variables.setPullForce(pullForce);
+		
+		for ( Surface a : allA )
+		{
+			for ( Surface b : allB )
+			{ 
+				this.collision( a, b, this._variables );
 			}
 		}
 	}

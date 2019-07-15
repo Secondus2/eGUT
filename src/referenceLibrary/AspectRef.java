@@ -54,7 +54,7 @@ public class AspectRef
 	/**
 	 * TODO
 	 */
-	public final static String agentPulldistance = "pullDistance";
+	public final static String agentPullDistance = "pullDistance";
 	
 	/**
 	 * TODO

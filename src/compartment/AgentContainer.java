@@ -610,7 +610,7 @@ public class AgentContainer implements Settable
 	private void treeInsert(Agent anAgent)
 	{
 		Body body = ((Body) anAgent.get(AspectRef.agentBody));
-		Double dist = anAgent.getDouble(AspectRef.agentPulldistance);
+		Double dist = anAgent.getDouble(AspectRef.agentPullDistance);
 		dist = Helper.setIfNone(dist, 0.0);
 		List<BoundingBox> boxes = body.getBoxes(dist, this.getShape());
 		for ( BoundingBox b: boxes )

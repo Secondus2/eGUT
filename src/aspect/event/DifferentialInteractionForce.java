@@ -48,11 +48,23 @@ public class DifferentialInteractionForce extends Event {
 				compliantSurface, initiatorSurface);
 		if (distance > 0.001)
 		{
+			if (compliant.getValue(SPECIES) == "bacterium")
+			{
+				int a;
+				a = 2;
+			}
 			Expression interactionFunction = 
 					new Expression(interactions.get(compliant.getValue(SPECIES)));
 			HashMap<String, Double> distanceMap = new HashMap<String, Double>();
 			distanceMap.put("distance", distance);
 			double force = interactionFunction.getValue((Map)distanceMap);
+			
+			if (force > 0.0)
+			{
+				int a;
+				a = 1;
+			}
+				
 			
 			initiator.set(CURRENT_PULL_FORCE, force);
 		}

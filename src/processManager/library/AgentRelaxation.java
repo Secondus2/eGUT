@@ -39,6 +39,7 @@ public class AgentRelaxation extends ProcessManager
 	public String PULL_EVALUATION = AspectRef.collisionPullEvaluation;
 	public String PULL_FORCE_CALCULATION = AspectRef.collisionPullForceCalculation;
 	public String CURRENT_PULL_DISTANCE = AspectRef.collisionCurrentPullDistance;
+	public String AGENT_PULL_DISTANCE = AspectRef.agentPullDistance;
 	public String CURRENT_PULL_FORCE = AspectRef.collisionCurrentPullForce;
 	public String RELAXATION_METHOD = AspectRef.collisionRelaxationMethod;
 	public String FAST_RELAXATION = AspectRef.fastAgentRelaxation;
@@ -448,17 +449,12 @@ public class AgentRelaxation extends ProcessManager
 				if ( pull == null || pull.isNaN() )
 					pull = 0.0;
 				
-				agent.event(PULL_FORCE_CALCULATION, p);
-				Double pullForce = agent.getDouble(CURRENT_PULL_FORCE);
-				if ( pullForce == null || pullForce.isNaN() )
-					pullForce = 0.0;
-				
 				ArrayList <Surface> physicalObjectSurfaces = 
 						new ArrayList <Surface>();
 				physicalObjectSurfaces.add(p.getSurface());
 				
 				this._iterator.collision((Collection<Surface>) 
-						physicalObjectSurfaces,	agentSurfs, pull, pullForce);
+						physicalObjectSurfaces,	p, agentSurfs, agent, pull);
 			}
 			/*
 			 * TODO friction
@@ -490,11 +486,11 @@ public class AgentRelaxation extends ProcessManager
 		double searchDist = (agent.isAspect(SEARCH_DIST) ?
 				agent.getDouble(SEARCH_DIST) : 0.0);
 		
-		/* Perform neighborhood search and perform collision detection and
+		/* Perform neighbourhood search and perform collision detection and
 		 * response. */
 		Collection<Agent> nhbs = agents.treeSearch(agent, searchDist);
 		for ( Agent neighbour: nhbs )
-			if ( agent.identity() > neighbour.identity() )
+			if ( agent.identity() > neighbour.identity())
 			{
 				/* obtain maximum distance for which pulls should be considered
 				 */
@@ -505,14 +501,9 @@ public class AgentRelaxation extends ProcessManager
 				Body body = ((Body) neighbour.get(BODY));
 				List<Surface> t = body.getSurfaces();
 				
-				agent.event(PULL_FORCE_CALCULATION, neighbour);
-				Double pullForce = agent.getDouble(CURRENT_PULL_FORCE);
-				if ( pullForce == null || pullForce.isNaN() )
-					pullForce = 0.0;
-				
 				/* pass this agents and neighbor surfaces as well as the pull
 				 * region to the collision iterator to update the net forces. */
-				this._iterator.collision(surfaces, t, pull, pullForce);
+				this._iterator.collision(surfaces, agent, t, neighbour, pull);
 			}
 	}
 
