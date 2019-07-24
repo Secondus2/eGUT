@@ -129,11 +129,7 @@ public class Aspect implements Instantiable, Settable
     {
     	this.aspect = (Object) aspect;
     	this.key = key;
-    	if (key == "density")
-    	{
-    		double x;
-    		x = 2.0;
-    	}
+    	
 		if ( this.aspect instanceof Calculated )
 		{
 			  this.type = Aspect.AspectClass.CALCULATED;

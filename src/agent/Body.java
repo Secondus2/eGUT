@@ -57,6 +57,7 @@ public class Body implements Copyable, Instantiable, Settable
 		COCCOID,
 		BACILLUS,
 		CUBOID,
+		ORIENTEDCUBOID
 	}
 	
 	/**
@@ -144,7 +145,7 @@ public class Body implements Copyable, Instantiable, Settable
 	{
 		this._points.add(points[0]);
 		this._points.add(points[1]);
-		this._morphology = Morphology.CUBOID;
+		this._morphology = Morphology.ORIENTEDCUBOID;
 		this._surfaces.add(new Cuboid(points));
 	}
 		
@@ -260,6 +261,12 @@ public class Body implements Copyable, Instantiable, Settable
 				this._surfaces.add(new Cuboid(points));
 			default: 
 				break;
+			case ORIENTEDCUBOID :
+				this._points.add(points[0]);
+				this._points.add(points[1]);
+				this._morphology = Morphology.ORIENTEDCUBOID;
+				this._surfaces.add(new OrientedCuboid(points));
+				
 		}
 	}
 	
@@ -338,8 +345,8 @@ public class Body implements Copyable, Instantiable, Settable
 	public Body(Point[] points, double[] apicalNormal) {
 		this._points.add(points[0]);
 		this._points.add(points[1]);
-		this._morphology = Morphology.CUBOID;
-		this._surfaces.add(new OrientedCuboidSurface(points, apicalNormal));
+		this._morphology = Morphology.ORIENTEDCUBOID;
+		this._surfaces.add(new OrientedCuboid(points, apicalNormal));
 	}
 	
 

@@ -6,6 +6,7 @@ import agent.Body;
 import agent.Body.Morphology;
 import dataIO.Log;
 import dataIO.XmlHandler;
+import epithelium.EpithelialGrid;
 import dataIO.Log.Tier;
 import idynomics.Idynomics;
 import linearAlgebra.Vector;
@@ -14,6 +15,7 @@ import compartment.AgentContainer;
 import referenceLibrary.AspectRef;
 import referenceLibrary.XmlRef;
 import surface.BoundingBox;
+import surface.OrientedCuboid;
 import surface.Plane;
 import surface.Point;
 import utility.ExtraMath;
@@ -45,11 +47,15 @@ public class EpithelialLayerSpawner extends Spawner {
 	
 	private double[] _apicalCorner;
 	
+	protected double[] _normal;
+	
 	protected Plane _apicalSurface;
 	
 	private double[][] _layerCorners;
 	
 	private int[] _cellArray;
+	
+	protected EpithelialGrid thisEpithelium;
 
 	public void init(
 		
@@ -78,6 +84,17 @@ public class EpithelialLayerSpawner extends Spawner {
 		this.orientEpithelialLayer();
 		
 		this.calculateCellNumbers();
+		
+		this.thisEpithelium = new EpithelialGrid();
+		
+		thisEpithelium.setBottomCorner(_bottomCorner);
+		thisEpithelium.setTopCorner(_topCorner);
+		thisEpithelium.setNormal(_normal);
+		thisEpithelium.setCellNumber(_numberOfAgents);
+		thisEpithelium.setCellGrid(_cellArray);
+		thisEpithelium.setCellSize(_cellSideLengths);
+		thisEpithelium.init();
+		
 
 	}
 
@@ -128,7 +145,7 @@ public class EpithelialLayerSpawner extends Spawner {
 					CoordinatesFromLinearIndex(i, xWidth, yHeight);}
 			else {
 				cellCoordinates = ExtraMath.
-						CoordinatesFromLinearIndex(i, xWidth);
+					CoordinatesFromLinearIndex(i, xWidth);
 			}
 			for (int j = 0; j < this._numberOfDimensions; j++) {
 				bottomCorner[j] = 
@@ -136,8 +153,9 @@ public class EpithelialLayerSpawner extends Spawner {
 						((double) cellCoordinates[j] * this._cellSideLengths[j]);
 			}
 			Point[] position = positionNewCell(bottomCorner);
-			spawnEpithelialAgent (position);
+			spawnEpithelialAgent (position, i);
 		}
+		this._agents.setEpithelium (thisEpithelium);
 	}
 	
 	/**
@@ -261,13 +279,13 @@ public class EpithelialLayerSpawner extends Spawner {
 			Idynomics.simulator.interupt("Interrupted as epithelial layer does "
 					+ "not span the compartment");
 		}
-		this._apicalSurface = new Plane(normal, this._apicalCorner);
-		//this.getCompartment().addSurface(this._apicalSurface);
-		PhysicalObject epithelialSurface = new PhysicalObject();
-		epithelialSurface.setParent(this._parentNode);
-		epithelialSurface.setSurface(this._apicalSurface);
-		epithelialSurface.set("species",this.get("species"));
-		this._agents.addPhysicalObject(epithelialSurface);
+		this._normal = normal;
+		//this._apicalSurface = new Plane(normal, this._apicalCorner);
+		//PhysicalObject epithelialSurface = new PhysicalObject();
+		//epithelialSurface.setParent(this._parentNode);
+		//epithelialSurface.setSurface(this._apicalSurface);
+		//epithelialSurface.set("species",this.get("species"));
+		//this._agents.addPhysicalObject(epithelialSurface);
 	}
 	
 	/**
@@ -304,14 +322,15 @@ public class EpithelialLayerSpawner extends Spawner {
 		return out;
 	}
 	
-	public void spawnEpithelialAgent(Point[] position) {
+	public void spawnEpithelialAgent(Point[] position, int index) {
 		Agent newEpithelialCell = new Agent(this.getTemplate());
 		newEpithelialCell.set(AspectRef.cuboidOrientation,
 					this._apicalSurface.getNormal());
 		newEpithelialCell.set(AspectRef.agentBody, new Body(
-				Morphology.CUBOID, position, 0.0, 0.0));
+				position, this._normal));
 		newEpithelialCell.setCompartment( this.getCompartment() );
 		newEpithelialCell.registerBirth();
+		thisEpithelium.listAgent(newEpithelialCell, index);
 	}
 	
 	

@@ -3,7 +3,7 @@
 	<simulation name="EpithelialLayer" outputfolder="../results" log="DEBUG" randomSeed="23"
 						comment="this is a file for testing purposes only.">
 		
-		<timer stepSize="1.0" endOfSimulation="3.0" />
+		<timer stepSize="1.0" endOfSimulation="10.0" />
 		
 		<speciesLib>
 			<!-- species/species library The species library contains all agent species 
@@ -57,9 +57,9 @@
 				<aspect name="calculatePull" 	type="EVENT"		class="DifferentialInteractionForce"/>
 				<aspect name="interactionFunctionMap" type="PRIMARY"  class="HashMap">
 					<item type="PRIMARY" class="String" value="0.0" key="epithelium" keyType="String" />
-					<item type="PRIMARY" class="String" value="(1000000.0)*(distance-0.001)*(#e^(0.0-(10.0*(distance-0.001))))" key="particleEPS" keyType="String" />
-					<item type="PRIMARY" class="String" value="(1000000.0)*(distance-0.001)*(#e^(0.0-(10.0*(distance-0.001))))" key="bacterium" keyType="String" />
-					<item type="PRIMARY" class="String" value="(2000000.0)*(distance-0.001)*(#e^(0.0-(10.0*(distance-0.001))))" key="gobletCell" keyType="String" />
+					<item type="PRIMARY" class="String" value="(1000000000000.0)*(distance-0.001)*(#e^(0.0-(10.0*(distance-0.001))))" key="particleEPS" keyType="String" />
+					<item type="PRIMARY" class="String" value="(1000000000000.0)*(distance-0.001)*(#e^(0.0-(10.0*(distance-0.001))))" key="bacterium" keyType="String" />
+					<item type="PRIMARY" class="String" value="(2000000000000.0)*(distance-0.001)*(#e^(0.0-(10.0*(distance-0.001))))" key="gobletCell" keyType="String" />
 				</aspect>
 				<speciesModule name="stochasticMover" />
 			</species>
@@ -115,8 +115,8 @@
 				<solute name="solute1" concentration="1.0" defaultDiffusivity="1"  />
 				<solute name="solute2" concentration="0.1"  defaultDiffusivity="1" />
 			</solutes>
-			<spawn class="differentiatedEpithelialLayerSpawner" domain="30.0, 5.0, 30.0" cellShape="5.0, 5.0, 5.0" priority="0">
-					<templateAgent number="18">
+			<spawn class="differentiatedEpithelialLayerSpawner" domain="30.0, 5.0, 30.0" cellShape="15.0, 5.0, 15.0" priority="0">
+					<templateAgent number="2">
 						<aspect name="volumeDistribution" type="PRIMARY" class="HashMap">
 						</aspect>
 						<aspect name="species" type="PRIMARY" class="String" value="gobletCell" />
@@ -125,7 +125,7 @@
 						<aspect name="pigment" type="PRIMARY" class="String" value="GREEN" />
 						<aspect name="eps" type="PRIMARY" class="Double" value="0.0" />
 					</templateAgent>
-					<templateAgent number="18">
+					<templateAgent number="2">
 						<aspect name="volumeDistribution" type="PRIMARY" class="HashMap">
 						</aspect>
 						<aspect name="species" type="PRIMARY" class="String" value="epithelium" />

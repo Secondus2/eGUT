@@ -25,6 +25,7 @@ public abstract class Surface
 		PLANE,
 		VOXEL,
 		CUBOID,
+		ORIENTEDCUBOID
 		// CYLINDER NOTE for cylindrical domains
 	}
 	

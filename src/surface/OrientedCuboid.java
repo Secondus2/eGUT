@@ -1,17 +1,30 @@
 package surface;
 
+import surface.Surface.Type;
 
-public class OrientedCuboidSurface extends Cuboid {
+/**
+ * An Oriented Cuboid is a cuboid surface with only one face that interacts
+ * with other agents. In the case of epithelial cells, this is the "apical face"
+ * which faces into the lumen.
+ * 
+ * @author trf896
+ *
+ */
+public class OrientedCuboid extends Cuboid {
 	
 	private Point[] _apicalFace;
 	
 	private double[] _apicalNormal;
 	
 	
-	public OrientedCuboidSurface(Point[] points, double[] apicalNormal) {
+	public OrientedCuboid(Point[] points, double[] apicalNormal) {
 		super(points);
 		this._apicalNormal = apicalNormal;
 		this.calculateApicalFace();
+	}
+	
+	public OrientedCuboid(Point[] points) {
+		super(points);
 	}
 	
 	//This will calculate the two corners of the apical face of a cell. In 2D,
@@ -70,9 +83,25 @@ public class OrientedCuboidSurface extends Cuboid {
 		this._apicalFace[1] = partnerPoint;
 	}
 
+	@Override
+	public Type type() {
+		return Surface.Type.ORIENTEDCUBOID;
+	}
+	
 	public Point[] getApicalFace() 
 	{
 		return this._apicalFace;
+	}
+	
+	public double[] getNormal ()
+	{
+		return this._apicalNormal;
+	}
+	
+	public void setNormal (double[] normal)
+	{
+		this._apicalNormal = normal;
+		this.calculateApicalFace();
 	}
 
 }

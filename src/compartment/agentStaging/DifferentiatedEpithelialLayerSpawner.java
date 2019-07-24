@@ -74,11 +74,11 @@ public class DifferentiatedEpithelialLayerSpawner extends EpithelialLayerSpawner
 	}
 	
 	@Override
-	public void spawnEpithelialAgent (Point[] position) {
+	public void spawnEpithelialAgent (Point[] position, int index) {
 		int cellType = ExtraMath.getUniRandInt(
-				(this._numberOfAgents - _agentCount) + 1);
+				(this._numberOfAgents - _agentCount));
 		int i = 0;
-		while (cellType > _templateFrequency[i]) {
+		while (cellType >= _templateFrequency[i]) {
 				cellType -=_templateFrequency[i];
 				i++;
 		}
@@ -86,13 +86,14 @@ public class DifferentiatedEpithelialLayerSpawner extends EpithelialLayerSpawner
 		this._template = _templates[i];
 		Agent newEpithelialCell = new Agent(this.getTemplate());
 		newEpithelialCell.set(AspectRef.agentBody, new Body(
-				Morphology.CUBOID, position, 0.0, 0.0));
+				position, this._normal));
 		newEpithelialCell.set(AspectRef.cuboidOrientation,
-				this._apicalSurface.getNormal());
+				this._normal);
 		newEpithelialCell.setCompartment( this.getCompartment() );
 		newEpithelialCell.registerBirth();
 		_templateFrequency[i] --;
 		_agentCount++;
+		thisEpithelium.listAgent(newEpithelialCell, index);
 	}
 	
 	

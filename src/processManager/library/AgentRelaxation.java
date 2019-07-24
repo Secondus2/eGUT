@@ -295,10 +295,7 @@ public class AgentRelaxation extends ProcessManager
 					{
 						if ( Vector.normSquare( point.dxdt( radius ) ) > vs )
 							vs = Vector.normSquare( point.dxdt( radius ) );	
-						if (vs < 1.0 && vs > 0.0) 
-						{
-							double a = 2;
-						}
+						
 						if ( Vector.normSquare( point.getForce() ) > st )
 							st = Vector.normSquare( point.getForce() );
 					}
@@ -343,9 +340,7 @@ public class AgentRelaxation extends ProcessManager
 				else
 					dtMech = this._maxMove / Math.max( Math.sqrt(vs) + 
 							Global.agent_move_safety, 1.0 );
-					if (dtMech == this._maxMove) {
-						double a = 2.2;
-					}
+				
 				/* TODO we may want to make the dt cap settable as well */
 			}
 			

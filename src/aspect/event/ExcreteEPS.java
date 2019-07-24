@@ -14,7 +14,7 @@ import idynomics.Idynomics;
 import linearAlgebra.Vector;
 import referenceLibrary.AspectRef;
 import surface.Cuboid;
-import surface.OrientedCuboidSurface;
+import surface.OrientedCuboid;
 import surface.Point;
 import utility.ExtraMath;
 
@@ -68,7 +68,8 @@ public class ExcreteEPS extends Event
 		double[] epsPos;
 		while ( currentEPS > epsBlob )
 		{
-			if (morphology == Morphology.CUBOID) {
+			if (morphology == Morphology.CUBOID | 
+					morphology == Morphology.ORIENTEDCUBOID) {
 				Cuboid cuboidSurface = 
 					(Cuboid) body.getSurfaces().get(0);
 				if (initiator.isAspect(AspectRef.cuboidOrientation))

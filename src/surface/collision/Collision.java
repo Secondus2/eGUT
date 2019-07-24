@@ -13,7 +13,9 @@ import linearAlgebra.Vector;
 import referenceLibrary.AspectRef;
 import shape.Shape;
 import surface.Ball;
+import surface.OrientedCuboid;
 import surface.Plane;
+import surface.Point;
 import surface.Rod;
 import surface.Surface;
 import surface.Voxel;
@@ -196,7 +198,7 @@ public class Collision
 		 * If pull distance is greater than zero, then there may be attraction
 		 * between the two surfaces.
 		 */
-		else if ( var.pullRange > 0.0 )
+		else if ( var.pullRange > 0.0 && var.distance < var.pullRange)
 		{
 
 			this._pullFun.interactionForce( var );
@@ -236,12 +238,6 @@ public class Collision
 				neighbour.getDouble(AspectRef.collisionCurrentPullForce) : 0.0);
 		
 		double pullForce = agentPull + neighbourPull;
-		
-		if (pullForce == 0.0)
-		{
-			int a;
-			a = 1;
-		}
 		
 		_variables.setPullForce(pullForce);
 		
@@ -502,10 +498,15 @@ public class Collision
 			return this.sphereSphere(sphere, (Ball) otherSurface, var);
 		else if ( otherSurface.type() == Surface.Type.VOXEL )
 			return this.voxelSphere((Voxel) otherSurface, sphere, var);
+		else if (otherSurface.type() == Surface.Type.ORIENTEDCUBOID)
+			return this.sphereOrientedCuboid(
+					sphere, (OrientedCuboid) otherSurface, var);
 		else
 			return null; // TODO sphere plane
 	}
 	
+
+
 	/*************************************************************************
 	 * PRIVATE DISTANCE METHODS
 	 ************************************************************************/
@@ -621,6 +622,46 @@ public class Collision
 			var.radiusEffective = ( a.getRadius() * b.getRadius() ) / 
 					( a.getRadius() + b.getRadius() ); 
 		}
+		return var;
+	}
+	
+	private CollisionVariables sphereOrientedCuboid(
+			Ball sphere, OrientedCuboid otherSurface, CollisionVariables var)
+	{
+		double[] normal = otherSurface.getNormal();
+		Point[] apicalFace = otherSurface.getApicalFace();
+		double[] sphereCentre = sphere.getCenter();
+		for (int i = 0; i < normal.length; i++)
+		{
+			if (normal[i] == 0 && 
+					((sphereCentre[i] < apicalFace[0].getPosition()[i] &&
+					sphereCentre[i] < apicalFace[1].getPosition()[i]) ||
+					(sphereCentre[i] > apicalFace[1].getPosition()[i] &&
+					sphereCentre[i] > apicalFace[0].getPosition()[i])))
+			{
+				var.distance = Double.MAX_VALUE;
+				return var;
+			}
+		}
+		
+		for (int i = 0; i < normal.length; i++)
+		{
+			if (normal[i] == 1.0)
+			{
+				var.distance = sphereCentre[i] - apicalFace[0].getPosition()[i];
+			}
+			else if (normal[i] == -1.0)
+			{
+				var.distance = apicalFace[0].getPosition()[i] - sphereCentre[i];
+			}
+		}
+		
+		for (int i = 0; i < var.interactionVector.length; i++)
+		{
+			var.interactionVector[i] = normal[i];
+		}
+		
+		var.distance -= sphere.getRadius();
 		return var;
 	}
 	

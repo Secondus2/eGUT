@@ -15,6 +15,7 @@ import boundary.Boundary;
 import boundary.SpatialBoundary;
 import dataIO.Log;
 import dataIO.Log.Tier;
+import epithelium.EpithelialGrid;
 import gereralPredicates.IsSame;
 
 import static dataIO.Log.Tier.*;
@@ -80,10 +81,16 @@ public class AgentContainer implements Settable
 	private LinkedList<Agent> _epithelialAgentList = new LinkedList<Agent>();
 	
 	/**
+	 * Grid representing the entirety of the epithelium
+	 */
+	private EpithelialGrid _epithelium;
+	
+	/**
 	 * All dead agents waiting for their death to be recorded as output before
 	 * they can be removed from memory.
 	 */
 	protected List<Agent> _agentsToRegisterRemoved = new LinkedList<Agent>();
+	
 	/**
 	 * Physical Objects
 	 */
@@ -309,6 +316,11 @@ public class AgentContainer implements Settable
 		out.addAll(this._epithelialAgentList);
 		return out;	
 	}
+	
+	public void setEpithelium (EpithelialGrid epithelium)
+	{
+		this._epithelium = epithelium;
+	}
 	/* ***********************************************************************
 	 * LOCATED SEARCHES
 	 * **********************************************************************/
@@ -322,7 +334,13 @@ public class AgentContainer implements Settable
 	 */
 	public List<Agent> treeSearch(BoundingBox boundingBox)
 	{
-		return this._agentTree.search(boundingBox);
+		ArrayList<Agent> fullSearch = new ArrayList<Agent>();
+		fullSearch.addAll(this._agentTree.search(boundingBox));
+		if (this._epithelium != null)
+		{
+			fullSearch.addAll(this._epithelium.search(boundingBox));
+		}
+		return fullSearch;
 	}
 
 	/**
@@ -335,7 +353,13 @@ public class AgentContainer implements Settable
 	 */
 	public List<Agent> treeSearch(List<BoundingBox> boundingBoxes)
 	{
-		return this._agentTree.search(boundingBoxes);
+		ArrayList<Agent> fullSearch = new ArrayList<Agent>();
+		fullSearch.addAll(this._agentTree.search(boundingBoxes));
+		if (this._epithelium != null)
+		{
+			fullSearch.addAll(this._epithelium.search(boundingBoxes));
+		}
+		return fullSearch;
 	}
 
 	/**
