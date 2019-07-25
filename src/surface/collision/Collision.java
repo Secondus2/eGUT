@@ -484,10 +484,15 @@ public class Collision
 	{
 		if ( otherSurface.type() == Surface.Type.SPHERE )
 			return this.rodSphere(rod, (Ball) otherSurface, var);
+		else if (otherSurface.type() == Surface.Type.ORIENTEDCUBOID)
+			return this.rodOrientedCuboid(
+					rod, (OrientedCuboid) otherSurface, var);
 		else
 			return this.rodRod(rod, (Rod) otherSurface, var);
 	}
 	
+
+
 	private CollisionVariables assessSphere(Ball sphere, Surface otherSurface, 
 			CollisionVariables var)
 	{
@@ -625,6 +630,15 @@ public class Collision
 		return var;
 	}
 	
+	/**
+	 * Finds the distance between a sphere and an oriented cuboid's apical face
+	 * in the direction that the cuboid is facing (i.e. - how far above the
+	 * cuboid the sphere is). Also sets the interaction vector between the two.
+	 * @param sphere
+	 * @param otherSurface
+	 * @param var
+	 * @return
+	 */
 	private CollisionVariables sphereOrientedCuboid(
 			Ball sphere, OrientedCuboid otherSurface, CollisionVariables var)
 	{
@@ -663,6 +677,71 @@ public class Collision
 		
 		var.distance -= sphere.getRadius();
 		return var;
+	}
+	
+	
+	private CollisionVariables rodOrientedCuboid(
+			Rod rod, OrientedCuboid otherSurface, CollisionVariables var)
+	{
+		double[] normal = otherSurface.getNormal();
+		Point[] apicalFace = otherSurface.getApicalFace();
+		/* store the direction vector */
+		var.interactionVector = normal.clone();
+		
+		double dotProduct = Vector.dotProduct(
+				normal, apicalFace[0].getPosition());
+		/* calculate the distance between a point and a normalized plane */
+		
+		/**
+		 * Find the distances of each point above the plane
+		 */
+		double distanceA = Vector.dotProduct(
+				normal, rod._points[0].getPosition()) - dotProduct;
+		
+		double distanceB = Vector.dotProduct(
+				normal, rod._points[0].getPosition()) - dotProduct;
+		
+		/**
+		 * Determine which point will receive the force
+		 */
+		if (distanceA < distanceB)
+		{
+			for (int i = 0; i < normal.length; i++)
+			{
+				if (normal[i] == 0 && 
+					((rod._points[0].getPosition()[i] < apicalFace[0].getPosition()[i] &&
+					rod._points[0].getPosition()[i] < apicalFace[1].getPosition()[i]) ||
+					(rod._points[0].getPosition()[i] > apicalFace[1].getPosition()[i] &&
+					rod._points[0].getPosition()[i] > apicalFace[0].getPosition()[i])))
+				{
+					var.distance = Double.MAX_VALUE;
+					return var;
+				}
+			}
+			var.t = 0.0;
+			var.s = 1.0;
+			var.distance = distanceA;
+			return var;
+		}
+		else 
+		{
+			for (int i = 0; i < normal.length; i++)
+			{
+				if (normal[i] == 0 && 
+					((rod._points[1].getPosition()[i] < apicalFace[0].getPosition()[i] &&
+					rod._points[1].getPosition()[i] < apicalFace[1].getPosition()[i]) ||
+					(rod._points[1].getPosition()[i] > apicalFace[1].getPosition()[i] &&
+					rod._points[1].getPosition()[i] > apicalFace[0].getPosition()[i])))
+				{
+					var.distance = Double.MAX_VALUE;
+					return var;
+				}
+			}
+			var.t = 1.0;
+			var.s = 0.0;
+			var.distance = distanceB;
+			return var;
+		}
 	}
 	
 	/**
