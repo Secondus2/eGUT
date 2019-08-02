@@ -68,7 +68,7 @@ public class AgentRelaxation extends ProcessManager
 	public String COMPRESSION_DURATION = AspectRef.LimitCompressionDuration;
 	public String STIFFNESS = AspectRef.spineStiffness;
 	
-	public String SPINE_FUNCTION = AspectRef.genreicSpineFunction;
+	public String SPINE_FUNCTION = AspectRef.genericSpineFunction;
 	
 	
 	/**
@@ -175,7 +175,7 @@ public class AgentRelaxation extends ProcessManager
 	 * Default spine function, fall back for if none is defined by the agent.
 	 */
 	private Expression _spineFunction = 
-			new Expression( "stiffness * ( dh + SIGN(dh) * dh * dh * 100.0 )" );
+			new Expression( "stiffness * ( dh + SIGN(dh) * dh * dh * 1000000000000000.0 )" );
 	
 	/* ************************************************************************
 	 * Initiation

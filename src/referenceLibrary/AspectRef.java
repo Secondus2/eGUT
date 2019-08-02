@@ -116,7 +116,7 @@ public class AspectRef
 	 * for rods in compartment that do not have a individual spine function
 	 * defined
 	 */
-	public final static String genreicSpineFunction = "genreicSpineFunction";
+	public final static String genericSpineFunction = "genericSpineFunction";
 	
 	/**
 	 * list with reactions owned by the agent

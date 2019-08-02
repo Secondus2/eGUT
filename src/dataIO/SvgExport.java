@@ -239,8 +239,21 @@ public class SvgExport implements GraphicalExporter
 	
 	public void draw (Cuboid cuboid, String pigment) {
 		
-		
-		
+		double[] dimensions = new double[2];
+		double[] posA = this.to2D(cuboid._points[0].getPosition());
+		double[] posB = this.to2D(cuboid._points[1].getPosition());
+		if (posA[0] < posB[0] && posA[1] < posB[1])
+		{
+			dimensions[0] = posB[0] - posA[0];
+			dimensions[1] = posB[1] - posA[1];
+			rectangle(posA, dimensions, pigment);
+		}
+		else
+		{
+			dimensions[0] = posA[0] - posB[0];
+			dimensions[1] = posA[1] - posB[1];
+			rectangle(posB, dimensions, pigment);
+		}
 		
 		
 	}
@@ -286,6 +299,7 @@ public class SvgExport implements GraphicalExporter
 				";stroke-width:" + _scalar*width + 
 				"\" />\n");
 	}
+
 }
 
 

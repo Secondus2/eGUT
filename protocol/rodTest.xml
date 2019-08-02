@@ -66,7 +66,7 @@
 					<aspect name="mass" type="PRIMARY" class="Double" value="0.2" />
 					<aspect name="density" type="PRIMARY" class="Double" value="1" />
 					<aspect name="pigment" type="PRIMARY" class="String" value="RED" />
-					<aspect name="body" type="PRIMARY" class="Body">
+					<aspect name="body" type="PRIMARY" class="Body" morphology="BACILLUS">
 						<point position="12.2, 12.2" />
 						<point position="12.0, 12.2" />
 					</aspect>

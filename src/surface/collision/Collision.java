@@ -699,7 +699,7 @@ public class Collision
 				normal, rod._points[0].getPosition()) - dotProduct;
 		
 		double distanceB = Vector.dotProduct(
-				normal, rod._points[0].getPosition()) - dotProduct;
+				normal, rod._points[1].getPosition()) - dotProduct;
 		
 		/**
 		 * Determine which point will receive the force
@@ -718,9 +718,11 @@ public class Collision
 					return var;
 				}
 			}
-			var.t = 0.0;
-			var.s = 1.0;
-			var.distance = distanceA;
+			var.t = 1.0;
+			var.s = 0.0;
+			var.distance = distanceA - rod.getRadius();
+			if (extend)
+				var.radiusEffective = rod.getRadius();
 			return var;
 		}
 		else 
@@ -737,9 +739,11 @@ public class Collision
 					return var;
 				}
 			}
-			var.t = 1.0;
-			var.s = 0.0;
-			var.distance = distanceB;
+			var.t = 0.0;
+			var.s = 1.0;
+			var.distance = distanceB - rod.getRadius();
+			if (extend)
+				var.radiusEffective = rod.getRadius();
 			return var;
 		}
 	}
