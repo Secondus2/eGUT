@@ -97,7 +97,7 @@ public class ExcreteEPSCumulative extends Event
 		 * Perform neighborhood search and perform collision detection and
 		 * response. 
 		 */
-		Collection<Agent> nhbs = comp.agents.treeSearch(agent, agent.getDouble(SEARCH_DIST) );
+		Collection<Agent> nhbs = comp.agents.agentSearch(agent, agent.getDouble(SEARCH_DIST) );
 		if ( Log.shouldWrite(level) )
 			Log.out(level, "  "+nhbs.size()+" neighbors found");
 		/*

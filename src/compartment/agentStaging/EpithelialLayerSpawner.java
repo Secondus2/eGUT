@@ -6,7 +6,6 @@ import agent.Body;
 import agent.Body.Morphology;
 import dataIO.Log;
 import dataIO.XmlHandler;
-import epithelium.EpithelialGrid;
 import dataIO.Log.Tier;
 import idynomics.Idynomics;
 import linearAlgebra.Vector;
@@ -21,6 +20,7 @@ import surface.Point;
 import utility.ExtraMath;
 import shape.Dimension;
 import shape.Dimension.DimName;
+import spatialRegistry.EpithelialGrid;
 import shape.Shape;
 
 /**
@@ -325,7 +325,7 @@ public class EpithelialLayerSpawner extends Spawner {
 	public void spawnEpithelialAgent(Point[] position, int index) {
 		Agent newEpithelialCell = new Agent(this.getTemplate());
 		newEpithelialCell.set(AspectRef.cuboidOrientation,
-					this._apicalSurface.getNormal());
+					this._normal);
 		newEpithelialCell.set(AspectRef.agentBody, new Body(
 				position, this._normal));
 		newEpithelialCell.setCompartment( this.getCompartment() );

@@ -99,6 +99,6 @@ public class Voxel extends Surface implements HasBoundingBox {
 
 	public void setDimensions(double[] _dimensions) 
 	{
-		this._points[0] = new Point(_dimensions);
+		this._points[1] = new Point(_dimensions);
 	}
 }

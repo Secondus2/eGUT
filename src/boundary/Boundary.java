@@ -543,6 +543,9 @@ public abstract class Boundary implements Settable, Instantiable
 			//FIXME The agent MUST be registered to the new compartment otherwise offsrping will end up in the old
 			//compartment, this is a really ugly work around but the only way to actually get there.
 			//This design should be reconsidered [Bas 13-04-2018]
+			//FIXME - For located agents, this leads to agents retaining their 
+			//body location, causing a crash if the new compartment has a
+			//different size. - Tim [13.09.19]
 			((Compartment)this._agents.getParent()).addAgent(anAgent);
 		this.clearArrivalsLounge();
 	}

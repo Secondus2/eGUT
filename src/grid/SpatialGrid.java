@@ -158,7 +158,7 @@ public class SpatialGrid implements Settable, Instantiable
 				
 				/* FIXME this assumes Cartesian grids  */
 				shape.getVoxelSideLengthsTo(dimension, coord);
-				List<Agent> neighbors = agents.treeSearch(location, dimension);
+				List<Agent> neighbors = agents.agentSearch(location, dimension);
 				/* If there are any agents in this voxel, update the 
 				 * diffusivity. */
 				if ( ! neighbors.isEmpty() )

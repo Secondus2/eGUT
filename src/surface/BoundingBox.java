@@ -94,6 +94,7 @@ public class BoundingBox
 		Vector.checkLengths(dimensions, lower);
 		this._dimensions = dimensions;
 		this._lower = lower;
+		this._higher = Vector.add(lower, dimensions);
 		return this;
 	}
 	

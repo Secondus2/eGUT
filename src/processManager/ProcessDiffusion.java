@@ -343,7 +343,7 @@ public abstract class ProcessDiffusion extends ProcessManager
 					// FIXME create a bounding box that always captures at least the complete voxel
 					sides = Vector.subset(dimension, nDim);
 					/* NOTE the agent tree is always the amount of actual dimension */
-					nhbs = this._agents.treeSearch(location, sides);
+					nhbs = this._agents.agentSearch(location, sides);
 					
 					/* used later to find subgridpoint scale */
 					minRad = Vector.min(sides);

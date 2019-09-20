@@ -166,7 +166,7 @@ public class BiofilmBoundaryLayer extends WellMixedBoundary
 			 * within the grid's sphere
 			 */
 			box = this._gridSphere.boundingBox(this._agents.getShape());
-			neighbors = this._agents.treeSearch(box);
+			neighbors = this._agents.agentSearch(box);
 			for ( Agent a : neighbors )
 				for (Surface s : (List<Surface>) a.get(AspectRef.surfaceList))
 					if ( this._gridSphere.distanceTo(s) < 0.0 )
@@ -233,7 +233,7 @@ public class BiofilmBoundaryLayer extends WellMixedBoundary
 			 */
 			insertionLoop: while ( true )
 			{
-				nbhAgents = this._agents.treeSearch(anAgent, this._layerThickness);
+				nbhAgents = this._agents.agentSearch(anAgent, this._layerThickness);
 				if ( ! nbhAgents.isEmpty() )
 					break insertionLoop;
 				bndries = this._agents.boundarySearch(anAgent, this._layerThickness);
@@ -300,7 +300,7 @@ public class BiofilmBoundaryLayer extends WellMixedBoundary
 				 * The agent has not collided with any boundaries, so see if it
 				 * has collided with any other agents.
 				 */
-				nbhAgents = this._agents.treeSearch(anAgent, pull);
+				nbhAgents = this._agents.agentSearch(anAgent, pull);
 				/*
 				 * If the agent has collided with others, add it to the agent
 				 * container and continue to the next agent.

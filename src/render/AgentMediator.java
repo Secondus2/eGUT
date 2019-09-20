@@ -30,6 +30,7 @@ import shape.iterator.ShapeIterator;
 import shape.Shape;
 import shape.SphericalShape;
 import surface.Ball;
+import surface.Cuboid;
 import surface.Rod;
 import surface.Surface;
 import utility.ExtraMath;
@@ -228,7 +229,7 @@ public class AgentMediator implements CommandMediator {
 //		draw(_shape);
         
 		/* get the surfaces from the agents */
-		for ( Agent a : this._agents.getAllLocatedAgents() )
+		for ( Agent a : this._agents.getAllAgents() )
 		{
 
 			/* cycle through the agent surfaces */
@@ -278,6 +279,10 @@ public class AgentMediator implements CommandMediator {
 					 */
 					draw((Rod) s);
 				}
+				else if (s instanceof Cuboid)
+				{
+					draw((Cuboid) s);
+				}
 			}
 		}	
 		/* 
@@ -293,6 +298,41 @@ public class AgentMediator implements CommandMediator {
 		 * when we want to blend we draw the domain here
 		 */
 		draw(_shape);
+	}
+	
+	private void draw (Cuboid cuboid)
+	{
+		_gl.glPushMatrix();
+		applyCurrentColor();
+		double[] cornerA = cuboid._points[0].getPosition();
+		double[] cornerB = cuboid._points[1].getPosition();
+		double[] midPoint = new double[cornerA.length];
+		double[] size = new double[3];
+		for (int i = 0; i < midPoint.length; i++)
+		{
+			if (cornerA[i] < cornerB[i])
+			{
+				size[i] = cornerB[i] - cornerA[i];
+				midPoint[i] = size[i]/2 + cornerA[i];
+			}
+			else
+			{
+				size[i] = cornerA[i] - cornerB[i];
+				midPoint[i] = size[i]/2 + cornerB[i];
+			}
+			
+			
+		}
+		temp_loc = GLUtil.make3D(midPoint);
+		_gl.glTranslated(size[0], size[1], size[2]);
+		_gl.glScaled(1, size[1] / size[0], size[2] / size[0]);
+		if (qobj == null)
+			qobj = _glu.gluNewQuadric();
+		_glu.gluQuadricDrawStyle(qobj, GLU.GLU_FILL);
+		_glu.gluQuadricNormals(qobj, GLU.GLU_SMOOTH);
+		_glut.glutSolidCube((float) size[0]);
+		_gl.glPopMatrix();
+		
 	}
 	
 	private void draw(Ball ball){

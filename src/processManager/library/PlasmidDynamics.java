@@ -158,7 +158,7 @@ public class PlasmidDynamics extends ProcessManager {
 		
 		double maxPiliLength = (Double) newPlasmid.get(PILUS_LENGTH);
 		
-		List<Agent> neighbours = agents.treeSearch(a, maxPiliLength);
+		List<Agent> neighbours = agents.agentSearch(a, maxPiliLength);
 		
 		/*
 		 * No need to proceed if there are no neighbours to receive the plasmid.
