@@ -583,4 +583,15 @@ public class AspectRef
 	
 	public static final String interactionFunctionMap = "interactionFunctionMap";
 	
+	
+	public static final String temp = "temp";
+	
+	public static final String fmaxEPS = "fmaxEPS";
+	
+	public static final String fmaxEpi = "fmaxEpi";
+	
+	public static final String dsatEPS = "dsatEPS";
+	
+	public static final String dsatEpi = "dsatEpi";
+	
 }

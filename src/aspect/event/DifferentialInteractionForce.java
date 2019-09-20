@@ -22,6 +22,10 @@ public class DifferentialInteractionForce extends Event {
 	private String BODY = AspectRef.agentBody;
 	private String RADIUS = AspectRef.bodyRadius;
 	private String SPECIES = XmlRef.species;
+	private String FMAXEPS = AspectRef.fmaxEPS;
+	private String FMAXEpi = AspectRef.fmaxEpi;
+	private String DSATEPS = AspectRef.dsatEPS;
+	private String DSATEpi = AspectRef.dsatEpi;
 	public String CURRENT_PULL_FORCE = AspectRef.collisionCurrentPullForce;
 	private Surface initiatorSurface;
 	private Surface compliantSurface;
@@ -52,6 +56,10 @@ public class DifferentialInteractionForce extends Event {
 					new Expression(interactions.get(compliant.getValue(SPECIES)));
 			HashMap<String, Double> distanceMap = new HashMap<String, Double>();
 			distanceMap.put("distance", distance);
+			distanceMap.put("fmaxEPS", initiator.getDouble(FMAXEPS));
+			distanceMap.put("fmaxEpi", initiator.getDouble(FMAXEpi));
+			distanceMap.put("dsatEPS", initiator.getDouble(DSATEPS));
+			distanceMap.put("dsatEpi", initiator.getDouble(DSATEpi));
 			double force = interactionFunction.getValue((Map)distanceMap);
 			initiator.set(CURRENT_PULL_FORCE, force);
 		}

@@ -135,7 +135,7 @@
 				</process>
 				<process name="detachment" class="AgentDetachment" priority="-2"
 					firstStep="0.0"  timerStepSize="0.1">
-					<aspect name="detachmentRate" type="PRIMARY" class="Double" value="0.1" />
+					<aspect name="detachmentRate" type="PRIMARY" class="Double" value="1.25" />
 					<aspect name="rasterScale" type="PRIMARY" class="Double" value="0.2" />
 					<aspect name="regionDepth" type="PRIMARY" class="Integer" value="10" />
 					<aspect name="verbose" type="PRIMARY" class="Boolean" value="true" />

@@ -133,7 +133,7 @@ public abstract class Sampler {
 				for(int j = 0; j < probs[0].length; j++) 
 				{
 					if( type[j] == 1)
-						probs[i][j] = expScale( probs[i][j], bounds[0][j], 
+						probs[i][j] = expScale2( probs[i][j], bounds[0][j], 
 								bounds[1][j], 10.0 );
 					else
 						probs[i][j] = scale( probs[i][j], bounds[0][j], 
@@ -146,6 +146,15 @@ public abstract class Sampler {
 	public double expScale(double in, double low, double high, double base)
 	{
 		return( low + ((Math.pow(base,in) - 1.0 ) / (base-1.0)) * (high-low) );
+	}
+	
+	public double expScale2(double in, double low, double high, double base)
+	{
+		low = Math.log10(low);
+		high = Math.log10(high);
+		double range = high - low;
+		in = (in*range) + low;
+		return Math.pow(base, in);
 	}
 	
 	public double scale(double in, double low, double high)

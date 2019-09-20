@@ -20,11 +20,13 @@ public class StochasticMovement extends Event
 	 */
 	public String BODY = AspectRef.agentBody;
 	public String VOLUME = AspectRef.agentVolume;
-	private double boltzmannK = 4.97e7;
+	public String STOCHASTIC_STEP = AspectRef.agentStochasticStep;
+	public String TEMP = AspectRef.temp;
+	private double boltzmannK = 4.970e7;
 	//Temperature - settable in compartment??
-	private double temperature = 310;
+	private double temperature;
 	//Water viscosity - find a better value for this
-	private double viscosityWater = 3e9;
+	private double viscosityWater = 4.148e7;
 
 	public void start(AspectInterface initiator, AspectInterface compliant, 
 			Double timeStep)
@@ -34,6 +36,7 @@ public class StochasticMovement extends Event
 		int numberOfDimensions = agentBody.nDim();
 		List<Point> points = agentBody.getPoints();
 		double volume = agent.getDouble(VOLUME);
+		temperature = agent.getDouble(TEMP);
 		
 		/** 
 		 * Here radius is estimated from volume. This is only a guide radius
@@ -63,6 +66,8 @@ public class StochasticMovement extends Event
 		double [] randDir = Vector.randomPlusMinus(numberOfDimensions, 1.0);
 		
 		double[] move = Vector.times(randDir, distance);
+		
+		agent.set(STOCHASTIC_STEP, move);
 		
 		for (Point p : points)
 		{

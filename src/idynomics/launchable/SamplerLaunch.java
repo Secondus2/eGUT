@@ -72,6 +72,8 @@ public class SamplerLaunch implements Launchable {
 			r = Integer.valueOf( args[4] );
 		else  if ( samplingChoice == Sampler.SampleMethod.CUSTOM || samplingChoice == Sampler.SampleMethod.EXTERNAL )
 			r = 0;
+		else if (samplingChoice == Sampler.SampleMethod.LHC)
+			r = 0;
 		else
 			r = Integer.valueOf( args[4] ); //switch
 		

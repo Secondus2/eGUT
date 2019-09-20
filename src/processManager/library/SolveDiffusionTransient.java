@@ -128,6 +128,11 @@ public class SolveDiffusionTransient extends ProcessDiffusion
 		 * Get the agent's reactions: if it has none, then there is nothing
 		 * more to do.
 		 */
+		if (!agent.getCompartment().getName().equals("main"))
+		{
+			int a;
+			a = 2;
+		}
 		@SuppressWarnings("unchecked")
 		List<Reaction> reactions = 
 				(List<Reaction>) agent.getValue(XmlRef.reactions);
