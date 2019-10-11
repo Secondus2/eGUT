@@ -724,7 +724,7 @@ public class AgentContainer implements Settable
 			return null;
 		}
 		else
-			return (i > this._agentList.size()) ?
+			return (i >= this._agentList.size()) ?
 					/* Located agent. */
 					this._locatedAgentList.get(i - this._agentList.size()) :
 						/* non-located agent. */

@@ -6,23 +6,30 @@ import java.util.Collection;
 import java.util.LinkedList;
 import java.util.List;
 
+import org.w3c.dom.Element;
+
 import agent.Agent;
 import boundary.SpatialBoundary;
 import boundary.WellMixedBoundary;
 import boundary.library.ChemostatToBoundaryLayer;
 import compartment.AgentContainer;
+import compartment.Compartment;
 import compartment.EnvironmentContainer;
 import dataIO.Log;
+import dataIO.XmlHandler;
 import dataIO.Log.Tier;
 import grid.SpatialGrid;
 import grid.WellMixedConstants;
 import linearAlgebra.Vector;
 import referenceLibrary.AspectRef;
+import referenceLibrary.XmlRef;
+import settable.Settable;
 import shape.Shape;
 import surface.Ball;
 import surface.BoundingBox;
 import surface.Surface;
 import surface.collision.Collision;
+import utility.Helper;
 
 /**
  * \brief TODO
@@ -56,6 +63,18 @@ public class BiofilmBoundaryLayer extends WellMixedBoundary
 	public static double MOVE_TSTEP = 1.0;
 	
 	/**
+	 * A parameter which describes the rate of agent exchange between two
+	 * compartments with mixing, but without directional flow.
+	 */
+	public double exchangeRate;
+	
+	/**
+	 * The surface area of the biofilm compartment in contact with the partner 
+	 * compartment.
+	 */
+	protected double surfaceArea;
+	
+	/**
 	 * \brief Log file verbosity level used for debugging agent arrival.
 	 * 
 	 * <ul><li>Set to {@code BULK} for normal simulations</li>
@@ -70,12 +89,31 @@ public class BiofilmBoundaryLayer extends WellMixedBoundary
 	public BiofilmBoundaryLayer()
 	{}
 	
+	public void instantiate(Element xmlElement, Settable parent) 
+	{
+		super.instantiate(xmlElement, parent);
+		exchangeRate = Double.valueOf(XmlHandler.obtainAttribute(
+				xmlElement, "exchangeRate", "Biofilm boundary exchange rate"));
+		
+		String surfaceAreaString = XmlHandler.gatherAttribute(
+				xmlElement, "surfaceArea");
+		
+		if (!Helper.isNullOrEmpty(surfaceAreaString))
+		{
+			surfaceArea = Double.valueOf(surfaceAreaString);
+		}
+	}
+	
 	@Override
 	public void setContainers(
 			EnvironmentContainer environment, AgentContainer agents)
 	{
 		super.setContainers(environment, agents);
 		this.tryToCreateGridSphere();
+		if (Helper.isNullOrEmpty(surfaceArea))
+		{
+			surfaceArea = this.getTotalSurfaceArea();
+		}
 	}
 	
 	@Override
@@ -120,6 +158,10 @@ public class BiofilmBoundaryLayer extends WellMixedBoundary
 		this.tryToCreateGridSphere();
 	}
 
+	public double getExchangeRate()
+	{
+		return exchangeRate;
+	}
 	/* ***********************************************************************
 	 * PARTNER BOUNDARY
 	 * **********************************************************************/

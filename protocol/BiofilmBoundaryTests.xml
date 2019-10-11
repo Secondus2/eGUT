@@ -74,7 +74,7 @@
 				<dimension name="X" isCyclic="true" targetResolution="1" max="16.0">
 				</dimension> 
 				<dimension name="Y" isCyclic="false" targetResolution="1" max="8.0">
-				<boundary extreme="1" class="BiofilmBoundaryLayer" partnerCompartment="partner" layerThickness = "1"/>
+				<boundary extreme="1" class="BiofilmBoundaryLayer" partnerCompartment="partner" layerThickness = "1" exchangeRate="0.5"/>
 				</dimension> 
 			</shape>
 			<solutes>
