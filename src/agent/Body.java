@@ -419,6 +419,11 @@ public class Body implements Copyable, Instantiable, Settable
 	{
 		return this._points;
 	}
+	
+	public void setPoints(List <Point> points)
+	{
+		this._points = points;
+	}
 
 	public int getNumberOfPoints()
 	{

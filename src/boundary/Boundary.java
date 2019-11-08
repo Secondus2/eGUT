@@ -28,6 +28,7 @@ import settable.Module;
 import settable.Settable;
 import settable.Module.Requirements;
 import utility.Helper;
+import shape.Shape;
 
 /**
  * \brief General class of boundary for a {@code Shape}.
@@ -47,6 +48,7 @@ public abstract class Boundary implements Settable, Instantiable
 	 * Contains a reference to the compartment shape.
 	 */
 	public AgentContainer _agents;
+	
 	/**
 	 * XML tag for the name of the partner boundary.
 	 */

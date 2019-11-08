@@ -44,6 +44,7 @@
 				<aspect name="divide" 		type="EVENT" 		class="CoccoidDivision"			 />
 				<aspect name="growth" 		type="EVENT" 		class="SimpleGrowth" />
 				<aspect name="#isLocated" 	type="PRIMARY" 		class="Boolean" value="true" />
+				<aspect name="#curPullDist" type="PRIMARY"		class="Double"	value="0.1" />
 				<aspect name="updateBody" 	type="EVENT" 		class="UpdateBody" 		 />
 				<speciesModule name="stochasticMover" />
 			</species>

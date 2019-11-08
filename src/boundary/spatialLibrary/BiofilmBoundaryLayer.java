@@ -9,6 +9,8 @@ import java.util.List;
 import org.w3c.dom.Element;
 
 import agent.Agent;
+import agent.Body;
+import surface.Point;
 import boundary.SpatialBoundary;
 import boundary.WellMixedBoundary;
 import boundary.library.ChemostatToBoundaryLayer;
@@ -264,104 +266,113 @@ public class BiofilmBoundaryLayer extends WellMixedBoundary
 		Collection<SpatialBoundary> bndries;
 		for ( Agent anAgent : this._arrivalsLounge )
 		{
-			if ( Log.shouldWrite(AGENT_ARRIVE_LEVEL) )
+			Boolean agentPlaced = false;
+			
+			while (!agentPlaced)
 			{
-				Log.out(AGENT_ARRIVE_LEVEL, "Moving agent (UID: "+
-						anAgent.identity()+") to top of boundary layer");
-			}
-			/*
-			 * Move the agent down from the boundary surface to the top of the
-			 * boundary layer.
-			 */
-			insertionLoop: while ( true )
-			{
-				nbhAgents = this._agents.agentSearch(anAgent, this._layerThickness);
-				if ( ! nbhAgents.isEmpty() )
-					break insertionLoop;
-				bndries = this._agents.boundarySearch(anAgent, this._layerThickness);
-				bndries.remove(this);
-				if ( ! bndries.isEmpty() )
+				if ( Log.shouldWrite(AGENT_ARRIVE_LEVEL) )
 				{
-					// FIXME stopping is a temporary fix: we need to apply
-					// the boundary here
-					break insertionLoop;
+					Log.out(AGENT_ARRIVE_LEVEL, "Moving agent (UID: "+
+							anAgent.identity()+") to top of boundary layer");
 				}
-				this._agents.moveAlongDimension(anAgent, this._dim, dist);
-			}
-			/*
-			 * Now that the agent is at the top of the boundary layer, perform
-			 * a random walk until it hits a boundary or another agent.
-			 */
-			// FIXME Bas[17.10.17] pull distance is an arbitrary distance which
-			// is used by the agent relaxation to have a search box in which any
-			// agent agent interaction may take place. This distance would
-			// always be larger then any actual interaction and thus I do not
-			// think it is right to use here.
-			double pull = anAgent.getDouble(CURRENT_PULL_DISTANCE);
-			if ( Log.shouldWrite(AGENT_ARRIVE_LEVEL) )
-			{
-				Log.out(AGENT_ARRIVE_LEVEL, "Now attemting random walk: using "+
-						pull+" for pull distance");
-			}
-			randomLoop: while ( true )
-			{
 				/*
-				 * Find all boundaries this agent has collided with.
+				 * Move the agent down from the boundary surface to the top of the
+				 * boundary layer.
 				 */
-				bndries = this._agents.boundarySearch(anAgent, pull);
-				/*
-				 * If the agent has wandered up and collided with this
-				 * boundary, re-insert it at the back of the arrivals lounge
-				 */
-				if ( bndries.contains(this) )
+				insertionLoop: while ( true )
 				{
-					this._arrivalsLounge.remove(anAgent);
-					this._arrivalsLounge.add(anAgent);
-					if ( Log.shouldWrite(AGENT_ARRIVE_LEVEL) )
+					nbhAgents = this._agents.agentSearch(anAgent, this._layerThickness);
+					if ( ! nbhAgents.isEmpty() )
+						break insertionLoop;
+					bndries = this._agents.boundarySearch(anAgent, this._layerThickness);
+					bndries.remove(this);
+					if ( ! bndries.isEmpty() )
 					{
+						// FIXME stopping is a temporary fix: we need to apply
+						// the boundary here
+						break insertionLoop;
+					}
+					this._agents.moveAlongDimension(anAgent, this._dim, dist);
+				}
+				/*
+				 * Now that the agent is at the top of the boundary layer, perform
+				 * a random walk until it hits a boundary or another agent.
+				 */
+				// FIXME Bas[17.10.17] pull distance is an arbitrary distance which
+				// is used by the agent relaxation to have a search box in which any
+				// agent agent interaction may take place. This distance would
+				// always be larger then any actual interaction and thus I do not
+				// think it is right to use here.
+				double pull = anAgent.getDouble(CURRENT_PULL_DISTANCE);
+				if ( Log.shouldWrite(AGENT_ARRIVE_LEVEL) )
+				{
+					Log.out(AGENT_ARRIVE_LEVEL, "Now attemting random walk: using "+
+							pull+" for pull distance");
+				}
+				
+				randomLoop: while ( true )
+				{
+					/*
+					 * Find all boundaries this agent has collided with.
+					 */
+					bndries = this._agents.boundarySearch(anAgent, pull);
+					/*
+					 * If the agent has wandered up and collided with this
+					 * boundary, re-insert it at the back of the arrivals lounge
+					 * This is where the issue is - Tim 06.11.19
+					 */
+
+					
+					if ( bndries.contains(this) )
+					{
+						placeAgentRandom(anAgent);
+						break randomLoop;
+					}
+					/*
+					 * If the agent has collided with another boundary, TODO
+					 */
+					if ( ! bndries.isEmpty() )
+					{
+						// FIXME Assume the boundary is solid for now
+						this._agents.addAgent(anAgent);
+						agentPlaced=true;
+						if ( Log.shouldWrite(AGENT_ARRIVE_LEVEL) )
+						{
+							Log.out(AGENT_ARRIVE_LEVEL,
+									"Agent has hit another boundary");
+						}
+						break randomLoop;
+					}
+					/*
+					 * The agent has not collided with any boundaries, so see if it
+					 * has collided with any other agents.
+					 */
+					nbhAgents = this._agents.agentSearch(anAgent, pull);
+					/*
+					 * If the agent has collided with others, add it to the agent
+					 * container and continue to the next agent.
+					 */
+					if ( ! nbhAgents.isEmpty() )
+					{
+						// TODO use the pulling method in Collision?
+						this._agents.addAgent(anAgent);
+						agentPlaced = true;
+						if ( Log.shouldWrite(AGENT_ARRIVE_LEVEL) )
+						{
 						Log.out(AGENT_ARRIVE_LEVEL,
-								"Agent has returned to boundary: re-inserting later");
+								"Agent has hit another agent");
+						}
+						break randomLoop;
 					}
-					break randomLoop;
+					/*
+					 * Ask the agent to move in a random walk.
+					 */
+					
+					anAgent.event(STOCHASTIC_MOVE, MOVE_TSTEP);
+					Body body = ((Body) anAgent.get(AspectRef.agentBody));
+					for ( Point point: body.getPoints() )
+						this._agents.getShape().applyBoundaries( point.getPosition() );
 				}
-				/*
-				 * If the agent has collided with another boundary, TODO
-				 */
-				if ( ! bndries.isEmpty() )
-				{
-					// FIXME Assume the boundary is solid for now
-					this._agents.addAgent(anAgent);
-					if ( Log.shouldWrite(AGENT_ARRIVE_LEVEL) )
-					{
-						Log.out(AGENT_ARRIVE_LEVEL,
-								"Agent has hit another boundary");
-					}
-					break randomLoop;
-				}
-				/*
-				 * The agent has not collided with any boundaries, so see if it
-				 * has collided with any other agents.
-				 */
-				nbhAgents = this._agents.agentSearch(anAgent, pull);
-				/*
-				 * If the agent has collided with others, add it to the agent
-				 * container and continue to the next agent.
-				 */
-				if ( ! nbhAgents.isEmpty() )
-				{
-					// TODO use the pulling method in Collision?
-					this._agents.addAgent(anAgent);
-					if ( Log.shouldWrite(AGENT_ARRIVE_LEVEL) )
-					{
-					Log.out(AGENT_ARRIVE_LEVEL,
-							"Agent has hit another agent");
-					}
-					break randomLoop;
-				}
-				/*
-				 * Ask the agent to move in a random walk.
-				 */
-				anAgent.event(STOCHASTIC_MOVE, MOVE_TSTEP);
 			}
 		}
 		this.clearArrivalsLounge();

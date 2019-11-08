@@ -270,30 +270,35 @@ public abstract class SpatialBoundary extends Boundary
 	 */
 	protected void placeAgentsRandom()
 	{
-		Tier level = Tier.DEBUG;
-		Shape aShape = this._agents.getShape();
-		double[] newLoc;
-		Body body;
 		for ( Agent anAgent : this._arrivalsLounge )
 		{
-			if ( IsLocated.isLocated(anAgent) )
-			{
-				newLoc = aShape.getRandomLocationOnBoundary(
-						this._dim, this._extreme);
-				if ( Log.shouldWrite(level) )
+			if (IsLocated.isLocated(anAgent) )
 				{
-					Log.out(level, "Placing agent (UID: "+anAgent.identity()+
-							") at random location: "+Vector.toString(newLoc));
+				placeAgentRandom(anAgent);
 				}
-				body = (Body) anAgent.get(AspectRef.agentBody);
-				body.relocate(newLoc);
-			}
 			else
-			{
+				{
 				this._arrivalsLounge.remove(anAgent);
-			}
-			this._agents.addAgent(anAgent);
+				this._agents.addAgent(anAgent);
+				}
 		}
+	}
+	
+	protected void placeAgentRandom(Agent anAgent)
+	{
+		double[] newLoc;
+		Shape aShape = this._agents.getShape();
+		Tier level = Tier.DEBUG;
+		Body body;
+		newLoc = aShape.getRandomLocationOnBoundary(
+				this._dim, this._extreme);
+		if ( Log.shouldWrite(level) )
+		{
+			Log.out(level, "Placing agent (UID: "+anAgent.identity()+
+					") at random location: "+Vector.toString(newLoc));
+		}
+		body = (Body) anAgent.get(AspectRef.agentBody);
+		body.relocate(newLoc);
 	}
 	
 	/* ************************************************************************
