@@ -19,6 +19,7 @@ import java.text.DecimalFormat;
 import java.util.Calendar;
 import java.util.Random;
 
+import linearAlgebra.Vector;
 import utility.MTRandom;
 
 /**
@@ -955,6 +956,31 @@ public final class ExtraMath
 			out = mu + ( sd * getNormRand() );
 		} while ( ! sameSign(out, mu) );
 		return out;
+	}
+	
+	/**
+	 * Based on the Stokes-Einstein equation for Brownian motion
+	 * @param diffusionCoefficient
+	 * @param timeStep
+	 * @param numberOfDimensions
+	 * @return - Vector of displacement
+	 */
+	public static double[] randomWalkDisplacement(
+			double diffusionCoefficient, double timeStep,
+			int numberOfDimensions)
+	{
+		double meanSquareDistance = 2*(numberOfDimensions)*
+				diffusionCoefficient*timeStep;
+		
+		double standardDeviation = Math.sqrt(meanSquareDistance);
+		
+		double distance = ExtraMath.deviateFromSD(0, standardDeviation);
+		
+		double [] randDir = Vector.randomPlusMinus(numberOfDimensions, 1.0);
+		
+		double[] displacement = Vector.times(randDir, distance);
+		
+		return displacement;
 	}
 	
 	/**

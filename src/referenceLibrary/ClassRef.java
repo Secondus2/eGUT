@@ -502,8 +502,11 @@ public class ClassRef
 	 * Boundaries (spatial)
 	 */
 	
-	public final static String biofilmBoundaryLayer =
-			boundary.spatialLibrary.BiofilmBoundaryLayer.class.getName();
+	public final static String biofilmToChemostat =
+			boundary.spatialLibrary.BiofilmToChemostat.class.getName();
+	
+	public final static String biofilmToSpatialCompartment = 
+			boundary.spatialLibrary.BiofilmToSpatialCompartment.class.getName();
 	
 	public final static String biofilmMembraneGas =
 			boundary.spatialLibrary.BiofilmMembraneGas.class.getName();

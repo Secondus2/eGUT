@@ -4,8 +4,10 @@ import java.util.Collection;
 import java.util.LinkedList;
 
 import agent.Agent;
+import agent.Body;
 import boundary.Boundary;
 import idynomics.Idynomics;
+import referenceLibrary.AspectRef;
 import utility.ExtraMath;
 
 /**
@@ -60,7 +62,7 @@ public abstract class ChemostatBoundary extends Boundary {
 				}
 			}
 		}
-		return removals;			
+		return removals;
 	}
 
 }

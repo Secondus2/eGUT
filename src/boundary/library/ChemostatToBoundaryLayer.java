@@ -59,36 +59,5 @@ public class ChemostatToBoundaryLayer extends ChemostatBoundary
 	{
 		return this._environment.getAverageConcentration(soluteName);
 	}
-	
-	
-	@Override
-	public Collection<Agent> agentsToGrab()
-	{
-		int nAllAgents = this._agents.getNumAllAgents();
-		LinkedList<Agent> removals = new LinkedList<Agent>();
-		if ( (nAllAgents > 0) && ((this._volumeFlowRate < 0.0) || 
-			(((BiofilmBoundaryLayer) this._partner).getExchangeRate() != 0.0)))
-		{
-			/* do not remove if agent removal is disabled */
-			if ( _agentRemoval )
-			{
-				/* calculate (1 - removal chance) */
-				//double e = Math.exp( ( this.getDilutionRate() * 
-				//		Idynomics.simulator.timer.getTimeStepSize() ) ); 
-				
-				double e = ((BiofilmBoundaryLayer) this._partner).
-						getExchangeRate() * Idynomics.simulator.timer.
-						getTimeStepSize();
-				
-				
-				for ( int i = 0; i < nAllAgents; i++ )
-				{
-					if( ExtraMath.getUniRandDbl() > e )
-						removals.add( this._agents.chooseAgent(i) );
-				}
-			}
-		}
-		return removals;			
-	}
 
 }

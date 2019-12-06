@@ -13,6 +13,7 @@ import agent.Body;
 import surface.Point;
 import boundary.SpatialBoundary;
 import boundary.WellMixedBoundary;
+import boundary.library.ChemostatBoundary;
 import boundary.library.ChemostatToBoundaryLayer;
 import compartment.AgentContainer;
 import compartment.Compartment;
@@ -39,7 +40,7 @@ import utility.Helper;
  * @author Robert Clegg (r.j.clegg@bham.ac.uk) University of Birmingham, U.K.
  * @author Bastiaan Cockx @BastiaanCockx (baco@env.dtu.dk), DTU, Denmark
  */
-public class BiofilmBoundaryLayer extends WellMixedBoundary
+public abstract class BiofilmBoundaryLayer extends WellMixedBoundary
 {
 	/**
 	 * Spherical surface object with radius equal to {@link #_layerThickness}.
@@ -64,11 +65,6 @@ public class BiofilmBoundaryLayer extends WellMixedBoundary
 	// NOTE This is not a permanent solution.
 	public static double MOVE_TSTEP = 1.0;
 	
-	/**
-	 * A parameter which describes the rate of agent exchange between two
-	 * compartments with mixing, but without directional flow.
-	 */
-	public double exchangeRate;
 	
 	/**
 	 * The surface area of the biofilm compartment in contact with the partner 
@@ -94,8 +90,6 @@ public class BiofilmBoundaryLayer extends WellMixedBoundary
 	public void instantiate(Element xmlElement, Settable parent) 
 	{
 		super.instantiate(xmlElement, parent);
-		exchangeRate = Double.valueOf(XmlHandler.obtainAttribute(
-				xmlElement, "exchangeRate", "Biofilm boundary exchange rate"));
 		
 		String surfaceAreaString = XmlHandler.gatherAttribute(
 				xmlElement, "surfaceArea");
@@ -160,19 +154,6 @@ public class BiofilmBoundaryLayer extends WellMixedBoundary
 		this.tryToCreateGridSphere();
 	}
 
-	public double getExchangeRate()
-	{
-		return exchangeRate;
-	}
-	/* ***********************************************************************
-	 * PARTNER BOUNDARY
-	 * **********************************************************************/
-
-	@Override
-	public Class<?> getPartnerClass()
-	{
-		return ChemostatToBoundaryLayer.class;
-	}
 
 	/* ***********************************************************************
 	 * SOLUTE TRANSFERS
@@ -222,14 +203,7 @@ public class BiofilmBoundaryLayer extends WellMixedBoundary
 			coords = aShape.iteratorNext();
 		}
 	}
-
-	@Override
-	public void additionalPartnerUpdate()
-	{
-		ChemostatToBoundaryLayer p = (ChemostatToBoundaryLayer) this._partner;
-		for ( String soluteName : this._environment.getSoluteNames() )
-			this._concns.put(soluteName, p.getSoluteConcentration(soluteName));
-	}
+	
 
 	/* ***********************************************************************
 	 * AGENT TRANSFERS

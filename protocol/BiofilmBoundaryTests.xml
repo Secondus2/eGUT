@@ -64,7 +64,12 @@
 		</speciesLib>
 		
 		<compartment name = "partner">
-			<shape class="Dimensionless" volume ="1.0"/>
+			<shape class="Rectangle">
+				<dimension name="X" isCyclic="true" targetResolution="1" max="16.0">
+				</dimension> 
+				<dimension name="Y" isCyclic="false" targetResolution="1" max="8.0">
+				</dimension>
+			</shape>
 			<solutes>
 				<solute name="solute1" concentration="4.0" defaultDiffusivity="1"  />
 				<solute name="solute2" concentration="0.0"  defaultDiffusivity="1" />
@@ -75,7 +80,7 @@
 				<dimension name="X" isCyclic="true" targetResolution="1" max="16.0">
 				</dimension> 
 				<dimension name="Y" isCyclic="false" targetResolution="1" max="8.0">
-				<boundary extreme="1" class="BiofilmBoundaryLayer" partnerCompartment="partner" layerThickness = "1" exchangeRate="0.5"/>
+				<boundary extreme="1" class="BiofilmToSpatialCompartment" partnerCompartment="partner" layerThickness = "1" exchangeRate="0.5"/>
 				</dimension> 
 			</shape>
 			<solutes>

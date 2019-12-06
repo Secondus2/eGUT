@@ -179,7 +179,8 @@ public abstract class Boundary implements Settable, Instantiable
 		if (Helper.isNullOrEmpty(this._partnerCompartmentName))
 			{
 				this._partnerCompartmentName = 
-						((Compartment)this._partner.getParent().getParent().getParent()).name;
+						((Compartment)this._partner.getParent().getParent().
+								getParent()).name;
 			}
 	}
 

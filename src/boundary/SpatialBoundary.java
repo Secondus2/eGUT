@@ -48,6 +48,11 @@ public abstract class SpatialBoundary extends Boundary
 	// TODO set this from protocol file for the whole compartment
 	protected double _layerThickness;
 	
+	/**
+	 * Rate of exchange due to mixing between this boundary and it's partner
+	 */
+	protected double _exchangeRate;
+	
 	/* ***********************************************************************
 	 * CONSTRUCTORS
 	 * **********************************************************************/
@@ -97,6 +102,12 @@ public abstract class SpatialBoundary extends Boundary
 	{
 		return this._extreme;
 	}
+	
+	public double getExchangeRate()
+	{
+		return this._exchangeRate;
+	}
+	
 
 	/**
 	 * Internal boolean for construction: declares whether a concrete sub-class
