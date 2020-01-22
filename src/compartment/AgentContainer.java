@@ -108,6 +108,12 @@ public class AgentContainer implements Settable
 	 */
 	private TreeType _spatialTreeType = TreeType.RTREE;
 	
+	
+	private String AGENTVOLUME = AspectRef.agentVolume;
+	
+	
+	private String BODY = AspectRef.agentBody;
+	
 	/* ***********************************************************************
 	 * CONSTRUCTORS
 	 * **********************************************************************/
@@ -320,6 +326,21 @@ public class AgentContainer implements Settable
 	{
 		this._epithelium = epithelium;
 	}
+	
+	/**
+	 * Get the total volume of space occupied by agents in this container
+	 */
+	public double getOccupiedVolume()
+	{
+		double volume = 0.0;
+		for (Agent a: this.getAllAgents())
+		{
+			volume += a.getDouble(AGENTVOLUME);
+		}
+		return volume;
+	}
+	
+	
 	/* ***********************************************************************
 	 * LOCATED SEARCHES
 	 * **********************************************************************/

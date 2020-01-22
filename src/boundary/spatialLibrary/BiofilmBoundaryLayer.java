@@ -13,10 +13,8 @@ import agent.Body;
 import surface.Point;
 import boundary.SpatialBoundary;
 import boundary.WellMixedBoundary;
-import boundary.library.ChemostatBoundary;
 import boundary.library.ChemostatToBoundaryLayer;
 import compartment.AgentContainer;
-import compartment.Compartment;
 import compartment.EnvironmentContainer;
 import dataIO.Log;
 import dataIO.XmlHandler;
@@ -40,7 +38,7 @@ import utility.Helper;
  * @author Robert Clegg (r.j.clegg@bham.ac.uk) University of Birmingham, U.K.
  * @author Bastiaan Cockx @BastiaanCockx (baco@env.dtu.dk), DTU, Denmark
  */
-public abstract class BiofilmBoundaryLayer extends WellMixedBoundary
+public class BiofilmBoundaryLayer extends WellMixedBoundary
 {
 	/**
 	 * Spherical surface object with radius equal to {@link #_layerThickness}.
@@ -70,7 +68,13 @@ public abstract class BiofilmBoundaryLayer extends WellMixedBoundary
 	 * The surface area of the biofilm compartment in contact with the partner 
 	 * compartment.
 	 */
-	protected double surfaceArea;
+	protected double _surfaceArea;
+	
+	/**
+	 * A parameter which describes the rate of agent exchange between two
+	 * compartments due to mixing, but without directional flow
+	 */
+	protected double _exchangeRate;
 	
 	/**
 	 * \brief Log file verbosity level used for debugging agent arrival.
@@ -91,13 +95,22 @@ public abstract class BiofilmBoundaryLayer extends WellMixedBoundary
 	{
 		super.instantiate(xmlElement, parent);
 		
+		/**
+		 * This allows a surface area to be set before it is automatically
+		 * calculated, so that if the connected chemostat is not in contact with
+		 * the biofilm's entire surface area this can be taken into account
+		 */
+		
 		String surfaceAreaString = XmlHandler.gatherAttribute(
 				xmlElement, "surfaceArea");
 		
 		if (!Helper.isNullOrEmpty(surfaceAreaString))
 		{
-			surfaceArea = Double.valueOf(surfaceAreaString);
+			_surfaceArea = Double.valueOf(surfaceAreaString);
 		}
+		
+		this._exchangeRate = Double.valueOf(XmlHandler.gatherAttribute(
+				xmlElement, XmlRef.exchangeRate));
 	}
 	
 	@Override
@@ -106,9 +119,9 @@ public abstract class BiofilmBoundaryLayer extends WellMixedBoundary
 	{
 		super.setContainers(environment, agents);
 		this.tryToCreateGridSphere();
-		if (Helper.isNullOrEmpty(surfaceArea))
+		if (Helper.isNullOrEmpty(_surfaceArea))
 		{
-			surfaceArea = this.getTotalSurfaceArea();
+			_surfaceArea = this.getTotalSurfaceArea();
 		}
 	}
 	
@@ -370,5 +383,20 @@ public abstract class BiofilmBoundaryLayer extends WellMixedBoundary
 		 */
 		// TODO
 		return out;
+	}
+	
+	@Override
+	public Class<?> getPartnerClass()
+	{
+		return ChemostatToBoundaryLayer.class;
+	}
+	
+	@Override
+	public void additionalPartnerUpdate()
+	{
+		ChemostatToBoundaryLayer p = (ChemostatToBoundaryLayer) this._partner;
+		for ( String soluteName : this._environment.getSoluteNames() )
+			this._concns.put(soluteName, p.getSoluteConcentration(soluteName));
+		p.setExchangeRate(this._exchangeRate);
 	}
 }

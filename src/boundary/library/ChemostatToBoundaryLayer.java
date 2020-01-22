@@ -28,7 +28,6 @@ public class ChemostatToBoundaryLayer extends ChemostatBoundary
 	 * \brief This boundary's behaviour for grabbing agents to be removed by
 	 * outflow.
 	 */
-
 	
 	public ChemostatToBoundaryLayer()
 	{

@@ -148,6 +148,22 @@ public class BoundingBox
 	{
 		return this._higher;
 	}
+	
+	/**
+	 * This method tests whether a given Point is inside this BoundingBox
+	 * @param point
+	 * @return - true if the Point is inside this BoundingBox
+	 */
+	public boolean queryInside(Point point)
+	{
+		double[] position = point.getPosition();
+		for (int i = 0; i < this._dimensions.length; i++)
+		{
+			if (position[i] < this._lower[i] || position[i] < this._higher[i])
+				return false;
+		}
+		return true;
+	}
 
 	/*************************************************************************
 	 * RANDOM POSITION

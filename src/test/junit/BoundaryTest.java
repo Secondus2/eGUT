@@ -11,7 +11,6 @@ import static org.junit.Assert.assertTrue;
 import agent.Agent;
 import agent.Body;
 import boundary.spatialLibrary.BiofilmBoundaryLayer;
-import boundary.spatialLibrary.BiofilmToChemostat;
 import boundary.spatialLibrary.SolidBoundary;
 import compartment.Compartment;
 import dataIO.Log;
@@ -69,7 +68,7 @@ public class BoundaryTest
 		 * Add the agent to the boundary layer, and this to the compartment.
 		 */
 		Dimension x = shape.getDimension(DimName.X);
-		BiofilmBoundaryLayer bL = new BiofilmToChemostat();
+		BiofilmBoundaryLayer bL = new BiofilmBoundaryLayer();
 		Element elem = AllTests.getSpatialBoundaryElement(1);
 		elem.setAttribute(XmlRef.layerThickness, "10.0");
 		elem.setAttribute(XmlRef.partnerCompartment, dummyCompName);

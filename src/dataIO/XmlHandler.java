@@ -206,30 +206,6 @@ public class XmlHandler
 		}
 		return jarFile.getParentFile().getAbsolutePath();
 	}
-
-	/**
-	 * Gathers numerical attributes
-	 */
-	public static String gatherDouble (Element xmlElement, String attribute)
-	{
-		String string;
-		if ( xmlElement != null && xmlElement.hasAttribute(attribute) )
-			string = xmlElement.getAttribute(attribute);
-		else
-			return null;
-		
-		try
-		{
-			Double.parseDouble(string);
-		}
-		
-		catch(NumberFormatException e)
-		{
-			
-		}
-		
-		return string;
-	}
 	
 	/**
 	 * \brief Gathers non critical attributes, returns "" if the attribute is not
