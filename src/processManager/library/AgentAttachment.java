@@ -95,7 +95,7 @@ public class AgentAttachment extends ProcessManager
 			{
 				/* e scaled to the distance from the 'bulk' region, scaling 
 				 * factor is always <= 1 */
-				double e = Math.exp( ( - this.getTimeStepSize() *
+				double e = Math.exp( ( - this.getTimeStepSize() * 
 						( _regionDepth / regionMap.get( vox ) ) ) ); 
 				
 				/* save values */

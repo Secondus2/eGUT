@@ -976,6 +976,8 @@ public final class ExtraMath
 		
 		double distance = ExtraMath.deviateFromSD(0, standardDeviation);
 		
+		
+		//TODO normalise to magnitude of 1.0 before multiplying by distance
 		double [] randDir = Vector.randomPlusMinus(numberOfDimensions, 1.0);
 		
 		double[] displacement = Vector.times(randDir, distance);

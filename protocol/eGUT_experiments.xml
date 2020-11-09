@@ -64,8 +64,8 @@
 			<species name="producer">
 				<aspect name="produce" type="EVENT"	class="InternalProduction" 	 />
 				<aspect name="epsExcretion" type="EVENT"	class="ExcreteEPS" 	 />
-				<aspect  name="maxInternalEPS" type="PRIMARY" class="Double" value="0.003" />
-				<aspect  name="epsSpecies" type="PRIMARY" class="String" value="particleEPS" />
+				<aspect name="maxInternalEPS" type="PRIMARY" class="Double" value="0.003" />
+				<aspect name="epsSpecies" type="PRIMARY" class="String" value="particleEPS" />
 			</species>
 			
 			<species name="particleEPS">

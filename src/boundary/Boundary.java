@@ -38,6 +38,12 @@ import shape.Shape;
  */
 public abstract class Boundary implements Settable, Instantiable
 {
+	
+	/**
+	 * Name of the boundary
+	 */
+	protected String _name;
+	
 	/**
 	 * Reference to the environment of the compartment this process belongs to.
 	 * Contains a reference to the compartment shape.
@@ -122,6 +128,9 @@ public abstract class Boundary implements Settable, Instantiable
 							PARTNER,
 							XmlRef.dimensionBoundary);
 		}
+		
+		this._name = 
+				XmlHandler.gatherAttribute(xmlElement, XmlRef.nameAttribute);
 	}
 
 	public boolean isReadyForLaunch()
@@ -140,7 +149,7 @@ public abstract class Boundary implements Settable, Instantiable
 	 */
 	public String getName()
 	{
-		return XmlRef.dimensionBoundary;
+		return Helper.setIfNone(this._name, XmlRef.dimensionBoundary);
 		// TODO return dimension and min/max for SpatialBoundary?
 	}
 

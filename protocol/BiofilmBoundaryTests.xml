@@ -64,12 +64,7 @@
 		</speciesLib>
 		
 		<compartment name = "partner">
-			<shape class="Rectangle">
-				<dimension name="X" isCyclic="true" targetResolution="1" max="16.0">
-				</dimension> 
-				<dimension name="Y" isCyclic="false" targetResolution="1" max="8.0">
-				</dimension>
-			</shape>
+			<shape class="Dimensionless" volume="10.0"/>
 			<solutes>
 				<solute name="solute1" concentration="4.0" defaultDiffusivity="1"  />
 				<solute name="solute2" concentration="0.0"  defaultDiffusivity="1" />
@@ -80,7 +75,7 @@
 				<dimension name="X" isCyclic="true" targetResolution="1" max="16.0">
 				</dimension> 
 				<dimension name="Y" isCyclic="false" targetResolution="1" max="8.0">
-				<boundary extreme="1" class="BiofilmToSpatialCompartment" partnerCompartment="partner" layerThickness = "1" exchangeRate="0.5"/>
+				<boundary extreme="1" class="BiofilmBoundaryLayer" partnerCompartment="partner" layerThickness = "1" exchangeRate="0.5" name="biofilmBoundary"/>
 				</dimension> 
 			</shape>
 			<solutes>
@@ -155,6 +150,14 @@
 				<process name="solveDiffusionTransient" class="SolveDiffusionTransient"  priority="-1"
 					firstStep="0.0" timerStepSize="0.1">
 					<aspect name="soluteNames" type="PRIMARY" class="String[]" value="solute1,solute2" /> 
+				</process>
+				<process name="detachment" class="AgentDetachment" priority="-2"
+					firstStep="0.0"  timerStepSize="0.1">
+					<aspect name="destination" type="PRIMARY" class="String" value="biofilmBoundary" />
+					<aspect name="detachmentRate" type="PRIMARY" class="Double" value="0.1" />
+					<aspect name="rasterScale" type="PRIMARY" class="Double" value="0.2" />
+					<aspect name="regionDepth" type="PRIMARY" class="Integer" value="10" />
+					<aspect name="verbose" type="PRIMARY" class="Boolean" value="true" />
 				</process>
 			</processManagers>
 		</compartment>

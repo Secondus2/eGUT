@@ -358,6 +358,9 @@ public class BiofilmBoundaryLayer extends WellMixedBoundary
 					anAgent.event(STOCHASTIC_MOVE, MOVE_TSTEP);
 					Body body = ((Body) anAgent.get(AspectRef.agentBody));
 					for ( Point point: body.getPoints() )
+						
+						//TODO is apply boundaries needed?
+						//Will be done by agent relaxation?
 						this._agents.getShape().applyBoundaries( point.getPosition() );
 				}
 			}

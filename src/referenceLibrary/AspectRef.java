@@ -504,6 +504,12 @@ public class AspectRef
 	 * 
 	 */
 	public static final String detachmentRate = "detachmentRate" ;
+	
+	/**
+	 * The destination boundary for detaching agents
+	 */
+	public static final String destination = "destination";
+	
 	/**
 	 * 
 	 */

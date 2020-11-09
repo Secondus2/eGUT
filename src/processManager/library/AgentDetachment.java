@@ -1,5 +1,6 @@
 package processManager.library;
 
+import java.util.Collection;
 import java.util.LinkedList;
 import java.util.List;
 
@@ -7,8 +8,10 @@ import org.w3c.dom.Element;
 
 import agent.Agent;
 import analysis.quantitative.Raster;
+import boundary.Boundary;
 import compartment.AgentContainer;
 import compartment.EnvironmentContainer;
+import idynomics.Idynomics;
 import processManager.ProcessManager;
 import referenceLibrary.AspectRef;
 import spatialRegistry.SpatialMap;
@@ -29,12 +32,14 @@ public class AgentDetachment extends ProcessManager
 	private String RASTER_SCALE = AspectRef.rasterScale;
 	private String VERBOSE = AspectRef.verbose;
 	private String REGION_DEPTH = AspectRef.regionDepth;
+	private String DESTINATION = AspectRef.destination;
 	
 	private boolean _verbose = false;
 	private Raster _raster;
 	private double _detachmentRate;
 	private double _rasterScale;
 	private int _regionDepth;
+	private String _destination;
 	
 	@Override
 	public void init( Element xmlElem, EnvironmentContainer environment, 
@@ -54,6 +59,8 @@ public class AgentDetachment extends ProcessManager
 		
 		this._regionDepth = Helper.setIfNone( 
 				this.getInt( REGION_DEPTH ), 10 );
+		
+		this._destination = this.getString(DESTINATION);
 	}
 	
 	/**
@@ -92,7 +99,21 @@ public class AgentDetachment extends ProcessManager
 						if( ExtraMath.getUniRandDbl() > e )
 						{
 							/* FIXME DEPARTURE! */
-							this._agents.registerRemoveAgent( a );
+							if (Helper.isNullOrEmpty(this._destination))
+								this._agents.registerRemoveAgent( a );
+							else
+							{
+								Collection<Boundary> boundaries = 
+										Idynomics.simulator.getCompartment(
+										_compartmentName).getShape().
+										getAllBoundaries();
+								for (Boundary boundary: boundaries)
+								{
+									if (boundary.getName().
+											contentEquals(this._destination))
+										boundary.acceptInboundAgent(a);
+								}
+							}
 						}
 					}
 						
