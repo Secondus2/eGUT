@@ -15,7 +15,6 @@ import boundary.Boundary;
 import boundary.SpatialBoundary;
 import dataIO.Log;
 import dataIO.Log.Tier;
-import epithelium.EpithelialGrid;
 import gereralPredicates.IsSame;
 
 import static dataIO.Log.Tier.*;
@@ -108,6 +107,12 @@ public class AgentContainer implements Settable
 	 * overwritten).
 	 */
 	private TreeType _spatialTreeType = TreeType.RTREE;
+	
+	
+	private String AGENTVOLUME = AspectRef.agentVolume;
+	
+	
+	private String BODY = AspectRef.agentBody;
 	
 	/* ***********************************************************************
 	 * CONSTRUCTORS
@@ -321,6 +326,21 @@ public class AgentContainer implements Settable
 	{
 		this._epithelium = epithelium;
 	}
+	
+	/**
+	 * Get the total volume of space occupied by agents in this container
+	 */
+	public double getOccupiedVolume()
+	{
+		double volume = 0.0;
+		for (Agent a: this.getAllAgents())
+		{
+			volume += a.getDouble(AGENTVOLUME);
+		}
+		return volume;
+	}
+	
+	
 	/* ***********************************************************************
 	 * LOCATED SEARCHES
 	 * **********************************************************************/
@@ -332,7 +352,7 @@ public class AgentContainer implements Settable
 	 * @return Collection of agents that may be overlap with this box: note
 	 * that there may be some false positives (but no false negatives).
 	 */
-	public List<Agent> treeSearch(BoundingBox boundingBox)
+	public List<Agent> agentSearch(BoundingBox boundingBox)
 	{
 		ArrayList<Agent> fullSearch = new ArrayList<Agent>();
 		fullSearch.addAll(this._agentTree.search(boundingBox));
@@ -341,6 +361,19 @@ public class AgentContainer implements Settable
 			fullSearch.addAll(this._epithelium.search(boundingBox));
 		}
 		return fullSearch;
+	}
+	
+	/**
+	 * \brief Find only located agents that may overlap with the given bounding
+	 * box.
+	 * 
+	 * @param boundingBox The {@code BoundingBox} object to search in.
+	 * @return Collection of agents that may be overlap with this box: note
+	 * that there may be some false positives (but no false negatives).
+	 */
+	public List<Agent> treeSearch(BoundingBox boundingBox)
+	{
+		return this._agentTree.search(boundingBox);
 	}
 
 	/**
@@ -351,7 +384,7 @@ public class AgentContainer implements Settable
 	 * @return Collection of agents that may be overlap with these boxes: note
 	 * that there may be some false positives (but no false negatives).
 	 */
-	public List<Agent> treeSearch(List<BoundingBox> boundingBoxes)
+	public List<Agent> agentSearch(List<BoundingBox> boundingBoxes)
 	{
 		ArrayList<Agent> fullSearch = new ArrayList<Agent>();
 		fullSearch.addAll(this._agentTree.search(boundingBoxes));
@@ -371,7 +404,7 @@ public class AgentContainer implements Settable
 	 * @return Collection of agents that may be overlap with this box: note
 	 * that there may be some false positives (but no false negatives).
 	 */
-	public List<Agent> treeSearch(double[] location, double[] dimensions)
+	public List<Agent> agentSearch(double[] location, double[] dimensions)
 	{
 		return this._agentTree.search(location, dimensions);
 	}
@@ -383,9 +416,9 @@ public class AgentContainer implements Settable
 	 * @return Collection of agents that may be overlap with this point: note
 	 * that there may be some false positives (but no false negatives).
 	 */
-	public List<Agent> treeSearch(double[] pointLocation)
+	public List<Agent> agentSearch(double[] pointLocation)
 	{
-		return this.treeSearch(pointLocation, Vector.zeros(pointLocation));
+		return this.agentSearch(pointLocation, Vector.zeros(pointLocation));
 	}
 
 		// FIXME move all aspect related methods out of general classes
@@ -399,7 +432,7 @@ public class AgentContainer implements Settable
 	 * that there may be some false positives (but no false negatives). The
 	 * focal agent is not in this collection.
 	 */
-	public List<Agent> treeSearch(Agent anAgent, double searchDist)
+	public List<Agent> agentSearch(Agent anAgent, double searchDist)
 	{
 		// TODO not sure if this is the best response
 		if ( ! IsLocated.isLocated(anAgent) )
@@ -409,7 +442,7 @@ public class AgentContainer implements Settable
 		 */
 		Body body = (Body) anAgent.get(AspectRef.agentBody);
 		List<BoundingBox> boxes = body.getBoxes(searchDist, this.getShape());
-		List<Agent> out = this.treeSearch(boxes);
+		List<Agent> out = this.agentSearch(boxes);
 		/* 
 		 * Remove the focal agent from this list.
 		 */
@@ -421,6 +454,26 @@ public class AgentContainer implements Settable
 
 	/**
 	 * \brief Find all agents that are potentially within the
+	 * given distance of a surface.
+	 * @param aSurface Surface object belonging to this compartment.
+	 * @param searchDist Find agents within this distance of the surface.
+	 * @return Collection of agents that may be within the search distance of 
+	 * the surface: there may be false positives, but no false negatives in 
+	 * this collection.
+	 */
+	public Collection<Agent> agentSearch(Surface aSurface, double searchDist)
+	{
+		BoundingBox box = aSurface.getBox(searchDist, getShape());
+		if ( box == null )
+		{
+			Log.out(CRITICAL, "Could not find bouding box for surface "+
+					aSurface.toString());
+		}
+		return this.agentSearch(box);
+	}
+	
+	/**
+	 * \brief Find all located agents that are potentially within the
 	 * given distance of a surface.
 	 * @param aSurface Surface object belonging to this compartment.
 	 * @param searchDist Find agents within this distance of the surface.
@@ -442,6 +495,28 @@ public class AgentContainer implements Settable
 	/**
 	 * \brief Find all agents that are potentially within the given distance of 
 	 * a spatial boundary.
+	 * 
+	 * @param aBoundary Spatial boundary object belonging to this compartment.
+	 * @param searchDist Find agents within this distance of the surface.
+	 * @return Collection of agents that are potentially within the the search 
+	 * distance of the boundary: there may be false positives, but no false 
+	 * negatives in this collection.
+	 */
+	public Collection<Agent> agentSearch(
+			SpatialBoundary aBoundary, double searchDist)
+	{
+		Surface surface = this._shape.getSurface(aBoundary);
+		if ( surface == null )
+		{
+			Log.out(CRITICAL, "Could not find surface for boundary "+
+					aBoundary.getDimName()+" "+aBoundary.getExtreme());
+		}
+		return this.agentSearch( surface , searchDist);
+	}
+	
+	/**
+	 * \brief Find all located agents that are potentially within the given 
+	 * distance of a spatial boundary.
 	 * 
 	 * @param aBoundary Spatial boundary object belonging to this compartment.
 	 * @param searchDist Find agents within this distance of the surface.
@@ -670,7 +745,7 @@ public class AgentContainer implements Settable
 			return null;
 		}
 		else
-			return (i > this._agentList.size()) ?
+			return (i >= this._agentList.size()) ?
 					/* Located agent. */
 					this._locatedAgentList.get(i - this._agentList.size()) :
 						/* non-located agent. */

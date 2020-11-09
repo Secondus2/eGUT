@@ -206,7 +206,7 @@ public class XmlHandler
 		}
 		return jarFile.getParentFile().getAbsolutePath();
 	}
-
+	
 	/**
 	 * \brief Gathers non critical attributes, returns "" if the attribute is not
 	 * defined. This method does not ask the user for any information.
@@ -431,7 +431,7 @@ public class XmlHandler
 		NodeList nodes = xmlElement.getElementsByTagName(tagName);
 		if (nodes.getLength() > 1)
 		{
-			Log.out(Tier.NORMAL,"Warning: document contains more than 1"
+			Log.out(Tier.NORMAL,"Warning: document contains more than 1 "
 					+ tagName + " nodes, loading first simulation node...");
 		}
 		else if (nodes.getLength() == 0)

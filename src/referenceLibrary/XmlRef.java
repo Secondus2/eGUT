@@ -469,6 +469,11 @@ public class XmlRef
 	public static final String extreme = "extreme";
 
 	/**
+	 * Exchange rate between two compartments connected by a boundary
+	 */
+	public static final String exchangeRate = "exchangeRate";
+	
+	/**
 	 * Referring to instantiatable list node
 	 */
 	public static final String list = "list";

@@ -1,4 +1,4 @@
-package epithelium;
+package spatialRegistry;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -10,7 +10,10 @@ import utility.ExtraMath;
 
 /**
  * The EpithelialGrid  represents the epithelium and can be used to quickly
- *  search for epithelial agents by position.
+ *  search for epithelial agents by position. This class only works on the
+ *  assumption that epithelial cells are in a regular, even, unchanging grid.
+ *  It is created by the epithelial layer spawner during set-up
+ *  TO DO - add mechanism for creating cell grid from existing output
  * @author Tim Foster - trf896
  *
  */

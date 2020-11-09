@@ -434,6 +434,12 @@ public class ClassRef
 	public final static String agentDetachment =
 			processManager.library.AgentDetachment.class.getName();
 	
+	/**
+	 * Agent attachment process manager
+	 */
+	public final static String agentAttachment =
+			processManager.library.AgentAttachment.class.getName();
+	
 	/* ************************************************************************
 	 * IdynoMiCS main classes
 	 */

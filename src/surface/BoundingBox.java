@@ -94,6 +94,7 @@ public class BoundingBox
 		Vector.checkLengths(dimensions, lower);
 		this._dimensions = dimensions;
 		this._lower = lower;
+		this._higher = Vector.add(lower, dimensions);
 		return this;
 	}
 	
@@ -146,6 +147,22 @@ public class BoundingBox
 	public double[] higherCorner()
 	{
 		return this._higher;
+	}
+	
+	/**
+	 * This method tests whether a given Point is inside this BoundingBox
+	 * @param point
+	 * @return - true if the Point is inside this BoundingBox
+	 */
+	public boolean queryInside(Point point)
+	{
+		double[] position = point.getPosition();
+		for (int i = 0; i < this._dimensions.length; i++)
+		{
+			if (position[i] < this._lower[i] || position[i] < this._higher[i])
+				return false;
+		}
+		return true;
 	}
 
 	/*************************************************************************

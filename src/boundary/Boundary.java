@@ -28,6 +28,7 @@ import settable.Module;
 import settable.Settable;
 import settable.Module.Requirements;
 import utility.Helper;
+import shape.Shape;
 
 /**
  * \brief General class of boundary for a {@code Shape}.
@@ -47,6 +48,7 @@ public abstract class Boundary implements Settable, Instantiable
 	 * Contains a reference to the compartment shape.
 	 */
 	public AgentContainer _agents;
+	
 	/**
 	 * XML tag for the name of the partner boundary.
 	 */
@@ -174,6 +176,12 @@ public abstract class Boundary implements Settable, Instantiable
 	public void setPartner(Boundary partner)
 	{
 		this._partner = partner;
+		if (Helper.isNullOrEmpty(this._partnerCompartmentName))
+		{
+			this._partnerCompartmentName =
+					((Compartment)this._partner.getParent().getParent().
+							getParent()).name;
+		}
 	}
 
 	/**
@@ -543,6 +551,9 @@ public abstract class Boundary implements Settable, Instantiable
 			//FIXME The agent MUST be registered to the new compartment otherwise offsrping will end up in the old
 			//compartment, this is a really ugly work around but the only way to actually get there.
 			//This design should be reconsidered [Bas 13-04-2018]
+			//FIXME - For located agents, this leads to agents retaining their 
+			//body location, causing a crash if the new compartment has a
+			//different size. - Tim [13.09.19]
 			((Compartment)this._agents.getParent()).addAgent(anAgent);
 		this.clearArrivalsLounge();
 	}

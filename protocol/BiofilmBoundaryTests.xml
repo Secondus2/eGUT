@@ -1,9 +1,9 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <document>
-	<simulation name="rodTest" outputfolder="../results" log="DEBUG" randomSeed="22"
+	<simulation name="newSpawnTester" outputfolder="../results" log="DEBUG" randomSeed="23"
 						comment="this is a file for testing purposes only.">
 		
-		<timer stepSize="1.0" endOfSimulation="30.0" />
+		<timer stepSize="1.0" endOfSimulation="100.0" />
 		
 		<speciesLib>
 			<!-- species/species library The species library contains all agent species 
@@ -27,28 +27,65 @@
  					</list>
 				</aspect>
 				<aspect name="pigment" type="PRIMARY" class="String" value="GREEN" />
-				<speciesModule name="rod" />
+				<speciesModule name="epithelium" />
 			</species>
-			<species name="rod">
+			<species name="AOB">
+				<aspect name="pigment" type="PRIMARY" class="String" value="GREEN" />
+				<aspect name="mass" type="CALCULATED" class="WetWeight"  />
+				<aspect name="WetDryRatio" class="Double"  value="4.0" />
+				<speciesModule name="coccoid" />
+			</species>
+			<species name="coccoid">
+				<aspect name="surfaces"		type="CALCULATED"	class="AgentSurfaces" />
+				<aspect name="morphology" 	type="PRIMARY" 		class="String" 		value="coccoid" />
+				<!-- NOTE for testing purposes as stateExpression -->
+				<aspect name="volume" 		type="CALCULATED" 	class="StateExpression" 	input="mass/density" />
+				<aspect name="radius"		type="CALCULATED"	class="CoccoidRadius" 	/>
+				<aspect name="divide" 		type="EVENT" 		class="CoccoidDivision"			 />
+				<aspect name="growth" 		type="EVENT" 		class="SimpleGrowth" />
+				<aspect name="#isLocated" 	type="PRIMARY" 		class="Boolean" value="true" />
+				<aspect name="#curPullDist" type="PRIMARY"		class="Double"	value="0.1" />
+				<aspect name="updateBody" 	type="EVENT" 		class="UpdateBody" 		 />
+				<speciesModule name="stochasticMover" />
+			</species>
+			<species name="epithelium">
 				<aspect name="surfaces"			type="CALCULATED"	class="AgentSurfaces"	  />
 				<aspect name="volume" 			type="CALCULATED" 	class="StateExpression" 		input="mass/density" />
 				<aspect name="radius" 			type="PRIMARY" 		class="Double" 					value="0.23" />
-				<aspect name="divide" 			type="EVENT" 		class="RodDivision"		 />
-				<aspect name="#isLocated" 		type="PRIMARY" class="Boolean" value="true" />
+				<aspect name="divide" 			type="EVENT" 		class="CuboidDivision"		 />
+				<aspect name="#isEpithelial" 	type="PRIMARY" 		class="Boolean" value="true" />
 				<aspect name="updateBody" 		type="EVENT" 		class="UpdateBody" 	 />
 			</species>
+			<species name="stochasticMover">
+				<aspect name="stochasticStep" type="PRIMARY" class="Double" value="2.0" />
+				<aspect name="stochasticMove" type="EVENT" class="StochasticMovement" />
+				<aspect name="temp"			type="PRIMARY"		class="Double"		value="3.0" />
+			</species>
 		</speciesLib>
-
-		<compartment name="second">
+		
+		<compartment name = "partner">
 			<shape class="Rectangle">
-				<dimension name="X" isCyclic="false" targetResolution="1" max="16.0">
+				<dimension name="X" isCyclic="true" targetResolution="1" max="16.0">
 				</dimension> 
-				<dimension name="Y" isCyclic="false" targetResolution="1" max="16.0">
+				<dimension name="Y" isCyclic="false" targetResolution="1" max="8.0">
+				</dimension>
+			</shape>
+			<solutes>
+				<solute name="solute1" concentration="4.0" defaultDiffusivity="1"  />
+				<solute name="solute2" concentration="0.0"  defaultDiffusivity="1" />
+			</solutes>
+		</compartment>
+		<compartment name="main">
+			<shape class="Rectangle">
+				<dimension name="X" isCyclic="true" targetResolution="1" max="16.0">
+				</dimension> 
+				<dimension name="Y" isCyclic="false" targetResolution="1" max="8.0">
+				<boundary extreme="1" class="BiofilmToSpatialCompartment" partnerCompartment="partner" layerThickness = "1" exchangeRate="0.5"/>
 				</dimension> 
 			</shape>
 			<solutes>
 				<solute name="solute1" concentration="4.0" defaultDiffusivity="1"  />
-				<solute name="solute2" concentration="0.0" defaultDiffusivity="1"  />
+				<solute name="solute2" concentration="0.0"  defaultDiffusivity="1" />
 			</solutes>
 			<reactions>
 				<reaction name="slowInflow">
@@ -58,32 +95,30 @@
 					<stoichiometric component="solute1" coefficient="1.0" />
 				</reaction>
 			</reactions>
-			<agents>
-				<agent>
-					<aspect name="volumeDistribution" type="PRIMARY" class="HashMap">
+			<spawn class="epithelialLayerSpawner" domain="16.0, 2.0" cellShape="2.0, 2.0" priority="0">
+					<templateAgent>
+						<aspect name="volumeDistribution" type="PRIMARY" class="HashMap">
+						</aspect>
+						<aspect name="species" type="PRIMARY" class="String" value="rAOB" />
+						<aspect name="mass" type="PRIMARY" class="Double" value="0.2" />
+						<aspect name="density" type="PRIMARY" class="Double" value="1" />
+						<aspect name="pigment" type="PRIMARY" class="String" value="RED" />
+					</templateAgent>
+			</spawn>
+			<spawn class="randomSpawner" domain="0.0, 2.0; 16.0, 8.0" priority = "-1" number = "4" morphology = "COCCOID">
+					<templateAgent>
+						<aspect name="volumeDistribution" type="PRIMARY" class="HashMap">
 					</aspect>				
-					<aspect name="species" type="PRIMARY" class="String" value="rAOB" />
-					<aspect name="mass" type="PRIMARY" class="Double" value="0.2" />
-					<aspect name="density" type="PRIMARY" class="Double" value="1" />
-					<aspect name="pigment" type="PRIMARY" class="String" value="RED" />
-					<aspect name="body" type="PRIMARY" class="Body" morphology="BACILLUS">
-						<point position="12.2, 12.2" />
-						<point position="12.0, 12.2" />
+					<aspect name="species" type="PRIMARY" class="String" value="AOB" />
+					<aspect name="massMap" class="InstantiableMap">
+						<map entryClass="Double" keyType="String">
+							<item key="bioMass" value="0.1"  />
+						</map>
 					</aspect>
-				</agent>
-				<agent>
-					<aspect name="volumeDistribution" type="PRIMARY" class="HashMap">
-					</aspect>				
-					<aspect name="species" type="PRIMARY" class="String" value="rAOB" />
-					<aspect name="mass" type="PRIMARY" class="Double" value="0.2" />
 					<aspect name="density" type="PRIMARY" class="Double" value="1" />
-					<aspect name="pigment" type="PRIMARY" class="String" value="BLUE" />
-					<aspect name="body" type="PRIMARY" class="Body" morphology="BACILLUS">
-						<point position="12.4, 12.4" />
-						<point position="12.2, 12.4" />
-					</aspect>
-				</agent>
-			</agents>
+					<aspect name="pigment" type="PRIMARY" class="String" value="GREEN" />
+					</templateAgent>
+			</spawn>
 			<processManagers>
 				<process name="svgWriter" class="GraphicalOutput"  priority="-3"
 					firstStep="0.0"  timerStepSize="1.0">
@@ -95,7 +130,6 @@
 				</process>
 				<process name="svgWriter" class="GraphicalOutput"  priority="-3"
 					firstStep="0.0"  timerStepSize="1.0">
-					
 					<aspect name="solute" type="PRIMARY" class="String" value="solute2" />
 					<aspect name="maxConcentration" type="PRIMARY" class="Double" value="2.0" />
 					<aspect name="outputWriter" type="PRIMARY" class="String" value="SvgExport" />
@@ -117,7 +151,6 @@
 					firstStep="0.0"  timerStepSize="0.1">
 					<aspect name="maxMovement" type="PRIMARY" class="Double" value="0.05" />
 					<aspect name="relaxationMethod" type="PRIMARY" class="String" value="EULER" />
-					<aspect name="gravity_testing" class="Boolean" value="false" />
 				</process>
 				<process name="solveDiffusionTransient" class="SolveDiffusionTransient"  priority="-1"
 					firstStep="0.0" timerStepSize="0.1">

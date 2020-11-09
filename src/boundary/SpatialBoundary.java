@@ -48,6 +48,11 @@ public abstract class SpatialBoundary extends Boundary
 	// TODO set this from protocol file for the whole compartment
 	protected double _layerThickness;
 	
+	/**
+	 * Rate of exchange due to mixing between this boundary and it's partner
+	 */
+	protected double _exchangeRate;
+	
 	/* ***********************************************************************
 	 * CONSTRUCTORS
 	 * **********************************************************************/
@@ -97,6 +102,12 @@ public abstract class SpatialBoundary extends Boundary
 	{
 		return this._extreme;
 	}
+	
+	public double getExchangeRate()
+	{
+		return this._exchangeRate;
+	}
+	
 
 	/**
 	 * Internal boolean for construction: declares whether a concrete sub-class
@@ -270,30 +281,35 @@ public abstract class SpatialBoundary extends Boundary
 	 */
 	protected void placeAgentsRandom()
 	{
-		Tier level = Tier.DEBUG;
-		Shape aShape = this._agents.getShape();
-		double[] newLoc;
-		Body body;
 		for ( Agent anAgent : this._arrivalsLounge )
 		{
-			if ( IsLocated.isLocated(anAgent) )
-			{
-				newLoc = aShape.getRandomLocationOnBoundary(
-						this._dim, this._extreme);
-				if ( Log.shouldWrite(level) )
+			if (IsLocated.isLocated(anAgent) )
 				{
-					Log.out(level, "Placing agent (UID: "+anAgent.identity()+
-							") at random location: "+Vector.toString(newLoc));
+				placeAgentRandom(anAgent);
 				}
-				body = (Body) anAgent.get(AspectRef.agentBody);
-				body.relocate(newLoc);
-			}
 			else
-			{
+				{
 				this._arrivalsLounge.remove(anAgent);
-			}
-			this._agents.addAgent(anAgent);
+				this._agents.addAgent(anAgent);
+				}
 		}
+	}
+	
+	protected void placeAgentRandom(Agent anAgent)
+	{
+		double[] newLoc;
+		Shape aShape = this._agents.getShape();
+		Tier level = Tier.DEBUG;
+		Body body;
+		newLoc = aShape.getRandomLocationOnBoundary(
+				this._dim, this._extreme);
+		if ( Log.shouldWrite(level) )
+		{
+			Log.out(level, "Placing agent (UID: "+anAgent.identity()+
+					") at random location: "+Vector.toString(newLoc));
+		}
+		body = (Body) anAgent.get(AspectRef.agentBody);
+		body.relocate(newLoc);
 	}
 	
 	/* ************************************************************************

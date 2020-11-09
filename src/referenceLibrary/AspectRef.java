@@ -583,4 +583,9 @@ public class AspectRef
 	
 	public static final String interactionFunctionMap = "interactionFunctionMap";
 	
+	/**
+	 * Created by Tim 25/09/19
+	 */
+	public static final String boundaryExchangeRate = "exchangeRate";
+	
 }

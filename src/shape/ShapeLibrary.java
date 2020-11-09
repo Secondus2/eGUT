@@ -36,6 +36,7 @@ public final class ShapeLibrary
 	 * <p>Used by {@code Compartment}s without spatial structure, e.g. a
 	 * chemostat.</p>
 	 */
+	
 	public static class Dimensionless extends Shape
 	{
 		protected double _volume = 0.0;

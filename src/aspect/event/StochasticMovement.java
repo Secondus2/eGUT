@@ -53,20 +53,12 @@ public class StochasticMovement extends Event
 		double diffusionCoefficient = 
 				(boltzmannK*temperature)/(6*Math.PI*viscosityWater*radius);
 		
-		double meanSquareDistance = 2*(numberOfDimensions)*
-				diffusionCoefficient*timeStep;
-		
-		double standardDeviation = Math.sqrt(meanSquareDistance);
-		
-		double distance = ExtraMath.deviateFromSD(0, standardDeviation);
-		
-		double [] randDir = Vector.randomPlusMinus(numberOfDimensions, 1.0);
-		
-		double[] move = Vector.times(randDir, distance);
+		double[] displacement = ExtraMath.randomWalkDisplacement(
+				diffusionCoefficient, timeStep, numberOfDimensions);
 		
 		for (Point p : points)
 		{
-			p.setPosition( Vector.add(p.getPosition(), move) );
+			p.setPosition( Vector.add(p.getPosition(), displacement) );
 		}
 	}
 }
