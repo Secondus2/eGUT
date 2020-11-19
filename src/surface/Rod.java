@@ -8,7 +8,6 @@ import referenceLibrary.XmlRef;
 import settable.Attribute;
 import settable.Module;
 import shape.Shape;
-import surface.BoundingBox;
 import utility.Helper;
 import utility.StandardizedImportMethods;
 
@@ -30,6 +29,8 @@ public class Rod extends Surface implements HasBoundingBox {
 	 * TODO
 	 */
     public double _radius;
+
+	private BoundingBox boundingBox = new BoundingBox();
     
     public Rod(Point[] points, double spineLength, double radius)
     {
@@ -126,14 +127,7 @@ public class Rod extends Surface implements HasBoundingBox {
 	{
 		return this._points[0].nDim();
 	}
-	
 
-	/*
-	 * FIXME rod bounding box is broken since it receives periodic point
-	 * positions but cannot correct it's bounding box for it
-	 */
-	protected BoundingBox boundingBox = new BoundingBox();
-	
 	public BoundingBox boundingBox(double margin, Shape shape)
 	{
 		return boundingBox.get(pointMatrix(shape),_radius,margin);
@@ -141,6 +135,6 @@ public class Rod extends Surface implements HasBoundingBox {
 
 	public BoundingBox boundingBox(Shape shape)
 	{
-		return boundingBox.get(pointMatrix(shape),_radius);
+		return boundingBox .get(pointMatrix(shape),_radius);
 	}
 }

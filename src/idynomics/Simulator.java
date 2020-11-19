@@ -4,28 +4,33 @@ import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.SortedSet;
+import java.util.TreeSet;
 
 import org.w3c.dom.Element;
 import org.w3c.dom.NodeList;
 
 import agent.SpeciesLib;
+import analysis.Table;
 import chemical.ChemicalLib;
 import compartment.Compartment;
 import dataIO.Log;
+import dataIO.Log.Tier;
+import dataIO.Report;
 import dataIO.XmlExport;
 import dataIO.XmlHandler;
 import debugTools.SegmentTimer;
-import dataIO.Log.Tier;
-import dataIO.Report;
 import generalInterfaces.CanPrelaunchCheck;
 import instantiable.Instance;
 import instantiable.Instantiable;
-import utility.*;
 import referenceLibrary.ClassRef;
 import referenceLibrary.XmlRef;
-import settable.*;
+import settable.Attribute;
 import settable.Module;
 import settable.Module.Requirements;
+import settable.Settable;
+import utility.ExtraMath;
+import utility.Helper;
 
 /**
  * \brief Simulator manages all compartments, making sure they synchronise at
@@ -39,10 +44,10 @@ public strictfp class Simulator implements CanPrelaunchCheck, Runnable, Instanti
 	/**
 	 * \brief List of {@code Compartment}s in this {@code Simulator}.
 	 * 
-	 * Order is irrelevant, and each {@code Compartment} knows its own name.
+	 * Order is relevant, each {@code Compartment} knows its own name and priority.
 	 */
-	protected LinkedList<Compartment> _compartments = 
-												new LinkedList<Compartment>();
+	protected SortedSet<Compartment> _compartments = new TreeSet<Compartment>();
+
 	/**
 	 * Contains information about all species for this simulation.
 	 */
@@ -56,6 +61,7 @@ public strictfp class Simulator implements CanPrelaunchCheck, Runnable, Instanti
 	
 	public boolean interupt = false;
 	
+	public boolean stopAction = false;
 	/**
 	 * Xml output writer
 	 */
@@ -71,7 +77,7 @@ public strictfp class Simulator implements CanPrelaunchCheck, Runnable, Instanti
 	 * storing ModelNodes
 	 */
 	private Module _modelNode;
-
+	
 	/* ***********************************************************************
 	 * CONSTRUCTORS
 	 * **********************************************************************/
@@ -82,7 +88,7 @@ public strictfp class Simulator implements CanPrelaunchCheck, Runnable, Instanti
 		if( ExtraMath.random == null )
     		ExtraMath.initialiseRandomNumberGenerator();
 		this.timer = new Timer();
-		this._xmlOut = new XmlExport();
+		this._xmlOut = new XmlExport(Global.output_compression);
 	}
 	
 	public void deleteFromCompartment(String name, Object object)
@@ -112,7 +118,9 @@ public strictfp class Simulator implements CanPrelaunchCheck, Runnable, Instanti
 
 		if ( ! Helper.isNullOrEmpty(seed) )
 			ExtraMath.initialiseRandomNumberGenerator(Long.valueOf(seed));
-		
+		else
+			seed = String.valueOf( ExtraMath.seed );
+		Log.out("Random seed: " + seed);
 		/*
 		 * Set up the Timer.
 		 */
@@ -139,8 +147,6 @@ public strictfp class Simulator implements CanPrelaunchCheck, Runnable, Instanti
 		/*
 		 * Set up the compartments.
 		 */
-		if( Log.shouldWrite(Tier.NORMAL))
-			Log.out(Tier.NORMAL, "Compartments loading...");
 		NodeList children;
 		children = XmlHandler.getAll( xmlElem, XmlRef.compartment );
 		if ( children.getLength() == 0 )
@@ -155,15 +161,15 @@ public strictfp class Simulator implements CanPrelaunchCheck, Runnable, Instanti
 			/* Compartments add themselves to the simulator. */
 			Instance.getNew( child, this, XmlRef.compartment );
 		}
-		if( Log.shouldWrite(Tier.NORMAL) )
-		{
-			Log.out(Tier.NORMAL, "Compartments loaded!\n");
-			Log.out(Tier.NORMAL, "Checking connective boundaries...");
-		}
 		for ( Compartment compartment : this._compartments )
+		{
+			if (Log.shouldWrite(Tier.EXPRESSIVE))
+				Log.out(Tier.EXPRESSIVE, compartment.getName() + 
+						" validating boundaries.");
 			compartment.checkBoundaryConnections(this._compartments);
-		if( Log.shouldWrite(Tier.EXPRESSIVE) )
-			Log.out(Tier.NORMAL, "Boundaries connected!\n");
+		}
+
+		
 	}
 	
 	/* ***********************************************************************
@@ -286,6 +292,9 @@ public strictfp class Simulator implements CanPrelaunchCheck, Runnable, Instanti
 	
 	public void step()
 	{
+
+		if( Log.shouldWrite(Tier.NORMAL) )
+			this.timer.report(Tier.NORMAL);
 		/*
 		 * Loop through all compartments, updating solute boundaries and asking
 		 * inbound agents to arrive.
@@ -309,16 +318,12 @@ public strictfp class Simulator implements CanPrelaunchCheck, Runnable, Instanti
 		 */
 		for ( Compartment c : this._compartments )
 			c.postStep();
+		
 		/*
 		 * 
 		 */
 		this.timer.step();
-		/* 
-		 * We let the user know when an global step has finished.
-		 * TODO: iteration number
-		 */
-		if( Log.shouldWrite(Tier.NORMAL) )
-			Log.out(Tier.NORMAL, "Global time: " + this.timer.getCurrentTime());
+
 		/*
 		 * Write state to new XML file.
 		 */
@@ -327,28 +332,28 @@ public strictfp class Simulator implements CanPrelaunchCheck, Runnable, Instanti
 		else
 		{
 			this._xmlOut.writeFile();
-			this._outputTicker = 0;
+			this._outputTicker = 1;
 		}
-
 		/*
 		 * Reporting agents.
 		 */
 		for (Compartment c : this._compartments)
-		{
-			if( Log.shouldWrite(Tier.QUIET) )
+		{	
+			if( Log.shouldWrite(Tier.NORMAL) )
 			{
-				Log.out(Tier.QUIET,"COMPARTMENT: " + c.getName());
-				Log.out(Tier.QUIET,c.agents.getAllAgents().size() + " agents");
+				Log.out(Tier.NORMAL, c.getName() + " contains " + 
+						c.agents.getAllAgents().size() + " agents");
 			}
-		};
+		}
 		
+		Log.step();
 	}
 	
 	public void run()
 	{
 		/* start storing log on disk */
-		if( Log.shouldWrite(Tier.NORMAL) )
-			Log.out(Tier.NORMAL, "Launching simulation!");
+		if( Log.shouldWrite(Tier.EXPRESSIVE) )
+			Log.out(Tier.EXPRESSIVE, "Launching simulation!");
 		Log.keep();
 		/*
 		 * Start timing just before simulation starts.
@@ -356,20 +361,25 @@ public strictfp class Simulator implements CanPrelaunchCheck, Runnable, Instanti
 		double tic = System.currentTimeMillis();
 		/* Check if any boundary connections need to be made. */
 		for ( Compartment c : this._compartments )
+		{
 			c.checkBoundaryConnections(this._compartments);
+			c.environment.updateSoluteBoundaries();
+		}
+		
 		/* Run the simulation. */
-		while ( this.timer.isRunning() && !this.interupt )
+		while ( this.timer.isRunning() && !this.interupt && !this.stopAction )
 			this.step();
 		
 		if ( this.interupt )
 		{
 			tic = (System.currentTimeMillis() - tic) * 0.001;
-			Log.out(Tier.QUIET, "Simulation terminated in "+ tic +" seconds\n"+
+			Log.out(Tier.NORMAL, "Simulation terminated in "+ tic +" seconds\n"+
 					"~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"
 					+ "~~~~~~~~~~~~~~~~~~~~~~~~\n");
 		}
 		else
 		{
+			
 			/*
 			 * Print the simulation results.
 			 */
@@ -386,7 +396,8 @@ public strictfp class Simulator implements CanPrelaunchCheck, Runnable, Instanti
 			 * Report simulation time.
 			 */
 			tic = (System.currentTimeMillis() - tic) * 0.001;
-			Log.out(Tier.QUIET, "Simulation finished in " + tic + " seconds\n"+
+			Log.out(Tier.NORMAL, "Time: "+ timer._endOfSimulation + 
+					" Simulation finished in " + tic + " seconds\n"+
 					"~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"
 					+ "~~~~~~~~~~~~~~~~~~~~~~~~\n");
 			this.printProcessManagerRealTimeStats();
@@ -418,9 +429,9 @@ public strictfp class Simulator implements CanPrelaunchCheck, Runnable, Instanti
 	{
 		for ( Compartment c : this._compartments ) 
 		{
-			Log.out(Tier.QUIET, "COMPARTMENT: " + c.name);
+			Log.out(Tier.NORMAL, "COMPARTMENT: " + c.name);
 			c.printAllSoluteGrids();
-			Log.out(Tier.QUIET, c.agents.getNumAllAgents() + " agents");
+			Log.out(Tier.NORMAL, c.agents.getNumAllAgents() + " agents");
 		}
 	}
 

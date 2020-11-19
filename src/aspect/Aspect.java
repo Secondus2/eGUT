@@ -4,12 +4,12 @@ import java.util.HashMap;
 import java.util.LinkedList;
 
 import org.w3c.dom.Element;
-import agent.Body;
+
 import aspect.calculated.StateExpression;
 import dataIO.Log;
+import dataIO.Log.Tier;
 import dataIO.ObjectFactory;
 import idynomics.Idynomics;
-import dataIO.Log.Tier;
 import instantiable.Instance;
 import instantiable.Instantiable;
 import referenceLibrary.ClassRef;
@@ -18,11 +18,10 @@ import referenceLibrary.PackageRef;
 import referenceLibrary.XmlRef;
 import settable.Attribute;
 import settable.Module;
-import settable.Settable;
 import settable.Module.Requirements;
+import settable.Settable;
 import settable.primarySetters.HashMapSetter;
 import settable.primarySetters.LinkedListSetter;
-import surface.Point;
 import utility.Helper;
 
 /**
@@ -50,11 +49,7 @@ public class Aspect implements Instantiable, Settable
 		/**
 		 * An instance of {@code aspect.Event}.
 		 */
-		EVENT,
-		/**
-		 * An instance of {@code aspect.CalculatedOnce}.
-		 */
-		CALCULATEDONCE
+		EVENT
 	}
 
 	/**
@@ -84,18 +79,11 @@ public class Aspect implements Instantiable, Settable
 	protected Calculated calc;
 	
 	/**
-	 * Direct access field for an {@code Event} aspect (to prevent excessive
+	 * Direct access field for an {@code Even} aspect (to prevent excessive
 	 * casting).
 	 */
 	protected Event event;
-	
-	/**
-	 * Direct access field for an {@code CalculatedOnce} aspect (to prevent 
-	 * excessive casting).
-	 */	
-	protected CalculatedOnce calcOnce;
 
-	
 	private Settable _parentNode;
 	
 	/**
@@ -120,7 +108,7 @@ public class Aspect implements Instantiable, Settable
     {
     	
     }
-    
+
     /**
      * Set passed object as aspect for existing aspect object
      * @param aspect
@@ -129,16 +117,11 @@ public class Aspect implements Instantiable, Settable
     {
     	this.aspect = (Object) aspect;
     	this.key = key;
-    	
 		if ( this.aspect instanceof Calculated )
 		{
 			  this.type = Aspect.AspectClass.CALCULATED;
 			  this.calc = (Calculated) this.aspect;
 		}
-		else if ( this.aspect instanceof CalculatedOnce )
-		{
-			  this.type = Aspect.AspectClass.PRIMARY;
-		}	
 		else if ( this.aspect instanceof Event )
 		{
 			  this.type = Aspect.AspectClass.EVENT;
@@ -146,7 +129,7 @@ public class Aspect implements Instantiable, Settable
 		}
 		else if ( this.aspect == null )
 		{
-			  Log.out(Tier.NORMAL, "attempt to load null object " + key +
+			Log.out(Tier.NORMAL, "attempt to load null object " + key +
 					" as aspect, abort");
 		}
 		else
@@ -161,15 +144,6 @@ public class Aspect implements Instantiable, Settable
 		return this.key;
 	}
 
-	/**
-	 * Sets the type of an existing aspect. This is used to change the 
-	 * CALCULATEDONCE aspects to PRIMARY aspects.
-	 * @param type
-	 */
-	public void setType(AspectClass type)
-	{
-		this.type = type;
-	}
 
 	/**
 	 * Get the ModelNode object for this Aspect object
@@ -301,12 +275,6 @@ public class Aspect implements Instantiable, Settable
     	case CALCULATED:
     		objectClass = Helper.obtainInput( Helper.listToArray(
     				ClassRef.getAllOptions( PackageRef.calculatedPackage ) ), 
-    				"aspect class", false);
-    		this.set(  Instance.getNew(xmlElem, null, objectClass) , name );
-    		break;
-    	case CALCULATEDONCE:
-    		objectClass = Helper.obtainInput( Helper.listToArray(
-    				ClassRef.getAllOptions( PackageRef.calculatedOncePackage ) ), 
     				"aspect class", false);
     		this.set(  Instance.getNew(xmlElem, null, objectClass) , name );
     		break;

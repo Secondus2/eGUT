@@ -5,6 +5,7 @@ package processManager.library;
 
 import static grid.ArrayType.CONCN;
 import static grid.ArrayType.PRODUCTIONRATE;
+
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
@@ -13,18 +14,18 @@ import java.util.Map;
 import org.w3c.dom.Element;
 
 import agent.Agent;
+import bookkeeper.KeeperEntry.EventType;
 import compartment.AgentContainer;
 import compartment.EnvironmentContainer;
 import dataIO.ObjectFactory;
 import grid.SpatialGrid;
+import idynomics.Global;
 import processManager.ProcessDiffusion;
 import processManager.ProcessMethods;
-import reaction.RegularReaction;
 import reaction.Reaction;
 import referenceLibrary.XmlRef;
-import shape.subvoxel.CoordinateMap;
-import shape.subvoxel.IntegerArray;
 import shape.Shape;
+import shape.subvoxel.IntegerArray;
 import solver.PDEexplicit;
 import solver.PDEupdater;
 
@@ -49,6 +50,7 @@ public class SolveDiffusionTransient extends ProcessDiffusion
 		// TODO Let the user choose which ODEsolver to use.
 		this._solver = new PDEexplicit();
 
+		this._solver.setUpdater(this);
 	}
 		
 	/* ***********************************************************************
@@ -66,7 +68,7 @@ public class SolveDiffusionTransient extends ProcessDiffusion
 		 * If any mass has flowed in or out of the well-mixed region,
 		 * distribute it among the relevant boundaries.
 		 */
-		this._environment.distributeWellMixedFlows();
+		this._environment.distributeWellMixedFlows(this._timeStepSize);
 
 		/* perform final clean-up and update agents to represent updated 
 		 * situation. */
@@ -84,24 +86,13 @@ public class SolveDiffusionTransient extends ProcessDiffusion
 	 * 
 	 * @return PDE updater method.
 	 */
-	protected PDEupdater standardUpdater()
+	public void prestep(Collection<SpatialGrid> variables, double dt)
 	{
-		return new PDEupdater()
-		{
-			/*
-			 * This is the updater method that the PDEsolver will use before
-			 * each mini-timestep.
-			 */
-			@Override
-			public void prestep(Collection<SpatialGrid> variables, double dt)
-			{
-				for ( SpatialGrid var : variables )
-					var.newArray(PRODUCTIONRATE);
-				applyEnvReactions(variables);
-				for ( Agent agent : _agents.getAllLocatedAndEpithelialAgents() )
-					applyAgentReactions(agent, dt);
-			}
-		};
+		for ( SpatialGrid var : variables )
+			var.newArray(PRODUCTIONRATE);
+		applyEnvReactions(variables);
+		for ( Agent agent : _agents.getAllLocatedAndEpithelialAgents() )
+			applyAgentReactions(agent, dt);
 	}
 	
 	/**
@@ -210,15 +201,19 @@ public class SolveDiffusionTransient extends ProcessDiffusion
 				for ( String productName : r.getReactantNames() )
 				{
 					productRate = r.getProductionRate(concns,productName);
+					double quantity;
 					if ( this._environment.isSoluteName(productName) )
 					{
 						solute = this._environment.getSoluteGrid(productName);
-						solute.addValueAt(PRODUCTIONRATE, coord.get(), productRate);
+						quantity = 
+								productRate * volume * this.getTimeStepSize();
+						solute.addValueAt(PRODUCTIONRATE, coord.get(), quantity);
 					}
 					else if ( newBiomass.containsKey(productName) )
 					{
+						quantity = productRate * dt * volume;
 						newBiomass.put(productName, newBiomass.get(productName)
-								+ (productRate * dt * volume));
+								+ quantity);
 					}
 					else if ( agent.isAspect(productName) )
 					{
@@ -226,17 +221,25 @@ public class SolveDiffusionTransient extends ProcessDiffusion
 						 * Check if the agent has other mass-like aspects
 						 * (e.g. EPS).
 						 */
+						quantity = productRate * dt * volume;
 						newBiomass.put(productName, agent.getDouble(productName)
-								+ (productRate * dt * volume));
+								+ quantity);
 					}
 					else
 					{
 						//TODO quick fix If not defined elsewhere add it to the map
-						newBiomass.put(productName, (productRate * dt * volume));
+						quantity = productRate * dt * volume;
+						newBiomass.put(productName, quantity);
 						System.out.println("agent reaction catched " + 
 								productName);
 						// TODO safety?
 					}
+					if( Global.bookkeeping )
+						agent.getCompartment().registerBook(
+								EventType.REACTION, 
+								productName, 
+								String.valueOf( agent.identity() ), 
+								String.valueOf( quantity ) , null );
 				}
 			}
 		}

@@ -1,14 +1,17 @@
 package analysis;
 
+import analysis.filter.AndFilter;
 import analysis.filter.CategoryFilter;
 import analysis.filter.Filter;
 import analysis.filter.SoluteFilter;
-import analysis.filter.AndFilter;
 import analysis.filter.SpecificationFilter;
 import analysis.filter.TimerFilter;
 import analysis.filter.ValueFilter;
 import compartment.Compartment;
-import gereralPredicates.*;
+import gereralPredicates.IsEquals;
+import gereralPredicates.IsLarger;
+import gereralPredicates.IsSame;
+import gereralPredicates.IsSmaller;
 
 /**
  * Identify and create Filters based on their operators.
@@ -82,19 +85,19 @@ public class FilterLogic {
 						new IsSame( String.valueOf( f[1] ) ) );
 			}
 		}
-		else if ( filter.contains( ">" ) || filter.contains( "larger" )  )
+		else if ( filter.contains( ">" ) || filter.contains( "GT" )  )
 		{
 			String[] f = filter.split( ">" );
 			if( f.length == 1 )
-				f = filter.split( "larger" );
+				f = filter.split( "GT" );
 			return new SpecificationFilter( f[0], 
 					new IsLarger( Double.valueOf( f[1] ) ) );
 		}
-		else if ( filter.contains( "<" ) || filter.contains( "smaller" )  )
+		else if ( filter.contains( "<" ) || filter.contains( "LT" )  )
 		{
 			String[] f = filter.split( "<" );
 			if( f.length == 1 )
-				f = filter.split( "smaller" );
+				f = filter.split( "LT" );
 			return new SpecificationFilter( f[0], 
 					new IsSmaller( Double.valueOf( f[1] ) ) );
 		}

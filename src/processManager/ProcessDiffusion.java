@@ -1,43 +1,40 @@
 package processManager;
 
-import static dataIO.Log.Tier.BULK;
 import static grid.ArrayType.CONCN;
 import static grid.ArrayType.PRODUCTIONRATE;
 
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.function.Predicate;
-
 import org.w3c.dom.Element;
-
 import agent.Agent;
 import agent.Body;
+import bookkeeper.KeeperEntry.EventType;
 import boundary.Boundary;
 import compartment.AgentContainer;
 import compartment.EnvironmentContainer;
 import dataIO.Log;
 import dataIO.Log.Tier;
-import debugTools.SegmentTimer;
 import grid.SpatialGrid;
 import idynomics.Global;
+import idynomics.Idynomics;
 import linearAlgebra.Vector;
-import reaction.RegularReaction;
 import reaction.Reaction;
+import reaction.RegularReaction;
 import referenceLibrary.AspectRef;
 import shape.CartesianShape;
 import shape.Shape;
-import shape.subvoxel.CoordinateMap;
 import shape.subvoxel.IntegerArray;
 import shape.subvoxel.SubvoxelPoint;
 import solver.PDEsolver;
-import solver.PDEupdater;
+import surface.Point;
 import surface.Surface;
+import surface.Voxel;
 import surface.collision.Collision;
+import surface.collision.CollisionUtilities;
 import utility.Helper;
 
 /**
@@ -100,11 +97,14 @@ public abstract class ProcessDiffusion extends ProcessManager
 	// NOTE the value of a quarter is chosen arbitrarily
 	private static double SUBGRID_FACTOR = 0.25; //TODO set from aspect?
 	
-	/**
-	 * enable fast agent distribution
-	 */
-	boolean _fastDistribution = Global.fastAgentDistribution;
+	public enum DistributionMethod {
+		MIDPOINT,
+		COLLISION,
+		SUBGRID
+	}
 	
+	private DistributionMethod _distributionMethod = 
+			DistributionMethod.valueOf(	Global.agentDistribution );
 	/* ***********************************************************************
 	 * CONSTRUCTORS
 	 * **********************************************************************/
@@ -139,7 +139,6 @@ public abstract class ProcessDiffusion extends ProcessManager
 		 * after the protocol was loaded.
 		 */
 		this._solver.init(this._soluteNames, false);
-		this._solver.setUpdater(this.standardUpdater());		
 		/*
 		 * Set up the agent mass distribution maps, to ensure that agent
 		 * reactions are spread over voxels appropriately.
@@ -177,14 +176,17 @@ public abstract class ProcessDiffusion extends ProcessManager
 		 * tidy up 
 		 */
 	}
+	public abstract void prestep(Collection<SpatialGrid> variables, double dt);
 
-	protected abstract PDEupdater standardUpdater();
-	
-	 /*
+	/*
 	 * perform final clean-up and update agents to represent updated situation.
 	 */
 	protected void postStep()
 	{
+		/*
+		 * Ask all boundaries to update their solute concentrations.
+		 */
+		this._environment.updateSoluteBoundaries();
 		/*
 		 * Clear agent mass distribution maps.
 		 */
@@ -193,12 +195,17 @@ public abstract class ProcessDiffusion extends ProcessManager
 		 * act upon new agent situations
 		 */
 		for(Agent agent: this._agents.getAllAgents()) 
-		{
 			agent.event(DIVIDE);
+		for(Agent agent: this._agents.getAllAgents()) 
+		{
 			agent.event(EXCRETE_EPS);
-			agent.event(UPDATE_BODY);
 			agent.event(DIFFERENTIATE);
+			/* agents cannot access the shape aster division so we'll have to do
+			 * this here for now. */
+			for ( Point point: ( (Body) agent.get(AspectRef.agentBody) ).getPoints() )
+				this._agents.getShape().applyBoundaries( point.getPosition() );
 			
+			agent.event(UPDATE_BODY);
 		}
 	}
 	
@@ -214,14 +221,11 @@ public abstract class ProcessDiffusion extends ProcessManager
 	 */
 	protected void applyEnvReactions(Collection<SpatialGrid> solutes)
 	{
-		Tier level = BULK;
-		if ( Log.shouldWrite(level) )
-			Log.out(level, "Applying environmental reactions");
 		Collection<RegularReaction> reactions = this._environment.getReactions();
 		if ( reactions.isEmpty() )
 		{
-			if( Log.shouldWrite(level) )
-				Log.out(level, "No reactions to apply, skipping");
+			if( Log.shouldWrite(Tier.NORMAL) )
+				Log.out(Tier.NORMAL, "No reactions to apply, skipping");
 			return;
 		}
 		/*
@@ -269,12 +273,14 @@ public abstract class ProcessDiffusion extends ProcessManager
 						}
 			}
 		}
-		if ( Log.shouldWrite(level) )
-		{
-			for ( String name : soluteNames )
-				Log.out(level, "  total "+name+" produced: "+totals.get(name));
-			Log.out(level, "Finished applying environmental reactions");
-		}
+		
+		if( Global.bookkeeping )
+			for (String t : totals.keySet())
+				/* NOTE we should rewrite how to access the compartment because 
+				 * this is pretty inefficient.	 */
+				Idynomics.simulator.getCompartment(this._compartmentName).
+						registerBook(EventType.REACTION, t, "ENIVIRONMENT", 
+						String.valueOf( totals.get(t) ), null );
 	}
 	
 
@@ -291,17 +297,13 @@ public abstract class ProcessDiffusion extends ProcessManager
 	@SuppressWarnings("unchecked")
 	public void setupAgentDistributionMaps(Shape shape)
 	{
-		Tier level = BULK;
-		if (Log.shouldWrite(level))
-			Log.out(level, "Setting up agent distribution maps");
-
 		int nDim = this._agents.getNumDims();
 		
 		/*
 		 * Reset the agent biomass distribution maps.
 		 */
 		Map<Shape, HashMap<IntegerArray,Double>> mapOfMaps;
-		for ( Agent a : this._agents.getAllLocatedAndEpithelialAgents())
+		for ( Agent a : this._agents.getAllLocatedAndEpithelialAgents() )
 		{
 			if ( a.isAspect(VD_TAG) )
 				mapOfMaps = (Map<Shape, HashMap<IntegerArray,Double>>)a.get(VD_TAG);
@@ -310,289 +312,265 @@ public abstract class ProcessDiffusion extends ProcessManager
 			mapOfMaps.put(shape, new HashMap<IntegerArray,Double>());
 			a.set(VD_TAG, mapOfMaps);
 		}
-
+		double[] location;
+		double[] dimension = new double[3];
+		double[] sides;
+		double[] upper;
 		HashMap<IntegerArray,Double> distributionMap;
 		
-		if ( !this._fastDistribution )
+		switch( _distributionMethod )
 		{
-			/*
-			 * Now fill these agent biomass distribution maps.
-			 */
-			double[] location;
-			double[] dimension = new double[3];
-			double[] sides;
-			Collection<SubvoxelPoint> svPoints;
-			List<Agent> nhbs;
-			List<Surface> surfaces;
-			double[] pLoc;
-			Collision collision = new Collision(null, null, shape);
-
-			
-			for ( int[] coord = shape.resetIterator(); 
-					shape.isIteratorValid(); coord = shape.iteratorNext())
-			{
-				double minRad;
-				IntegerArray coordArray = new IntegerArray(new int[]{coord[0],coord[1],coord[2]});
-				
-				if( shape instanceof CartesianShape)
+			case MIDPOINT:
+				for ( Agent a : this._agents.getAllLocatedAgents() )
 				{
-					/* Find all agents that overlap with this voxel. */
-					// TODO a method for getting a voxel's bounding box directly?
-					location = Vector.subset(shape.getVoxelOrigin(coord), nDim);
-					shape.getVoxelSideLengthsTo(dimension, coord); //FIXME returns arc lengths with polar coords 
-					// FIXME create a bounding box that always captures at least the complete voxel
-					sides = Vector.subset(dimension, nDim);
-					/* NOTE the agent tree is always the amount of actual dimension */
-					nhbs = this._agents.agentSearch(location, sides);
-					
-					/* used later to find subgridpoint scale */
-					minRad = Vector.min(sides);
+					IntegerArray coordArray = new IntegerArray( 
+							shape.getCoords(shape.getVerifiedLocation(((Body) a.get(AspectRef.agentBody)).getCenter())));
+					mapOfMaps = (Map<Shape, HashMap<IntegerArray,Double>>) a.getValue(VD_TAG);
+					distributionMap = mapOfMaps.get(shape);
+					distributionMap.put(coordArray, 1.0);
 				}
-				else
-				{
-					/* TODO since the previous does not work at all for polar */
-					nhbs = this._agents.getAllLocatedAgents();
-					
-					/* FIXME total mess, trying to get towards something that at
-					 * least makes some sense
-					 */
-					shape.getVoxelSideLengthsTo(dimension, coord); //FIXME returns arc lengths with polar coords
-					// FIXME create a bounding box that always captures at least the complete voxel
-					sides = Vector.subset(dimension, nDim);
-					// FIXME because it does not make any sense to use the ark, try the biggest (probably the R dimension) and half that to be safe.
-					minRad = Vector.max(sides) / 2.0; 
-				}
-				
-				/* Filter the agents for those with reactions, radius & surface. */
-				nhbs.removeIf(NO_REAC_FILTER);
-				nhbs.removeIf(NO_BODY_FILTER);
-				/* If there are none, move onto the next voxel. */
-				if ( nhbs.isEmpty() )
-					continue;
-				if ( Log.shouldWrite(level) )
-				{
-					Log.out(level, "  "+nhbs.size()+" agents overlap with coord "+
-						Vector.toString(coord));
-				}
-				
-				/* 
-				 * Find the sub-voxel resolution from the smallest agent, and
-				 * get the list of sub-voxel points.
-				 */
-				
-				double radius;
-				for ( Agent a : nhbs )
-				{
-					radius = a.getDouble(AspectRef.bodyRadius);
-					Log.out(level, "   agent "+a.identity()+" has radius "+radius);
-					minRad = Math.min(radius, minRad);
-				}
-				minRad *= SUBGRID_FACTOR;
-				svPoints = shape.getCurrentSubvoxelPoints(minRad);
-				if ( Log.shouldWrite(level) )
-				{
-					Log.out(level, "  using a min radius of "+minRad);
-					Log.out(level, "  gives "+svPoints.size()+" sub-voxel points");
-				}
-				/* Get the sub-voxel points and query the agents. */
-				for ( Agent a : nhbs )
-				{
-					/* Should have been removed, but doesn't hurt to check. */
-					if ( ! a.isAspect(AspectRef.agentReactions) )
-						continue;
-					if ( ! a.isAspect(AspectRef.surfaceList) )
-						continue;
-					surfaces = (List<Surface>) a.get(AspectRef.surfaceList);
-					if ( Log.shouldWrite(level) )
-					{
-						Log.out(level, "  "+"   agent "+a.identity()+" has "+
-							surfaces.size()+" surfaces");
-					}
-				mapOfMaps = (Map<Shape, HashMap<IntegerArray,Double>>) a.getValue(VD_TAG);
-				distributionMap = mapOfMaps.get(shape);
-					/*
-					 * FIXME this should really only evaluate collisions with local
-					 * subgridpoints rather than all subgrid points in the domain.
-					 * With a rib length of 0.25 * radius_smallest_agent this can
-					 * result in 10^8 - 10^10 or more evaluations per agent!!
-					 */
-					sgLoop: for ( SubvoxelPoint p : svPoints )
-					{
-						/* Only give location in significant dimensions. */
-						pLoc = p.getRealLocation(nDim);
-						for ( Surface s : surfaces )
-							if ( collision.distance(s, pLoc) < 0.0 )
-							{
-								if( distributionMap.containsKey(coordArray))
-									distributionMap.put(coordArray, distributionMap.get(coordArray)+p.volume);
-								else
-									distributionMap.put(coordArray, p.volume);
-								/*
-								 * We only want to count this point once, even
-								 * if other surfaces of the same agent hit it.
-								 */
-								continue sgLoop;
-							}
-					}
-				
-				}
-			}
-			for ( Agent a : this._agents.getAllLocatedAgents() )
-			{
-				if ( a.isAspect(VD_TAG) )
+				break;
+			case COLLISION:
+				for ( Agent a : this._agents.getAllLocatedAgents() )
 				{
 					mapOfMaps = (Map<Shape, HashMap<IntegerArray,Double>>) a.getValue(VD_TAG);
 					distributionMap = mapOfMaps.get(shape);
+					
+					for ( int[] coord = shape.resetIterator(); 
+							shape.isIteratorValid(); coord = shape.iteratorNext())
+					{
+						location = Vector.subset(shape.getVoxelOrigin(coord), nDim);
+						shape.getVoxelSideLengthsTo(dimension, coord); 
+						sides = Vector.subset(dimension, nDim);
+						upper = Vector.add(location, sides);
+						
+						Voxel vox = new Voxel(location, upper);
+						vox.init(shape.getCollision());
+						
+						for (Surface s : (List<Surface>) ((Body) a.get(AspectRef.agentBody)).getSurfaces())
+						{
+							if ( vox.collisionWith(s))
+							{
+								distributionMap.put(new IntegerArray(shape.getCoords(location)), 1.0);
+							}
+						}
+					}
 					ProcessDiffusion.scale(distributionMap, 1.0);
 				}
-			}
-		}
-		else
-		{
-			for ( Agent a : this._agents.getAllLocatedAgents() )
-			{
-				IntegerArray coordArray = new IntegerArray( 
-						shape.getCoords(((Body) a.get(AspectRef.agentBody)).getCenter()));
-				mapOfMaps = (Map<Shape, HashMap<IntegerArray,Double>>) a.getValue(VD_TAG);
-				distributionMap = mapOfMaps.get(shape);
-				distributionMap.put(coordArray, 1.0);
-			}
-			
-/**			SIMPLE METHOD ASSUMING THAT CELLS ARE IN LINE WITH THE SPATIAL GRID.
- * 			CAN BE IMPLEMENTED ONCE WE HAVE A METHOD FOR DETERMINING WHETHER
- * 			THIS IS THE CASE.
-			for (Agent a: this._agents.getAllEpithelialAgents())
-			{
-				Body agentBody = (Body) a.get(AspectRef.agentBody);
-				double[] CornerA = agentBody.getPoints().get(0).getPosition();
-				double[] CornerB = agentBody.getPoints().get(1).getPosition();
-				double[] topCorner;
-				double[] bottomCorner;
-				if (CornerA[0] >= CornerB[0])
+				break;
+			case SUBGRID:
+				Collection<SubvoxelPoint> svPoints;
+				List<Agent> nhbs;
+				List<Surface> surfaces;
+				double[] pLoc;
+				Collision collision = new Collision(null, null, shape);
+	
+				
+				for ( int[] coord = shape.resetIterator(); 
+						shape.isIteratorValid(); coord = shape.iteratorNext())
 				{
-					topCorner = CornerA;
-					bottomCorner = CornerB;
-				}
-				else
-				{
-					topCorner = CornerB;
-					bottomCorner = CornerA;
-				}
-				Collection <int[]> voxels = shape.getVoxelsFromVolume(
-						bottomCorner,topCorner);
-				mapOfMaps = (Map<Shape, HashMap<IntegerArray,Double>>)
-						a.getValue(VD_TAG);
-				distributionMap = mapOfMaps.get(shape);
-				int voxelNumber = voxels.size();
-				for (int[] coordArray: voxels)
-				{
-					IntegerArray iArray = new IntegerArray(coordArray);
-					distributionMap.put(iArray, (1.0/voxelNumber));
-				}
-			}
-**/			
-			
-			/**
-			 * Set up agent distribution maps for epithelial cells. This assumes
-			 * that the epithelial cells are at least as big as voxels in all 
-			 * dimensions.
-			 */
-			for (Agent a: this._agents.getAllEpithelialAgents())
-			{
-				Body agentBody = (Body) a.get(AspectRef.agentBody);
-				double[] cellBottomCorner = 
-						agentBody.getPoints().get(0).getPosition();
-				double[] cellTopCorner = 
-						agentBody.getPoints().get(1).getPosition();
-				int[] bottomVoxel = shape.getCoords(cellBottomCorner);
-				double[] voxelSideLengths = new double[nDim];
-				shape.getVoxelSideLengthsTo(voxelSideLengths, bottomVoxel);
-				double[] dimensions = new double[nDim];
-				
-				for (int i = 0; i < nDim; i++)
-					dimensions[i] = cellTopCorner[i] - cellBottomCorner[i];
-				
-				ArrayList<int[]> voxels = (ArrayList<int[]>) 
-					shape.getVoxelsFromVolume(cellBottomCorner,cellTopCorner);
-				
-				double[] proportions = new double[voxels.size()];
-				
-				//This loop calculates the proportion of a voxel that is taken
-				//by the given agent. It does this by finding the proportion in
-				//each dimension and multiplying these together.
-				for (int v = 0; v < voxels.size(); v++) {
+					double minRad;
+					IntegerArray coordArray = new IntegerArray(new int[]{coord[0],coord[1],coord[2]});
 					
-					double proportion = 1.0;
-					
-					for (int i = 0; i < nDim; i++) {
-						double proportionInThisDimension;
-						double voxelLower = 
-							(double) voxels.get(v)[i] * voxelSideLengths[i];
-						double voxelUpper = voxelLower + voxelSideLengths[i];
-						
-						if (voxelLower < cellBottomCorner[i])
-						{
-							if (voxelUpper > cellTopCorner[i])
-							{
-								proportionInThisDimension = (cellTopCorner[i] 
-									- cellBottomCorner[i])/voxelSideLengths[i];
-							}
-							
-							else
-							{	
-								proportionInThisDimension = (voxelUpper - 
-									cellBottomCorner[i]) / voxelSideLengths[i];
-							}
-						}
-						
-						else if (voxelUpper > cellTopCorner[i])
-						{
-							proportionInThisDimension = (cellTopCorner[i] - 
-								voxelLower) / voxelSideLengths[i];
-						}
-						
-						else proportionInThisDimension = 1.0;
-						proportion *= proportionInThisDimension;
-					}
-					
-					proportions[v] = proportion;
-				}
-				
-				ArrayList <Double> proportionList = new ArrayList <Double>();
-				
-				double totalOfProportions = 0.0;
-				
-				int removalCounter = 0;
-				for (int i = 0; i < proportions.length; i++)
-				{
-					if (proportions[i] !=0)
+					if( shape instanceof CartesianShape)
 					{
-					totalOfProportions += proportions[i];
-					proportionList.add(proportions[i]);
+						/* Find all agents that overlap with this voxel. */
+						// TODO a method for getting a voxel's bounding box directly?
+						location = Vector.subset(shape.getVoxelOrigin(coord), nDim);
+						shape.getVoxelSideLengthsTo(dimension, coord); //FIXME returns arc lengths with polar coords
+						// FIXME create a bounding box that always captures at least the complete voxel
+						sides = Vector.subset(dimension, nDim);
+						upper = Vector.add(location, sides);
+						
+						Voxel vox = new Voxel(location, upper);
+						vox.init(shape.getCollision());
+						/* NOTE the agent tree is always the amount of actual dimension */
+						nhbs = CollisionUtilities.getCollidingAgents(
+								vox, this._agents.treeSearch( location, upper ) );
+						/* used later to find subgridpoint scale */
+						minRad = Vector.min(sides);
 					}
 					else
 					{
-						voxels.remove(i - removalCounter);
-						removalCounter++;
+						/* TODO since the previous does not work at all for polar */
+						nhbs = this._agents.getAllLocatedAgents();
+						
+						/* FIXME total mess, trying to get towards something that at
+						 * least makes some sence
+						 */
+						shape.getVoxelSideLengthsTo(dimension, coord); //FIXME returns arc lengths with polar coords
+						// FIXME create a bounding box that always captures at least the complete voxel
+						sides = Vector.subset(dimension, nDim);
+						// FIXME because it does not make any sence to use the ark, try the biggest (probably the R dimension) and half that to be safe.
+						minRad = Vector.max(sides) / 2.0; 
+					}
+					
+					/* Filter the agents for those with reactions, radius & surface. */
+					nhbs.removeIf(NO_REAC_FILTER);
+					nhbs.removeIf(NO_BODY_FILTER);
+					/* If there are none, move onto the next voxel. */
+					if ( nhbs.isEmpty() )
+						continue;
+					/* 
+					 * Find the sub-voxel resolution from the smallest agent, and
+					 * get the list of sub-voxel points.
+					 */
+					
+					double radius;
+					for ( Agent a : nhbs )
+					{
+						radius = a.getDouble(AspectRef.bodyRadius);
+						minRad = Math.min(radius, minRad);
+					}
+					minRad *= SUBGRID_FACTOR;
+					svPoints = shape.getCurrentSubvoxelPoints(minRad);
+					if ( Log.shouldWrite(Tier.DEBUG) )
+					{
+						Log.out(Tier.DEBUG, "using a min radius of "+minRad);
+						Log.out(Tier.DEBUG, "gives "+svPoints.size()+" sub-voxel points");
+					}
+					/* Get the sub-voxel points and query the agents. */
+					for ( Agent a : nhbs )
+					{
+						/* Should have been removed, but doesn't hurt to check. */
+						if ( ! a.isAspect(AspectRef.agentReactions) )
+							continue;
+						if ( ! a.isAspect(AspectRef.surfaceList) )
+							continue;
+						surfaces = (List<Surface>) a.get(AspectRef.surfaceList);
+					mapOfMaps = (Map<Shape, HashMap<IntegerArray,Double>>) a.getValue(VD_TAG);
+					distributionMap = mapOfMaps.get(shape);
+						/*
+						 * FIXME this should really only evaluate collisions with local
+						 * subgridpoints rather than all subgrid points in the domain.
+						 * With a rib length of 0.25 * radius_smallest_agent this can
+						 * result in 10^8 - 10^10 or more evaluations per agent!!
+						 */
+						sgLoop: for ( SubvoxelPoint p : svPoints )
+						{
+							/* Only give location in significant dimensions. */
+							pLoc = p.getRealLocation(nDim);
+							for ( Surface s : surfaces )
+								if ( collision.distance(s, pLoc) < 0.0 )
+								{
+									if( distributionMap.containsKey(coordArray))
+										distributionMap.put(coordArray, distributionMap.get(coordArray)+p.volume);
+									else
+										distributionMap.put(coordArray, p.volume);
+									/*
+									 * We only want to count this point once, even
+									 * if other surfaces of the same agent hit it.
+									 */
+									continue sgLoop;
+								}
+						}
+					
 					}
 				}
-				
-				mapOfMaps = (Map<Shape, HashMap<IntegerArray,Double>>)
-						a.getValue(VD_TAG);
-				
-				distributionMap = mapOfMaps.get(shape);
-				
-				for (int i = 0; i < voxels.size(); i++)
+				for ( Agent a : this._agents.getAllLocatedAgents() )
 				{
-					IntegerArray iArray = new IntegerArray(voxels.get(i));
-					distributionMap.put
-						(iArray, (proportionList.get(i)/totalOfProportions));
+					if ( a.isAspect(VD_TAG) )
+					{
+						mapOfMaps = (Map<Shape, HashMap<IntegerArray,Double>>) a.getValue(VD_TAG);
+						// FIXME (overwritng distribution map?????)
+						distributionMap = mapOfMaps.get(shape);
+						ProcessDiffusion.scale(distributionMap, 1.0);
+					}
+				}
+		}
+		
+		for (Agent a: this._agents.getAllEpithelialAgents())
+		{
+			Body agentBody = (Body) a.get(AspectRef.agentBody);
+			double[] cellBottomCorner = 
+					agentBody.getPoints().get(0).getPosition();
+			double[] cellTopCorner = 
+					agentBody.getPoints().get(1).getPosition();
+			int[] bottomVoxel = shape.getCoords(cellBottomCorner);
+			double[] voxelSideLengths = new double[nDim];
+			shape.getVoxelSideLengthsTo(voxelSideLengths, bottomVoxel);
+			double[] dimensions = new double[nDim];
+			
+			for (int i = 0; i < nDim; i++)
+				dimensions[i] = cellTopCorner[i] - cellBottomCorner[i];
+			
+			ArrayList<int[]> voxels = (ArrayList<int[]>) 
+				shape.getVoxelsFromVolume(cellBottomCorner,cellTopCorner);
+			
+			double[] proportions = new double[voxels.size()];
+			
+			//This loop calculates the proportion of a voxel that is taken
+			//by the given agent. It does this by finding the proportion in
+			//each dimension and multiplying these together.
+			for (int v = 0; v < voxels.size(); v++) {
+				
+				double proportion = 1.0;
+				
+				for (int i = 0; i < nDim; i++) {
+					double proportionInThisDimension;
+					double voxelLower = 
+						(double) voxels.get(v)[i] * voxelSideLengths[i];
+					double voxelUpper = voxelLower + voxelSideLengths[i];
+					
+					if (voxelLower < cellBottomCorner[i])
+					{
+						if (voxelUpper > cellTopCorner[i])
+						{
+							proportionInThisDimension = (cellTopCorner[i] 
+								- cellBottomCorner[i])/voxelSideLengths[i];
+						}
+						
+						else
+						{	
+							proportionInThisDimension = (voxelUpper - 
+								cellBottomCorner[i]) / voxelSideLengths[i];
+						}
+					}
+					
+					else if (voxelUpper > cellTopCorner[i])
+					{
+						proportionInThisDimension = (cellTopCorner[i] - 
+							voxelLower) / voxelSideLengths[i];
+					}
+					
+					else proportionInThisDimension = 1.0;
+					proportion *= proportionInThisDimension;
+				}
+				
+				proportions[v] = proportion;
+			}
+			
+			ArrayList <Double> proportionList = new ArrayList <Double>();
+			
+			double totalOfProportions = 0.0;
+			
+			int removalCounter = 0;
+			for (int i = 0; i < proportions.length; i++)
+			{
+				if (proportions[i] !=0)
+				{
+				totalOfProportions += proportions[i];
+				proportionList.add(proportions[i]);
+				}
+				else
+				{
+					voxels.remove(i - removalCounter);
+					removalCounter++;
 				}
 			}
 			
+			mapOfMaps = (Map<Shape, HashMap<IntegerArray,Double>>)
+					a.getValue(VD_TAG);
+			
+			distributionMap = mapOfMaps.get(shape);
+			
+			for (int i = 0; i < voxels.size(); i++)
+			{
+				IntegerArray iArray = new IntegerArray(voxels.get(i));
+				distributionMap.put
+					(iArray, (proportionList.get(i)/totalOfProportions));
+			}
 		}
-		if( Log.shouldWrite(level) )
-			Log.out(level, "Finished setting up agent distribution maps");
 	}
 	
 	@SuppressWarnings("unchecked")

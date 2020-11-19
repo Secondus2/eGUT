@@ -7,8 +7,9 @@ import java.util.Date;
 import org.w3c.dom.Element;
 
 import dataIO.Log;
-import dataIO.XmlHandler;
 import dataIO.Log.Tier;
+import dataIO.XmlHandler;
+import processManager.ProcessDiffusion.DistributionMethod;
 import referenceLibrary.XmlRef;
 import utility.Helper;
 
@@ -20,6 +21,7 @@ import utility.Helper;
  */
 public class Global extends ParameterSet
 {
+
 	/**************************************************************************
 	 * Constructing and loading
 	 *************************************************************************/
@@ -53,11 +55,6 @@ public class Global extends ParameterSet
 		Idynomics.global.simulationName = XmlHandler.obtainAttribute( elem, 
 				XmlRef.nameAttribute, XmlRef.simulation);
 		
-		if ( XmlHandler.hasAttribute(elem, XmlRef.outputskip) )
-			Idynomics.global.outputskip = Integer.valueOf( 
-					XmlHandler.obtainAttribute( elem, XmlRef.outputskip, 
-					XmlRef.simulation));
-		
 		if ( XmlHandler.hasAttribute(elem, XmlRef.configuration) )
 		{
 			Global.supplementary_property_files = 
@@ -80,6 +77,7 @@ public class Global extends ParameterSet
 			{
 				t = Tier.valueOf( XmlHandler.obtainAttribute( elem, 
 						XmlRef.logLevel, XmlRef.simulation ) );
+				Log.set(t);
 			}
 			catch (IllegalArgumentException e)
 			{
@@ -87,8 +85,6 @@ public class Global extends ParameterSet
 						Helper.enumToString(Tier.class));
 			}
 		}
-		if( ! Log.isSet() )
-			Log.set(t);
 		/* 
 		 * 
 		 */
@@ -145,7 +141,36 @@ public class Global extends ParameterSet
 	/**
 	 * default output location
 	 */
-	public String default_out = "default_out";
+	public static String default_out = "default_out";
+	
+	/**
+	 * Allows to disable writing anything to disc
+	 * 
+	 * useful in scenario's where output do not need to be stored such as with 
+	 * unit tests
+	 */
+	public static boolean write_to_disc = true;
+	
+	/**
+	 * 
+	 */
+	public static boolean output_compression = false;
+	
+	/**
+	 * enable bookkeeping.
+	 */
+	public static boolean bookkeeping = false;
+	
+	/**
+	 * enable csv bookkeeping
+	 */
+	public static boolean csv_bookkeeping = false;
+	
+	/**
+	 * enable xml bookkeeping (also logging complete agent xml)
+	 * Warning: very slow
+	 */
+	public static boolean xml_bookkeeping = false;
 	
 	/**
 	 * console font
@@ -207,7 +232,7 @@ public class Global extends ParameterSet
 	/**
 	 * Skip writing xml output for this number of global time steps
 	 */
-	public int outputskip = 0;
+	public int outputskip = 1;
 	
 	/**
 	 * The exit command is passed to kernel once the simulation is finished
@@ -222,6 +247,8 @@ public class Global extends ParameterSet
 	/**************************************************************************
 	 * Appearance
 	 *************************************************************************/
+
+	public static String default_palette = "colours.xml";
 	
 	public static Color console_color = Helper.obtainColor( "38,45,48" );
 	
@@ -246,7 +273,8 @@ public class Global extends ParameterSet
 	 * Only determine location of agent based on primary mass point
 	 */
 	public static boolean fastAgentDistribution = true;
-		
+
+	public static String agentDistribution = DistributionMethod.MIDPOINT.toString();
 	/**
 	 * dynamic viscosity of the medium
 	 */
@@ -277,7 +305,7 @@ public class Global extends ParameterSet
 	 * files that use the old function, this should be 1 for all new protocol
 	 * files and should be removed as soon as all protocols have been updated.
 	 */
-	public static double agent_stress_scaling = 100000;
+	public static double agent_stress_scaling = 1;
 	
 	/**
 	 * pass additional collision variables (required for more advanced collision
@@ -318,4 +346,19 @@ public class Global extends ParameterSet
 	 */
 	public static double mechanical_low_stress_skip = 0.0;
 	
+	/**
+	 * {@Link SplitTree} atomic length, the smallest length scale for leafnodes
+	 */
+	public static double atomic_length = 0.05;
+	
+	/**
+	 * {@Link Decompress} fraction of local stress traversing outwards in
+	 * decompression algorithm
+	 */
+	public static double traversing_fraction = 0.02;
+	
+	/**
+	 * Default decompression parameters
+	 */
+	public static double damping_factor = 0.9;
 }

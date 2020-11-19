@@ -1,23 +1,13 @@
 package surface;
 
-import java.util.Collection;
-import java.util.LinkedList;
-import java.util.List;
-
 import org.w3c.dom.Element;
 
-import dataIO.Log;
 import dataIO.ObjectFactory;
-import dataIO.XmlHandler;
-import dataIO.Log.Tier;
 import generalInterfaces.Copyable;
 import generalInterfaces.HasBoundingBox;
-import linearAlgebra.Vector;
 import referenceLibrary.XmlRef;
 import settable.Attribute;
 import settable.Module;
-import settable.Settable;
-import settable.Module.Requirements;
 import shape.Shape;
 import utility.Helper;
 import utility.StandardizedImportMethods;
@@ -37,6 +27,8 @@ public class Ball extends Surface implements HasBoundingBox, Copyable
 	 * Radius of this sphere.
 	 */
 	public double _radius;
+	
+	private BoundingBox boundingBox = new BoundingBox();
 
 	/*************************************************************************
 	 * CONSTRUCTORS
@@ -149,9 +141,7 @@ public class Ball extends Surface implements HasBoundingBox, Copyable
 	/*************************************************************************
 	 * BOUNDING BOX
 	 ************************************************************************/
-	
-	protected BoundingBox boundingBox = new BoundingBox();
-	
+
 	public BoundingBox boundingBox(double margin, Shape shape)
 	{
 		return boundingBox.get(this.getCenter(), this._radius, margin);

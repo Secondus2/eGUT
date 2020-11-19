@@ -78,8 +78,8 @@ public class EpithelialGrid {
 	public ArrayList <Agent> search (BoundingBox boundingBox)
 	{
 		ArrayList <Agent> agentList = new ArrayList <Agent>();
-		double[] lower = boundingBox.lowerCorner();
-		double[] upper = boundingBox.higherCorner();
+		double[] lower = boundingBox.getLow();
+		double[] upper = boundingBox.getHigh();
 		
 		if (lower[_keyDimension] > _topCorner[_keyDimension] ||
 				upper[_keyDimension] < _bottomCorner[_keyDimension])

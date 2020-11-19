@@ -1,28 +1,51 @@
 package dataIO;
 
 import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.OutputStream;
 import java.net.URLDecoder;
 import java.security.CodeSource;
 import java.util.Collection;
 import java.util.LinkedList;
 import java.util.List;
+
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
+import javax.xml.transform.Transformer;
+import javax.xml.transform.TransformerException;
+import javax.xml.transform.TransformerFactory;
+import javax.xml.transform.dom.DOMResult;
+import javax.xml.transform.sax.SAXSource;
+import javax.xml.transform.stream.StreamResult;
 
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.w3c.dom.NamedNodeMap;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
+import org.xml.sax.InputSource;
 import org.xml.sax.SAXException;
+import org.xml.sax.XMLReader;
 
+import com.siemens.ct.exi.core.CodingMode;
+import com.siemens.ct.exi.core.EXIFactory;
+import com.siemens.ct.exi.core.FidelityOptions;
+import com.siemens.ct.exi.core.exceptions.EXIException;
+import com.siemens.ct.exi.core.grammars.Grammars;
+import com.siemens.ct.exi.core.grammars.SchemaLessGrammars;
+import com.siemens.ct.exi.core.helpers.DefaultEXIFactory;
+import com.siemens.ct.exi.main.api.sax.EXISource;
+
+import dataIO.Log.Tier;
+import expression.Expression;
 import idynomics.Idynomics;
 import referenceLibrary.XmlRef;
-import dataIO.Log.Tier;
 import utility.Helper;
 
 /**
@@ -55,6 +78,24 @@ public class XmlHandler
 		}
 		
 	}
+	protected static Document decode(XMLReader exiReader, String exiLocation)
+			throws SAXException, IOException, TransformerException {
+
+		TransformerFactory tf = TransformerFactory.newInstance();
+		Transformer transformer = tf.newTransformer();
+
+		InputStream exiIS = new FileInputStream(exiLocation);
+		SAXSource exiSource = new SAXSource(new InputSource(exiIS));
+		exiSource.setXMLReader(exiReader);
+
+		OutputStream os = new ByteArrayOutputStream();
+		Document doc = null;
+		DOMResult result = new DOMResult(doc) ;
+		transformer.transform(exiSource, result);
+		os.close();
+
+		return (Document) result.getNode();
+	}
 	
 	/**
 	 * \brief Returns specified document as xml Element
@@ -69,9 +110,29 @@ public class XmlHandler
 			File fXmlFile = new File(document);
 			DocumentBuilderFactory dbF = DocumentBuilderFactory.newInstance();
 			DocumentBuilder dBuilder = dbF.newDocumentBuilder();
-			Document doc;
+			Document doc = null;
+			
+			if( fXmlFile.getName().contains(".exi") )
+			{
+				EXIFactory factory = DefaultEXIFactory.newInstance();
+
+				factory.setFidelityOptions(FidelityOptions.createDefault());
+				factory.setCodingMode(CodingMode.COMPRESSION);
+				SchemaLessGrammars grammer = new SchemaLessGrammars();
+				factory.setGrammars( grammer );
+				try {
+					SAXSource exiSource = new EXISource(factory);
+					XMLReader exiReader = exiSource.getXMLReader();
+					doc = decode(exiReader, document);
+				} catch (EXIException | TransformerException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}
+			
+			} else {
 			doc = dBuilder.parse(fXmlFile);
 			doc.getDocumentElement().normalize();
+			}
 			return doc.getDocumentElement();
 		} catch ( ParserConfigurationException | IOException e) {
 			Log.printToScreen("Error while loading: " + document + "\n"
@@ -207,6 +268,119 @@ public class XmlHandler
 		return jarFile.getParentFile().getAbsolutePath();
 	}
 	
+	
+	/**
+	 * Gathers non-critical numerical attributes and converts those with units
+	 * to the iDynoMiCS unit system. Returns the attribute as a String. Warning:
+	 * using this method may return a null Double, which could lead to Null
+	 * Pointer Exceptions further down the line. If this return type cannot be
+	 * handled, you should deal with it in the code where this method is called,
+	 * or switch to the obtainDouble method.
+	 */
+	public static Double gatherDouble (Element xmlElement, String attribute)
+	{
+		String string;
+		if ( xmlElement != null && xmlElement.hasAttribute(attribute) )
+			string = xmlElement.getAttribute(attribute);
+		
+		else
+			return (Double) null;
+		
+		try
+		{
+			return Double.parseDouble(string);
+		}
+		
+		catch(NumberFormatException e)
+		{
+			try
+			{
+				return new Expression( string ).format( Idynomics.unitSystem );
+			}
+			catch (NumberFormatException | StringIndexOutOfBoundsException
+					| NullPointerException f)
+			{
+				if( Log.shouldWrite(Tier.NORMAL))
+					Log.out(Tier.NORMAL, "WARNING: Number provided for "
+					+ "attribute '" + attribute + "' is not in the correct "
+					+ "format. Provide a number with a decimal point, and "
+					+ "optionally a unit in square brackets. Returning null.");
+				return null;
+			}
+		}
+	}
+	
+	/**
+	 * Redirects to gatherDouble (Element xmlElement, String attribute)
+	 */
+	public static Double gatherDouble(Node xmlElement, String attribute)
+	{
+		return gatherDouble((Element) xmlElement, attribute);
+	}
+	
+	/**
+	 * Gets a critical numerical attribute from an element. Asks the user if
+	 * the attribute is not present.
+	 */
+	public static Double obtainDouble (Element xmlElement, String attribute, 
+			String tag)
+	{
+		String value;
+		if ( xmlElement != null && xmlElement.hasAttribute(attribute) )
+			value = xmlElement.getAttribute(attribute);
+		
+		else
+		{
+			value = Helper.obtainInput(null,
+					"Required " + attribute +" for node: " + tag + 
+					" (Double value required.)" );
+		}
+		
+		return validateInput(value, attribute, tag);
+	}
+	
+	/**
+	 * This is a method used by obtainDouble to return the double's value, and
+	 * request input if the string provided is not correctly formatted.
+	 */
+	public static Double validateInput (String value, String attribute, 
+			String tag)
+	{
+		try
+		{
+			return Double.parseDouble(value);
+		}
+		
+		catch(NumberFormatException e)
+		{
+			try
+			{
+				return new Expression( value ).format( Idynomics.unitSystem );
+			}
+			catch (NumberFormatException | StringIndexOutOfBoundsException
+					| NullPointerException f)
+			{
+				value = Helper.obtainInput(null,
+						"Required " + attribute +" for node: " + tag + 
+						" Please enter a number with a decimal point and "
+						+ "optional valid unit in square brackets." );
+				
+				return validateInput (value, attribute, tag);
+			}
+		}	
+	}
+
+	
+	/**
+	 * Redirects to obtainDouble (Element xmlElement, String attribute, String
+	 *  tag)
+	 */
+	public static Double obtainDouble (
+			Node xmlNode, String attribute, String tag)
+	{
+		return obtainDouble((Element) xmlNode, attribute, tag);
+	}
+
 	/**
 	 * \brief Gathers non critical attributes, returns "" if the attribute is not
 	 * defined. This method does not ask the user for any information.
@@ -429,16 +603,15 @@ public class XmlHandler
 			return null;
 		
 		NodeList nodes = xmlElement.getElementsByTagName(tagName);
-		if (nodes.getLength() > 1)
+		if (nodes.getLength() > 1 && Log.shouldWrite(Tier.NORMAL) )
 		{
 			Log.out(Tier.NORMAL,"Warning: document contains more than 1 "
 					+ tagName + " nodes, loading first simulation node...");
 		}
-		else if (nodes.getLength() == 0)
+		else if ( nodes.getLength() == 0 && Log.shouldWrite(Tier.EXPRESSIVE) )
 		{
-			Log.out(Tier.NORMAL,"Warning: could not identify " + tagName + 
-					" node, make sure your file contains all required elements."
-					+ " Attempt to continue with 'null' node.");
+			Log.out( Tier.EXPRESSIVE,"Warning: could not identify " + tagName + 
+					" node, continueing with 'null' node.");
 			return null;
 		}
 		return (Element) nodes.item(0);

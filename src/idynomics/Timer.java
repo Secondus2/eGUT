@@ -5,15 +5,15 @@ import java.math.BigDecimal;
 import org.w3c.dom.Element;
 
 import dataIO.Log;
+import dataIO.Log.Tier;
 import dataIO.XmlHandler;
 import gui.GuiButtons;
+import instantiable.Instantiable;
 import referenceLibrary.XmlRef;
 import settable.Attribute;
 import settable.Module;
-import settable.Settable;
 import settable.Module.Requirements;
-import dataIO.Log.Tier;
-import instantiable.Instantiable;
+import settable.Settable;
 import utility.Helper;
 
 /**
@@ -47,36 +47,37 @@ public class Timer implements Instantiable, Settable
 		
 	public Timer()
 	{
-		this._iteration = 0;
+		this._iteration = 1;
 		this._now = 0.0;
 	}
 		
-	public void instantiate(Element xmlNode, Settable parent)
+	public void instantiate(Element xmlElem, Settable parent)
 	{
-		if( Log.shouldWrite(Tier.NORMAL))
-			Log.out(Tier.NORMAL, "Timer loading...");
-
 		/* Get starting time step */
-		this.setCurrentTime( Double.valueOf( Helper.setIfNone( 
-				XmlHandler.gatherAttribute(
-				xmlNode, XmlRef.currentTime ), "0.0" ) ) );
+		this.setCurrentTime( Helper.setIfNone( XmlHandler.gatherDouble(
+				xmlElem, XmlRef.currentTime ), 0.0 ) );
 		
 		this.setCurrentIteration( Integer.valueOf( Helper.setIfNone( 
 				XmlHandler.gatherAttribute(
-				xmlNode, XmlRef.currentIter ), "0" ) ) );
+						xmlElem, XmlRef.currentIter ), "1" ) ) );
 		
 		/* Get the time step. */
-		this.setTimeStepSize( Double.valueOf( XmlHandler.obtainAttribute(
-				xmlNode, XmlRef.timerStepSize, this.defaultXmlTag() ) ) );
+		this.setTimeStepSize( XmlHandler.obtainDouble (
+				xmlElem, XmlRef.timerStepSize, this.defaultXmlTag() ) );
 
 		/* Get the total time span. */
-		this.setEndOfSimulation( Double.valueOf( XmlHandler.obtainAttribute(
-				xmlNode, XmlRef.endOfSimulation, this.defaultXmlTag() ) ) );
-
+		this.setEndOfSimulation( XmlHandler.obtainDouble (
+				xmlElem, XmlRef.endOfSimulation, this.defaultXmlTag() ) );
 		
-		this.report(Tier.NORMAL);
-		if( Log.shouldWrite(Tier.NORMAL))
-			Log.out(Tier.NORMAL, "Timer loaded!\n");
+		if ( XmlHandler.hasAttribute(xmlElem, XmlRef.outputskip) )
+			Idynomics.global.outputskip = Integer.valueOf( 
+					XmlHandler.obtainAttribute( xmlElem, XmlRef.outputskip, 
+					XmlRef.simulation));
+		
+		if ( XmlHandler.hasAttribute(xmlElem, XmlRef.outputTime) )
+			Idynomics.global.outputskip = (int) Math.round( (Double.valueOf(
+					XmlHandler.obtainAttribute( xmlElem, XmlRef.outputTime, 
+					XmlRef.simulation)) / this.getTimeStepSize()));
 	}
 	
 	/*************************************************************************
@@ -87,7 +88,7 @@ public class Timer implements Instantiable, Settable
 	public void reset()
 	{
 		this._now = 0.0;
-		this._iteration = 0;
+		this._iteration = 1;
 	}
 	
 	public void setTimeStepSize(double stepSize)
@@ -153,21 +154,17 @@ public class Timer implements Instantiable, Settable
 	public boolean isRunning()
 	{
 		if( Log.shouldWrite(Tier.DEBUG) )
-			Log.out(Tier.DEBUG, "Timer.isRunning()? now = "+this._now+
-					", end = "+this.getEndOfSimulation()+
-					", so "+(this._now<getEndOfSimulation())); 
+			Log.out(Tier.DEBUG, "Timer.isRunning()? now = "+ this._now+
+					", end = "+ this.getEndOfSimulation()+
+					", so "+ (this._now<getEndOfSimulation())); 
 		return this._now < this.getEndOfSimulation();
 	}
 	
 	public void report(Tier outputLevel)
 	{
 		if( Log.shouldWrite(outputLevel))
-		{
-			Log.out(outputLevel, "Timer: time is   = "+_now);
-			Log.out(outputLevel, "       iteration = "+getCurrentIteration());
-			Log.out(outputLevel, "       step size = "+getTimeStepSize());
-			Log.out(outputLevel, "       end time  = "+getEndOfSimulation());
-		}
+			Log.out(outputLevel, "#"+ getCurrentIteration()+ " time: "+ _now+ 
+					" step: "+ getTimeStepSize()+ " end: "+ getEndOfSimulation());
 	}
 	
 	/*************************************************************************

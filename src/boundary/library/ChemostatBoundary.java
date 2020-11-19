@@ -1,20 +1,20 @@
 package boundary.library;
 
 import java.util.Collection;
-import java.util.Collections;
 import java.util.LinkedList;
-import java.util.List;
 
 import agent.Agent;
-import agent.Body;
 import boundary.Boundary;
 import idynomics.Idynomics;
-import referenceLibrary.AspectRef;
+import referenceLibrary.XmlRef;
+import settable.Attribute;
+import settable.Module;
 import utility.ExtraMath;
 
 /**
  * \brief abstract class that captures identical agent transfer behaviour for
  * chemostat boundaries. 
+ * 
  * 
  * @author Bastiaan Cockx @BastiaanCockx (baco@env.dtu.dk), DTU, Denmark.
  *
@@ -40,6 +40,11 @@ public abstract class ChemostatBoundary extends Boundary {
 	 * 
 	 * dA/dt = rA
 	 * A(t) = A(0) * e^(rt)
+	 * 
+	 * TeX:
+	 * $$\frac{dA}{dt} = -rA$$
+	 * $$A(t) = A(0)*e^{-rt} $$
+	 * $$r = \frac{detachment.rate*h}{surface.distance}$$
 	 * 
 	 * here r is the removal rate and A is the number of agents.
 	 * Translating this to agent based we can say the chance of any
@@ -81,6 +86,14 @@ public abstract class ChemostatBoundary extends Boundary {
 				removals.add( this._agents.chooseAgent(i) );
 		}
 		return removals;
+	}
+	
+	@Override
+	public Module getModule()
+	{
+		Module mod = super.getModule();
+		mod.add( new Attribute( XmlRef.agentRemoval, String.valueOf( this._agentRemoval ), null, true ));
+		return mod;
 	}
 
 	public void setExchangeRate(double exchangeRate)

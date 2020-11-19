@@ -1,7 +1,6 @@
 package aspect.event;
 
 import java.util.Map;
-
 import agent.Agent;
 import agent.Body;
 import agent.Body.Morphology;
@@ -13,8 +12,6 @@ import dataIO.Log.Tier;
 import idynomics.Idynomics;
 import linearAlgebra.Vector;
 import referenceLibrary.AspectRef;
-import surface.Cuboid;
-import surface.OrientedCuboid;
 import surface.Point;
 import utility.ExtraMath;
 
@@ -37,7 +34,6 @@ public class ExcreteEPS extends Event
 	public void start(AspectInterface initiator, 
 			AspectInterface compliant, Double timeStep)
 	{
-		Tier level = Tier.BULK;
 		/*
 		 * Find out how much EPS the agent has right now. If it has none, there
 		 * is nothing  more to do.
@@ -70,8 +66,6 @@ public class ExcreteEPS extends Event
 		{
 			if (morphology == Morphology.CUBOID | 
 					morphology == Morphology.ORIENTEDCUBOID) {
-				Cuboid cuboidSurface = 
-					(Cuboid) body.getSurfaces().get(0);
 				if (initiator.isAspect(AspectRef.cuboidOrientation))
 					{
 					Point[] apicalFace = (Point[])((Agent)initiator).getValue(
@@ -127,8 +121,7 @@ public class ExcreteEPS extends Event
 			compliant.reg().doEvent(compliant, null, 0.0, UPDATE_BODY);
 			currentEPS -= epsBlob;
 			((Agent) compliant).registerBirth();
-			if ( Log.shouldWrite(level) )
-				Log.out(level, "EPS particle created");
+
 			epsBlob = ExtraMath.deviateFromCV(maxEPS, 0.1);
 		}
 		this.updateEPS(initiator, currentEPS);

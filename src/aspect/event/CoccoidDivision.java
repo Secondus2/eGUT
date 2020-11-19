@@ -1,23 +1,20 @@
 package aspect.event;
 
-import surface.Point;
-import utility.ExtraMath;
-import utility.Helper;
-import linearAlgebra.Vector;
-import referenceLibrary.AspectRef;
-
 import java.util.LinkedList;
 import java.util.Map;
 
 import agent.Agent;
 import agent.Body;
 import aspect.Aspect.AspectClass;
-import aspect.Aspect;
 import aspect.AspectInterface;
 import aspect.Event;
 import dataIO.Log;
 import dataIO.Log.Tier;
-import instantiable.object.InstantiableMap;
+import linearAlgebra.Vector;
+import referenceLibrary.AspectRef;
+import surface.Point;
+import utility.ExtraMath;
+import utility.Helper;
 
 /**
  * Simple coccoid division class, divides mother cell in two with a random
@@ -33,11 +30,6 @@ public class CoccoidDivision extends Event
 	 * The Agent's mass.
 	 */
 	public static String MASS = AspectRef.agentMass;
-	
-	/**
-	 * The Agent's mass.
-	 */
-	public static String MASS_MAP = AspectRef.agentMassMap;
 	
 	/**
 	 * If the Agent's mass is above this value, trigger division.
@@ -90,7 +82,6 @@ public class CoccoidDivision extends Event
 	public void start(AspectInterface initiator,
 			AspectInterface compliant, Double timeStep)
 	{
-		Tier level = Tier.BULK;
 		Agent mother = (Agent) initiator;
 		
 		if ( ! this.shouldDivide(mother) )
@@ -107,31 +98,14 @@ public class CoccoidDivision extends Event
 		/* Update their bodies, if they have them. */
 		if ( mother.isAspect(this.BODY) && mother.isAspect(this.RADIUS) )
 			this.shiftBodies(mother, daughter);
-		else
-		{
-			if ( Log.shouldWrite(level) )
-			{
-				Log.out(level, "Agent "+mother.identity()+
-					" does not have a body to shift after CoccoidDivision");
-			}
-		}
+		
 		/* Update filial links, if appropriate. */
 		if ( mother.isAspect(LINKER_DIST) )
 			this.updateLinkers(mother, daughter);
-		else
-		{
-			if ( Log.shouldWrite(level) )
-			{
-				Log.out(level, "Agent "+mother.identity()+
-					" does not create fillial links");
-			}
-		}
+
 		/* Register the daughter's birth in the compartment they belong to. */
 		daughter.registerBirth();
-		if ( Log.shouldWrite(level) )
-		{
-			Log.out(level, "CoccoidDivision added daughter cell");
-		}
+
 		/* The bodies of both cells may now need updating. */
 
 		if ( mother.isAspect(UPDATE_BODY) && mother.isAspect(BODY) )
@@ -159,7 +133,6 @@ public class CoccoidDivision extends Event
 	@SuppressWarnings("unchecked")
 	private boolean shouldDivide(Agent anAgent)
 	{
-		Tier level = Tier.BULK;
 		/*
 		 * Find the agent-specific variable to test (mass, by default).
 		 */
@@ -169,7 +142,7 @@ public class CoccoidDivision extends Event
 		/*
 		 * Find the threshold that triggers division.
 		 */
-		double threshold = 0.2;
+		double threshold = Double.MAX_VALUE;
 		if ( anAgent.isAspect(this.THRESHOLD_MASS) )
 			threshold = anAgent.getDouble(this.THRESHOLD_MASS);
 		/*
@@ -216,26 +189,26 @@ public class CoccoidDivision extends Event
 			motherMass = (Double) mumMass;
 			mother.set(MASS, motherMass * mumMassFrac);
 			daughter.set(MASS, motherMass * (1.0 - mumMassFrac));
-		}
-		
-		Object massMap = mother.get(MASS_MAP);
-		
-		if ( massMap != null && massMap instanceof Map )
+		} else 	if ( mumMass instanceof Map )
 		{
-			@SuppressWarnings("unchecked")
-			Map<String,Double> mumProducts = 
-					(Map<String,Double>) massMap;
-			@SuppressWarnings("unchecked")
-			Map<String,Double> daughterProducts = 
-					(Map<String,Double>) daughter.get(MASS_MAP);
-			for ( String key : mumProducts.keySet() )
+			String ref = MASS;
+			if ( ref != null )
 			{
-				product = mumProducts.get(key);
-				daughterProducts.put(key, product * (1.0-mumMassFrac) );
-				mumProducts.put(key, product * mumMassFrac);
+				@SuppressWarnings("unchecked")
+				Map<String,Double> mumProducts = 
+						(Map<String,Double>) mother.get(ref);
+				@SuppressWarnings("unchecked")
+				Map<String,Double> daughterProducts = 
+						(Map<String,Double>) daughter.get(ref);
+				for ( String key : mumProducts.keySet() )
+				{
+					product = mumProducts.get(key);
+					daughterProducts.put(key, product * (1.0-mumMassFrac) );
+					mumProducts.put(key, product * mumMassFrac);
+				}
+				mother.set(ref, mumProducts);
+				daughter.set(ref, daughterProducts);
 			}
-			mother.set(MASS_MAP, mumProducts);
-			daughter.set(MASS_MAP, daughterProducts);
 		}
 		if ( motherMass == null && product == null )
 		{

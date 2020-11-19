@@ -3,15 +3,16 @@ package chemical;
 import org.w3c.dom.Element;
 
 import dataIO.Log;
-import dataIO.XmlHandler;
 import dataIO.Log.Tier;
+import dataIO.XmlHandler;
 import instantiable.Instantiable;
 import linearAlgebra.Vector;
 import referenceLibrary.XmlRef;
 import settable.Attribute;
 import settable.Module;
-import settable.Settable;
 import settable.Module.Requirements;
+import settable.Settable;
+import utility.Helper;
 
 public class Chemical implements Settable, Instantiable
 {
@@ -166,20 +167,15 @@ public class Chemical implements Settable, Instantiable
 		this._name = XmlHandler.obtainAttribute(
 				xmlElement, XmlRef.nameAttribute, this.defaultXmlTag() );
 		
-		this._formationGibbs = Double.valueOf( XmlHandler.obtainAttribute(
-				xmlElement, XmlRef.formationGibbs, this.defaultXmlTag() ) );
+		this._formationGibbs = XmlHandler.obtainDouble(
+				xmlElement, XmlRef.formationGibbs, this.defaultXmlTag() );
 		
 
 		setComposition( xmlElement.getAttribute( XmlRef.composition ) );
 		
-		if( XmlHandler.hasAttribute(xmlElement, XmlRef.oxidationState))
-		{
-			this._referenceOxidationState = Double.valueOf( 
-					XmlHandler.obtainAttribute(
-					xmlElement, XmlRef.oxidationState, this.defaultXmlTag() ) );
-		}
-		else
-			this._referenceOxidationState = estimateRefOxidationState(0);
+		this._referenceOxidationState = Helper.setIfNone(XmlHandler.
+				gatherDouble(xmlElement, XmlRef.oxidationState),
+				estimateRefOxidationState(0));
 	}
 
 	@Override

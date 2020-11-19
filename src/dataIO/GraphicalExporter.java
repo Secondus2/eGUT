@@ -16,7 +16,6 @@ import surface.Surface;
  */
 public interface GraphicalExporter extends Instantiable {
 	
-
 	
 	/*************************************************************************
 	 * File handling
@@ -42,14 +41,33 @@ public interface GraphicalExporter extends Instantiable {
 	 * @param surface
 	 * @param pigment
 	 */
-	public default void draw(Surface surface, String pigment)
+	public default void draw(Surface surface, Object pigment)
 	{
+		String pigmentString = this.resolveColour( this.pigment( pigment) );
 		if (surface instanceof Ball)
-			this.draw((Ball) surface, pigment);
+			this.draw((Ball) surface, pigmentString);
 		if (surface instanceof Rod)
-			this.draw((Rod) surface, pigment);
+			this.draw((Rod) surface, pigmentString);
 		if (surface instanceof Cuboid)
-			this.draw((Cuboid) surface, pigment);
+			this.draw((Cuboid) surface, pigmentString);
+	}
+	
+	public default Object pigment(Object pigment)
+	{
+		float[] pigmentArray = new float[3];
+		if (pigment instanceof String)
+		{
+			return (String) pigment;
+		}
+		else if (pigment instanceof double[])
+		{
+			pigmentArray = Vector.toFloat((double[]) pigment);
+		}
+		else if (pigment instanceof float[])
+		{
+			pigmentArray = (float[]) pigment;
+		}
+		return pigmentArray;
 	}
 	
 	/**
@@ -69,6 +87,8 @@ public interface GraphicalExporter extends Instantiable {
 	 * @param cuboid
 	 */
 	public void draw(Cuboid cuboid, String pigment);
+
+	public String resolveColour(Object pigment);
 	
 	/*************************************************************************
 	 * Drawing basic shapes
@@ -161,7 +181,7 @@ public interface GraphicalExporter extends Instantiable {
 			return to3D(Vector.append(vector, 0.0));
 		else if (vector.length > 3)
 		{
-			Log.out(Tier.QUIET, "Warning 4 dimensional vector in graphical "
+			Log.out(Tier.CRITICAL, "Warning 4 dimensional vector in graphical "
 					+ "exporter, returning null");
 			return null;
 		}

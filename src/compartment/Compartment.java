@@ -9,16 +9,18 @@ import java.util.Map;
 import java.util.TreeMap;
 
 import org.w3c.dom.Element;
+
 import agent.Agent;
+import bookkeeper.Bookkeeper;
+import bookkeeper.KeeperEntry.EventType;
 import boundary.Boundary;
 import boundary.SpatialBoundary;
-import compartment.agentStaging.EpithelialLayerSpawner;
 import compartment.agentStaging.Spawner;
 import dataIO.Log;
-import dataIO.XmlHandler;
 import dataIO.Log.Tier;
+import dataIO.XmlHandler;
 import generalInterfaces.CanPrelaunchCheck;
-import grid.*;
+import grid.SpatialGrid;
 import idynomics.Global;
 import idynomics.Idynomics;
 import instantiable.Instance;
@@ -33,14 +35,14 @@ import referenceLibrary.ClassRef;
 import referenceLibrary.XmlRef;
 import settable.Attribute;
 import settable.Module;
-import settable.Settable;
 import settable.Module.Requirements;
+import settable.Settable;
+import shape.Dimension.DimName;
 import shape.Shape;
 import spatialRegistry.TreeType;
 import surface.Surface;
 import surface.Point;
 import utility.Helper;
-import shape.Dimension.DimName;
 
 /**
  * \brief TODO
@@ -71,7 +73,7 @@ import shape.Dimension.DimName;
  *     Friedrich-Schiller University Jena, Germany
  * @author Sankalp Arya (sankalp.arya@nottingham.ac.uk) University of Nottingham, U.K.
  */
-public class Compartment implements CanPrelaunchCheck, Instantiable, Settable
+public class Compartment implements CanPrelaunchCheck, Instantiable, Settable, Comparable<Compartment>
 {
 	/**
 	 * This has a name for reporting purposes.
@@ -113,6 +115,11 @@ public class Compartment implements CanPrelaunchCheck, Instantiable, Settable
 	 * ProcessComparator orders Process Managers by their time priority.
 	 */
 	protected ProcessComparator _procComp = new ProcessComparator();
+	
+	/**
+	 * 
+	 */
+	private Bookkeeper _bookKeeper = new Bookkeeper();
 	/**
 	 * Local time should always be between {@code Timer.getCurrentTime()} and
 	 * {@code Timer.getEndOfCurrentTime()}.
@@ -127,10 +134,10 @@ public class Compartment implements CanPrelaunchCheck, Instantiable, Settable
 	private Settable _parentNode;
 	
 	/**
-	 * Specifies the compartment orientation.
+	 * 
 	 */
-	private Orientation _orientation;
-	
+	private int _priority = Integer.MAX_VALUE;
+		
 	/* ***********************************************************************
 	 * CONSTRUCTORS
 	 * **********************************************************************/
@@ -170,8 +177,7 @@ public class Compartment implements CanPrelaunchCheck, Instantiable, Settable
 		this._shape = aShape;
 		this.environment = new EnvironmentContainer(this._shape);
 		this._compartmentSurfaces = this._shape.getSurfaces();
-		this.agents = new AgentContainer(
-				this._shape, this._compartmentSurfaces);
+		this.agents = new AgentContainer(this);
 	}
 
 	/**
@@ -182,12 +188,14 @@ public class Compartment implements CanPrelaunchCheck, Instantiable, Settable
 	 */
 	public void instantiate(Element xmlElem, Settable parent)
 	{
-		Tier level = Tier.EXPRESSIVE;
 		/*
 		 * Compartment initiation
 		 */
 		this.name = XmlHandler.obtainAttribute(
 				xmlElem, XmlRef.nameAttribute, XmlRef.compartment);
+		if( XmlHandler.hasAttribute(xmlElem, XmlRef.priority))
+			this._priority = Integer.valueOf( XmlHandler.gatherAttribute(
+					xmlElem, XmlRef.priority) );
 		Idynomics.simulator.addCompartment(this);
 		/*
 		 * Set up the shape.
@@ -248,7 +256,7 @@ public class Compartment implements CanPrelaunchCheck, Instantiable, Settable
 		 * setup tree
 		 */
 		String type = XmlHandler.gatherAttribute(xmlElem, XmlRef.tree);
-		type = Helper.setIfNone(type, String.valueOf(TreeType.RTREE));
+		type = Helper.setIfNone(type, String.valueOf( agents.getSpatialTreeType() ));
 		this.agents.setSpatialTreeType(TreeType.valueOf(type));
 		/*
 		 * Look for spawner elements
@@ -264,10 +272,10 @@ public class Compartment implements CanPrelaunchCheck, Instantiable, Settable
 						spawner.getPriority(),spawners.keySet() );
 				if (spawners.containsKey( spawner.getPriority() ))
 				{
-					if( Log.shouldWrite(Tier.NORMAL))
-						Log.out(level, "WARNING: Spawner with duplicate "
-								+ "priority next priority is picked by "
-								+ "simulator.");
+					if( Log.shouldWrite(Tier.EXPRESSIVE))
+						Log.out(Tier.EXPRESSIVE, "WARNING: Spawner with "
+								+ "duplicate priority next priority is picked "
+								+ "by simulator.");
 				}
 				spawners.put(priority, spawner);
 
@@ -276,23 +284,24 @@ public class Compartment implements CanPrelaunchCheck, Instantiable, Settable
 		for( Spawner s : spawners.values() )
 			s.spawn();
 		
-		if( Log.shouldWrite(level))
-			Log.out(level, "Compartment "+this.name+" initialised with "+ 
-					this.agents.getNumAllAgents()+" agents");
+		if( Log.shouldWrite(Tier.EXPRESSIVE))
+			Log.out(Tier.EXPRESSIVE, "Compartment " + this.name + 
+					" initialised with " + this.agents.getNumAllAgents() +
+					" agents.");
 
 		/*
 		 * Read in agents.
 		 */
 		for ( Element e : XmlHandler.getElements( xmlElem, XmlRef.agent) )
 			this.addAgent(new Agent( e, this ));
-		if( Log.shouldWrite(level))
-			Log.out(level, "Compartment "+this.name+" initialised with "+ 
+		if( Log.shouldWrite(Tier.EXPRESSIVE))
+			Log.out(Tier.EXPRESSIVE, "Compartment "+this.name+" initialised with "+ 
 					this.agents.getNumAllAgents()+" agents");
 		/*
 		 * Load solutes.
 		 */
-		if( Log.shouldWrite(level))
-			Log.out(level, "Compartment reading in solutes");
+		if( Log.shouldWrite(Tier.EXPRESSIVE))
+			Log.out(Tier.EXPRESSIVE, "Compartment reading in solutes");
 		Element solutes = XmlHandler.findUniqueChild(xmlElem, XmlRef.solutes);
 		for ( Element e : XmlHandler.getElements(solutes, XmlRef.solute))
 		{
@@ -301,15 +310,15 @@ public class Compartment implements CanPrelaunchCheck, Instantiable, Settable
 		/*
 		 * Load extra-cellular reactions.
 		 */
-		if( Log.shouldWrite(level))
-			Log.out(level, "Compartment reading in (environmental) reactions");
+		if( Log.shouldWrite(Tier.EXPRESSIVE))
+			Log.out(Tier.EXPRESSIVE, "Compartment reading in (environmental) reactions");
 		for ( Element e : XmlHandler.getElements( xmlElem, XmlRef.reaction) )
 			new RegularReaction(e, this.environment);	
 		/*
 		 * Read in process managers.
 		 */
-		if( Log.shouldWrite(level))
-			Log.out(level,"Compartment "+this.name+ " loading "+XmlHandler.
+		if( Log.shouldWrite(Tier.EXPRESSIVE))
+			Log.out(Tier.EXPRESSIVE,"Compartment "+this.name+ " loading "+XmlHandler.
 					getElements(xmlElem, XmlRef.process).size()+" processManagers");
 		for ( Element e : XmlHandler.getElements( xmlElem, XmlRef.process) )
 		{
@@ -329,11 +338,11 @@ public class Compartment implements CanPrelaunchCheck, Instantiable, Settable
 		str = new String[] { XmlHandler.gatherAttribute(elem, XmlRef.variable) };
 		if ( str[0] == null )
 		{
-			this._orientation = new Orientation( Vector.zerosDbl(
-					this._shape.getNumberOfDimensions() ), this );
+			this.getShape().setOrientation( new Orientation( Vector.zerosDbl(
+					this._shape.getNumberOfDimensions() ), this ) );
 		} else {
-			this._orientation = (Orientation) Instance.getNew( elem, 
-					this, Orientation.class.getName() );
+			this.getShape().setOrientation(  (Orientation) Instance.getNew( elem, 
+					this, Orientation.class.getName() ) );
 		}
 	}
 	
@@ -373,11 +382,7 @@ public class Compartment implements CanPrelaunchCheck, Instantiable, Settable
 		this._shape.setDimensionLengths(sideLengths);
 	}
 	
-	public Orientation orientation()
-	{
-		return this._orientation;
-	}
-
+	
 	/**
 	 * Add a given surface to this compartment's list of surfaces.
 	 */
@@ -427,9 +432,11 @@ public class Compartment implements CanPrelaunchCheck, Instantiable, Settable
 	 */
 	public void addAgent(Agent agent)
 	{
-		
 		this.agents.addAgent(agent);
 		agent.setCompartment(this);
+		if( Global.bookkeeping )
+			registerBook(EventType.ARRIVE, "Arrive", 
+					String.valueOf(agent.identity()), null, agent);
 	}
 	
 	public void addPhysicalObject(PhysicalObject p)
@@ -447,6 +454,13 @@ public class Compartment implements CanPrelaunchCheck, Instantiable, Settable
 		this.environment.addSolute(solute);
 	}
 	
+	public void registerBook(EventType eventType, String event,
+			String identity, String value, Settable storedSettable)
+	{
+		this._bookKeeper.register(eventType, event,
+			identity, value, storedSettable);
+	}
+	
 	/**
 	 * \brief Remove the given agent from this compartment, registering its
 	 * removal.
@@ -458,8 +472,9 @@ public class Compartment implements CanPrelaunchCheck, Instantiable, Settable
 	 */
 	public void registerRemoveAgent(Agent agent)
 	{
+		// !!!! method only used from gui
 		agent.setCompartment(null);
-		this.agents.registerRemoveAgent(agent);
+		this.agents.registerRemoveAgent(agent, EventType.REMOVED, "gui remove", null);
 	}
 	
 	/**
@@ -487,7 +502,7 @@ public class Compartment implements CanPrelaunchCheck, Instantiable, Settable
 	 * omit their partners in the protocol file.
 	 * @param compartments List of compartments to choose from.
 	 */
-	public void checkBoundaryConnections(List<Compartment> compartments)
+	public void checkBoundaryConnections(Collection<Compartment> compartments)
 	{
 		List<String> compartmentNames = new LinkedList<String>();
 		for ( Compartment c : compartments )
@@ -507,8 +522,8 @@ public class Compartment implements CanPrelaunchCheck, Instantiable, Settable
 						"Please choose a compartment:", true);
 				comp = findByName(compartments, name);
 			}
-			if( Log.shouldWrite(Tier.NORMAL) )
-				Log.out(Tier.NORMAL, 
+			if( Log.shouldWrite(Tier.EXPRESSIVE) )
+				Log.out(Tier.EXPRESSIVE, 
 						"Connecting boundary " + b.getName() +
 						" to a partner boundary of type " + 
 						b.getPartnerClass().toString() + " in compartment " +
@@ -523,6 +538,7 @@ public class Compartment implements CanPrelaunchCheck, Instantiable, Settable
 	 */
 	public void preStep()
 	{
+		this._bookKeeper.clear();
 		/*
 		 * Ask all Agents waiting in boundary arrivals lounges to enter the
 		 * compartment now.
@@ -530,10 +546,6 @@ public class Compartment implements CanPrelaunchCheck, Instantiable, Settable
 		this.agents.agentsArrive();
 		
 		this.agents.sortLocatedAgents();
-		/*
-		 * Ask all boundaries to update their solute concentrations.
-		 */
-		this.environment.updateSoluteBoundaries();
 	}
 	
 	/**
@@ -542,12 +554,10 @@ public class Compartment implements CanPrelaunchCheck, Instantiable, Settable
 	 */
 	public void step()
 	{
-		// TODO temporary fix, reassess
 		this._localTime = Idynomics.simulator.timer.getCurrentTime();
-		if( Log.shouldWrite(Tier.NORMAL) )
+		if( Log.shouldWrite(Tier.DEBUG) )
 		{
-			Log.out(Tier.NORMAL, "");
-			Log.out(Tier.NORMAL, "Compartment "+this.name+
+			Log.out(Tier.DEBUG, "Compartment "+this.name+
 					" at local time "+this._localTime);
 		}
 		
@@ -558,8 +568,8 @@ public class Compartment implements CanPrelaunchCheck, Instantiable, Settable
 					< Idynomics.simulator.timer.getEndOfCurrentIteration() &&
 					Idynomics.simulator.active() )
 		{
-			if( Log.shouldWrite(Tier.BULK) )
-				Log.out(Tier.BULK, "Compartment "+this.name+
+			if( Log.shouldWrite(Tier.DEBUG) )
+				Log.out(Tier.DEBUG, "Compartment "+this.name+
 									" running process "+currentProcess.getName()+
 									" at local time "+this._localTime);
 			
@@ -593,10 +603,9 @@ public class Compartment implements CanPrelaunchCheck, Instantiable, Settable
 		 * Tell all agents queued to leave the compartment to move now.
 		 */
 		this.agents.agentsDepart();
-		/*
-		 * Ask all boundaries to update their solute concentrations.
-		 */
-		this.environment.updateSoluteBoundaries();
+		
+		if( Global.csv_bookkeeping)
+			this.writeEventLog();
 	}
 	
 	/* ***********************************************************************
@@ -645,6 +654,11 @@ public class Compartment implements CanPrelaunchCheck, Instantiable, Settable
 		return out;
 	}
 	
+	public void writeEventLog()
+	{
+		this._bookKeeper.toFile(this.getName());
+	}
+	
 	/* ***********************************************************************
 	 * Model Node factory
 	 * **********************************************************************/
@@ -658,12 +672,13 @@ public class Compartment implements CanPrelaunchCheck, Instantiable, Settable
 		/* Set title for GUI. */
 		if ( this.getName() != null )
 			modelNode.setTitle(this.getName());
-		/* orientation node */
-		if( !this._orientation.isNullVector() )
-			modelNode.add( this._orientation.getModule() );
+
 		/* Add the name attribute. */
 		modelNode.add( new Attribute(XmlRef.nameAttribute, 
 				this.getName(), null, true ) );
+		modelNode.add( new Attribute(XmlRef.priority, 
+				String.valueOf(this._priority), null, true ) );
+		
 		modelNode.add( new Attribute(XmlRef.compartmentScale,
                 String.valueOf(this.getScalingFactor()), null, true ) );
 		/* Add the shape if it exists. */
@@ -677,6 +692,10 @@ public class Compartment implements CanPrelaunchCheck, Instantiable, Settable
 		modelNode.add( this.getProcessNode() );
 		
 		modelNode.add( getObjectNode() );
+		
+		/* FIXME performs slow, investigate, opted for csv export for now */
+		if( Global.xml_bookkeeping )
+			modelNode.add( this._bookKeeper.getModule() );
 		
 		/* spatial registry NOTE we are handling this here since the agent
 		 * container does not have the proper init infrastructure */
@@ -739,6 +758,8 @@ public class Compartment implements CanPrelaunchCheck, Instantiable, Settable
 		{
 			/* Update the name. */
 			this.name = node.getAttribute( XmlRef.nameAttribute ).getValue();
+			this._priority = Integer.valueOf(node.getAttribute( 
+					XmlRef.priority ).getValue() );
 			
 			/* set the tree type */
 			String tree = node.getAttribute( XmlRef.tree ).getValue();
@@ -781,7 +802,7 @@ public class Compartment implements CanPrelaunchCheck, Instantiable, Settable
 	 * **********************************************************************/
 	
 	public static Compartment findByName(
-			List<Compartment> compartments, String name)
+			Collection<Compartment> compartments, String name)
 	{
 		for ( Compartment c : compartments )
 			if ( c.getName().equals(name) )
@@ -797,5 +818,15 @@ public class Compartment implements CanPrelaunchCheck, Instantiable, Settable
 	public double getScalingFactor()
 	{
 		return this._scalingFactor;
+	}
+
+	@Override
+	public int compareTo(Compartment o) 
+	{
+		int temp = this._priority - o._priority;
+		if ( temp != 0 )
+			return temp;
+		else
+			return this.name.compareTo(o.name);
 	}
 }

@@ -1,10 +1,7 @@
 package dataIO;
-import java.util.List;
 
 import org.w3c.dom.Element;
 
-import agent.Agent;
-import dataIO.Log.Tier;
 import idynomics.Idynomics;
 import settable.Settable;
 import shape.Shape;
@@ -71,7 +68,6 @@ public class PovExport implements GraphicalExporter
 				+ "_" + DigitFilenr(_filewriterfilenr) + ".pov";
 		_povFile.fnew(fileString);
 
-		Log.out(Tier.EXPRESSIVE, "Writing new file: " + fileString);
 		_povFile.write("#declare Count = " + _filewriterfilenr + ";\n");
 		_povFile.write("#include \"sceneheader.inc\"\n");
 		
@@ -83,7 +79,6 @@ public class PovExport implements GraphicalExporter
 				+ fileName + ".pov";
 		_povFile.fnew(fileString);
 
-		Log.out(Tier.EXPRESSIVE, "Writing new file: " + fileString);
 		_povFile.write("#declare Count = " + _filewriterfilenr + ";\n");
 		_povFile.write("#include \"sceneheader.inc\"\n");
 		
@@ -122,7 +117,6 @@ public class PovExport implements GraphicalExporter
 		if ( ! _povFile.doesFileExist(fileString) )
 		{
 			_povFile.fnew(fileString);
-			Log.out(Tier.EXPRESSIVE, "Writing new file: " + fileString);
 			double[] domain = shape.getDimensionLengths();
 			domain = this.to3D(domain);
 			double kickback = 2.0 * Math.max( domain[0] , 
@@ -152,6 +146,8 @@ public class PovExport implements GraphicalExporter
 				"	}\n" +
 				"	union {\n" +
 		
+				"	#declare PURPLE = color rgb < 1.0 , 0.0 , 1.0 >;\n" +
+				"	#declare ORANGE = color rgb < 1.0 , 0.6 , 0.1 >;\n" +
 				"	#declare RED = color rgb < 1.0 , 0.0 , 0.0 >;\n" +
 				"	#declare BLUE = color rgb < 0.0 , 0.0 , 1.0 >;\n" +
 				"	#declare GREEN = color rgb < 0.0 , 1.0 , 0.0 >;\n" +
@@ -168,8 +164,6 @@ public class PovExport implements GraphicalExporter
 		if ( ! _povFile.doesFileExist(fileString) )
 		{
 			_povFile.fnew(fileString);
-			Log.out(Tier.EXPRESSIVE, "Writing new file: " + fileString);
-			
 			_povFile.write(
 //				"	translate < -0.5,  -0.5,  0.0 >\n" +
 				"	rotate < 0.0,  0.0,  180.0 >\n" +
@@ -178,46 +172,25 @@ public class PovExport implements GraphicalExporter
 			_povFile.fclose();
 		}
 	}
-	
+
 	/**
-	 * Writes current scene as .pov file
-	 * @deprecated
-	 * @param prefix
-	 * @param agents
+	 * 
 	 */
-	public void writepov(String prefix, List<Agent> agents) 
+	public String resolveColour (Object pigment)
 	{
-		FileHandler povFile = new FileHandler();
-		
-		povFile.fnew("../../Simulations/" + prefix + "/" 
-		+ prefix + DigitFilenr(_filewriterfilenr) + ".pov");
-
-		povFile.write("#declare Count = " + _filewriterfilenr + ";\n");
-		povFile.write("#include \"../sceneheader.inc\"\n");
-		
-		for (Agent a: agents) {	
-			@SuppressWarnings("unchecked")
-			List<double[]> joints = (List<double[]>) a.get("joints");
-			for (int i = 0; joints.size() > i; i++)
-			{
-				// sphere
-				povFile.write("sphere { \n" + toPov(this.to3D(joints.get(i))) + 
-						a.get("radius") + "\n pigment { " + a.get("pigment") 
-						+ " } }\n" );
-				if (joints.size() > i+1)
-				{
-					//cylinder
-					povFile.write("cylinder { \n" + toPov(this.to3D(joints.get(i))) + 
-							", " + toPov(this.to3D(joints.get(i+1))) + a.get("radius") 
-							+ "\n pigment { " + a.get("pigment") + " } }\n" );
-				}
-			}
+		if (pigment instanceof String)
+		{
+			return (String) pigment;
 		}
-		povFile.write("#include \"../scenefooter.inc\"\n");
-		povFile.fclose();
-		_filewriterfilenr++;
+		else
+		{
+			float[] pigmentArray = (float[]) pigment;
+			String rgbStatement = "color rgb < " + pigmentArray[0] + ", " + 
+				pigmentArray[1] + ", " + pigmentArray[2] + " >";
+			return rgbStatement;
+		}
 	}
-
+	
 	/**
 	 * 
 	 */

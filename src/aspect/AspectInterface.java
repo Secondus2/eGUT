@@ -1,12 +1,15 @@
 package aspect;
 
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.LinkedList;
+import java.util.Map;
+
 import org.w3c.dom.Element;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 
-import dataIO.Log;
 import dataIO.ObjectFactory;
-import dataIO.Log.Tier;
 import referenceLibrary.XmlRef;
 
 /**
@@ -44,8 +47,6 @@ public abstract interface AspectInterface
 				Element s = (Element) stateNodes.item(j);
 				key = s.getAttribute( XmlRef.nameAttribute );
 				aspectReg.add( key, ObjectFactory.loadObject( s ) );
-				if( Log.shouldWrite(Tier.BULK))
-					Log.out(Tier.BULK, "Aspects loaded for \""+key+"\"");
 			}
 		}
 	}
@@ -223,4 +224,11 @@ public abstract interface AspectInterface
 		return (Boolean[]) this.reg().getValue(this, aspect);
 	}
 
+	public default Map<String, Double> getVariables(Collection<String> variables)
+	{
+		HashMap<String, Double> out = new HashMap<String, Double>();
+		for( String s : variables)
+			out.put(s, this.getDouble(s));
+		return out;
+	}
 }

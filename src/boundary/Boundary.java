@@ -11,24 +11,26 @@ import java.util.Random;
 import org.w3c.dom.Element;
 
 import agent.Agent;
+import bookkeeper.KeeperEntry.EventType;
+import boundary.library.ChemostatBoundary;
 import boundary.library.ChemostatToBoundaryLayer;
 import boundary.spatialLibrary.BiofilmBoundaryLayer;
 import compartment.AgentContainer;
 import compartment.Compartment;
 import compartment.EnvironmentContainer;
 import dataIO.Log;
-import dataIO.XmlHandler;
 import dataIO.Log.Tier;
+import dataIO.XmlHandler;
+import idynomics.Global;
 import idynomics.Idynomics;
 import instantiable.Instantiable;
 import referenceLibrary.AspectRef;
 import referenceLibrary.XmlRef;
 import settable.Attribute;
 import settable.Module;
-import settable.Settable;
 import settable.Module.Requirements;
+import settable.Settable;
 import utility.Helper;
-import shape.Shape;
 
 /**
  * \brief General class of boundary for a {@code Shape}.
@@ -48,7 +50,6 @@ public abstract class Boundary implements Settable, Instantiable
 	 * Contains a reference to the compartment shape.
 	 */
 	public AgentContainer _agents;
-	
 	/**
 	 * XML tag for the name of the partner boundary.
 	 */
@@ -61,6 +62,7 @@ public abstract class Boundary implements Settable, Instantiable
 	/**
 	 * 
 	 */
+	protected boolean _dominant = false;
 	// TODO implement this in node construction
 	protected String _partnerCompartmentName;
 	
@@ -95,14 +97,6 @@ public abstract class Boundary implements Settable, Instantiable
 	 * TODO
 	 */
 	private Settable _parentNode;
-	/**
-	 * Log verbosity level for debugging purposes (set to BULK when not using).
-	 */
-	protected static final Tier SOLUTE_LEVEL = Tier.BULK;
-	/**
-	 * Log verbosity level for debugging purposes (set to BULK when not using).
-	 */
-	protected static final Tier AGENT_LEVEL = Tier.BULK;
 	
 	/* ***********************************************************************
 	 * CONSTRUCTORS
@@ -176,12 +170,6 @@ public abstract class Boundary implements Settable, Instantiable
 	public void setPartner(Boundary partner)
 	{
 		this._partner = partner;
-		if (Helper.isNullOrEmpty(this._partnerCompartmentName))
-		{
-			this._partnerCompartmentName =
-					((Compartment)this._partner.getParent().getParent().
-							getParent()).name;
-		}
 	}
 
 	/**
@@ -198,6 +186,11 @@ public abstract class Boundary implements Settable, Instantiable
 	{
 		return ( this.getPartnerClass() != null ) &&
 				( this._partner != null );
+	}
+	
+	public boolean assistingBoundary()
+	{
+		return ( this.checkPartner() &! this._dominant);
 	}
 	
 	/**
@@ -225,6 +218,8 @@ public abstract class Boundary implements Settable, Instantiable
 				out = (Boundary) bClass.newInstance();
 				this.setPartner(out);
 				out.setPartner(this);
+				/* oh dear TODO better to assign compartment name on boundary creation or just associate the compartment */
+				out._partnerCompartmentName = ((Compartment) this.getParent().getParent().getParent()).getName();
 			}
 			catch (Exception e)
 			{
@@ -293,6 +288,7 @@ public abstract class Boundary implements Settable, Instantiable
 	 */
 	public double getMassFlowRate(String name)
 	{
+//		System.out.println(name + " massFlow " + this.getName());
 		if ( this._massFlowRate.containsKey(name) )
 			return this._massFlowRate.get(name);
 		return 0.0;
@@ -347,14 +343,13 @@ public abstract class Boundary implements Settable, Instantiable
 		 * 
 		 */
 		int currentIter = Idynomics.simulator.timer.getCurrentIteration();
+
 		if ( this._partner == null )
 		{
 			this._iterLastUpdated = currentIter;
 			// TODO check that we should do nothing here
 			return;
 		}
-		if ( this._iterLastUpdated < currentIter )
-		{
 			double thisRate, partnerRate;
 			for ( String name : this._environment.getSoluteNames() )
 			{
@@ -364,14 +359,14 @@ public abstract class Boundary implements Settable, Instantiable
 				thisRate = this.getMassFlowRate(name);
 				partnerRate = this._partner.getMassFlowRate(name);
 				/*
-				 * Apply any volume-change conversions.
-				 */
-				// TODO
-				/*
 				 * Apply the switch.
 				 */
-				this.setMassFlowRate(name, partnerRate);
-				this._partner.setMassFlowRate(name, thisRate);
+				if (this._dominant)
+					partnerRate = -thisRate;
+				if (this._partner._dominant)
+					thisRate = -partnerRate;
+				this.setMassFlowRate(name, -partnerRate);
+				this._partner.setMassFlowRate(name, -thisRate);
 			}
 			/*
 			 * Update the iteration numbers so that the partner boundary
@@ -379,7 +374,6 @@ public abstract class Boundary implements Settable, Instantiable
 			 */
 			this._iterLastUpdated = currentIter;
 			this._partner._iterLastUpdated = currentIter;
-		}
 		/*
 		 * If there is any additional updating to do, do it now.
 		 */
@@ -403,11 +397,6 @@ public abstract class Boundary implements Settable, Instantiable
 	 */
 	public void addOutboundAgent(Agent anAgent)
 	{
-		if ( Log.shouldWrite(AGENT_LEVEL) )
-		{
-			Log.out(AGENT_LEVEL, " - Accepting agent (ID: "+
-					anAgent.identity()+") to departure lounge");
-		}
 		this._departureLounge.add(anAgent);
 	}
 
@@ -418,11 +407,6 @@ public abstract class Boundary implements Settable, Instantiable
 	 */
 	public void acceptInboundAgent(Agent anAgent)
 	{
-		if ( Log.shouldWrite(AGENT_LEVEL) )
-		{
-			Log.out(AGENT_LEVEL, " - Accepting agent (ID: "+
-					anAgent.identity()+") to arrivals lounge");
-		}
 		this._arrivalsLounge.add(anAgent);
 	}
 
@@ -433,17 +417,8 @@ public abstract class Boundary implements Settable, Instantiable
 	 */
 	public void acceptInboundAgents(Collection<Agent> agents)
 	{
-		if ( Log.shouldWrite(AGENT_LEVEL) )
-		{
-			Log.out(AGENT_LEVEL, "Boundary "+this.getName()+" accepting "+
-					agents.size()+" agents to arrivals lounge");
-		}
 		for ( Agent anAgent : agents )
-		{
 			this.acceptInboundAgent(anAgent);
-		}
-		if ( Log.shouldWrite(AGENT_LEVEL) )
-			Log.out(AGENT_LEVEL, " Done!");
 	}
 
 	/**
@@ -456,15 +431,18 @@ public abstract class Boundary implements Settable, Instantiable
 		{
 			if ( this._partner == null )
 			{
-				Log.out(Tier.EXPRESSIVE, "Boundary "+this.getName()+" removing "+
+				Log.out(Tier.DEBUG, "Boundary "+this.getName()+" removing "+
 							this._departureLounge.size()+" agents");
 				for( Agent a : this._departureLounge )
-					this._agents.registerRemoveAgent(a);
+				{
+					this._agents.registerRemoveAgent(a, EventType.REMOVED, 
+							"removed", null);
+				}
 				this._departureLounge.clear();
 			}
 			else
 			{
-				Log.out(Tier.EXPRESSIVE, "Boundary "+this.getName()+" pushing "+
+				Log.out(Tier.DEBUG, "Boundary "+this.getName()+" pushing "+
 							this._departureLounge.size()+" agents to partner");
 				Random randomSelector = new Random();
 				Collection<Agent> acceptanceLounge = new LinkedList<Agent>();
@@ -472,50 +450,61 @@ public abstract class Boundary implements Settable, Instantiable
 				int numAgentsDepart = this._departureLounge.size();
 				String partnerCompName = this.getPartnerCompartmentName();
 				Compartment partnerComp = Idynomics.simulator.getCompartment(partnerCompName);
-				Compartment thisComp = (Compartment) this._environment.getParent();
-				double scFac = thisComp.getScalingFactor() / partnerComp.getScalingFactor();
-				int numAgentsToAccept = (int) Math.ceil(numAgentsDepart * scFac);
-				if (numAgentsToAccept < numAgentsDepart)
+				Compartment thisComp = Idynomics.simulator.getCompartment("oneDim");
+				if (partnerComp != null )
 				{
-					List<Integer> acceptedIndices = new ArrayList<Integer>();
-					for (int i = 0; i < numAgentsToAccept; i++)
+					double scFac = thisComp.getScalingFactor() / partnerComp.getScalingFactor();
+					int numAgentsToAccept = (int) Math.ceil(numAgentsDepart * scFac);
+					if (numAgentsToAccept < numAgentsDepart)
 					{
-						int agentIndex = randomSelector.nextInt(numAgentsDepart);
-						while (acceptedIndices.contains(agentIndex))
-							agentIndex = randomSelector.nextInt(numAgentsDepart);
-						acceptedIndices.add(agentIndex);
-						Agent accepted = (Agent) this._departureLounge.toArray()[agentIndex];
-						Agent acceptedCopy = new Agent(accepted);
-						if (this.getPartnerClass() == BiofilmBoundaryLayer.class)
-							acceptedCopy.set(AspectRef.isLocated, true);
-						if (this.getPartnerClass() == ChemostatToBoundaryLayer.class)
-							acceptedCopy.set(AspectRef.isLocated, false);
-						acceptanceLounge.add(acceptedCopy);
+						List<Integer> acceptedIndices = new ArrayList<Integer>();
+						for (int i = 0; i < numAgentsToAccept; i++)
+						{
+							int agentIndex = randomSelector.nextInt(numAgentsDepart);
+							while (acceptedIndices.contains(agentIndex))
+								agentIndex = randomSelector.nextInt(numAgentsDepart);
+							acceptedIndices.add(agentIndex);
+							Agent accepted = (Agent) this._departureLounge.toArray()[agentIndex];
+							Agent acceptedCopy = new Agent(accepted);
+							if (this.getPartnerClass() == BiofilmBoundaryLayer.class)
+								acceptedCopy.set(AspectRef.isLocated, true);
+							if (this.getPartnerClass() == ChemostatToBoundaryLayer.class)
+								acceptedCopy.set(AspectRef.isLocated, false);
+							acceptanceLounge.add(acceptedCopy);
+						}
+						this._partner.acceptInboundAgents(acceptanceLounge);
 					}
-					this._partner.acceptInboundAgents(acceptanceLounge);
-				}
-				else if (numAgentsToAccept > numAgentsDepart)
-				{
-					for (int i = 0; i < numAgentsToAccept; i++)
+					else if (numAgentsToAccept > numAgentsDepart)
 					{
-						int agentIndex = i - (numAgentsDepart * (i/numAgentsDepart));
-						Agent accepted = (Agent) this._departureLounge.toArray()[agentIndex];
-						Agent acceptedCopy = new Agent(accepted);
-						if (this.getPartnerClass() == BiofilmBoundaryLayer.class)
-							acceptedCopy.set(AspectRef.isLocated, true);
-						if (this.getPartnerClass() == ChemostatToBoundaryLayer.class)
-							acceptedCopy.set(AspectRef.isLocated, false);
-						acceptanceLounge.add(acceptedCopy);
+						for (int i = 0; i < numAgentsToAccept; i++)
+						{
+							int agentIndex = i - (numAgentsDepart * (i/numAgentsDepart));
+							Agent accepted = (Agent) this._departureLounge.toArray()[agentIndex];
+							Agent acceptedCopy = new Agent(accepted);
+							if (this.getPartnerClass() == BiofilmBoundaryLayer.class)
+								acceptedCopy.set(AspectRef.isLocated, true);
+							if (this.getPartnerClass() == ChemostatToBoundaryLayer.class)
+								acceptedCopy.set(AspectRef.isLocated, false);
+							acceptanceLounge.add(acceptedCopy);
+						}
+						this._partner.acceptInboundAgents(acceptanceLounge);
 					}
-					this._partner.acceptInboundAgents(acceptanceLounge);
+					else
+					{
+						this._partner.acceptInboundAgents(this._departureLounge);
+					}
+					for( Agent a : this._departureLounge )
+						this._agents.registerRemoveAgent(a, EventType.TRANSFER, "transfered", null);
+					this._departureLounge.clear();
 				}
 				else
 				{
-					this._partner.acceptInboundAgents(this._departureLounge);
+					Log.out(Tier.NORMAL, "no partner compartment found, removing outbound agents");
+					for( Agent a : this._departureLounge )
+						this._agents.registerRemoveAgent(a, EventType.REMOVED, "removed", null);
+					this._departureLounge.clear();
 				}
-				for( Agent a : this._departureLounge )
-					this._agents.registerRemoveAgent(a);
-				this._departureLounge.clear();
+
 			}
 			this._agents.refreshSpatialRegistry();
 		}
@@ -548,13 +537,12 @@ public abstract class Boundary implements Settable, Instantiable
 	public void agentsArrive()
 	{
 		for ( Agent anAgent : this._arrivalsLounge )
+		{
 			//FIXME The agent MUST be registered to the new compartment otherwise offsrping will end up in the old
 			//compartment, this is a really ugly work around but the only way to actually get there.
 			//This design should be reconsidered [Bas 13-04-2018]
-			//FIXME - For located agents, this leads to agents retaining their 
-			//body location, causing a crash if the new compartment has a
-			//different size. - Tim [13.09.19]
 			((Compartment)this._agents.getParent()).addAgent(anAgent);
+		}
 		this.clearArrivalsLounge();
 	}
 
@@ -601,6 +589,9 @@ public abstract class Boundary implements Settable, Instantiable
 					cArray,
 					true));
 		}
+		
+		if ( this._volumeFlowRate != 0.0 )
+			modelNode.add( new Attribute( XmlRef.volumeFlowRate, String.valueOf( this._volumeFlowRate ), null, true ));
 		// TODO
 		// modelNode.requirement = Requirements.?
 		return modelNode;
