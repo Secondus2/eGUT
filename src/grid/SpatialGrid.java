@@ -176,8 +176,9 @@ public class SpatialGrid implements Settable, Instantiable
 				Voxel vox = new Voxel(location, upper);
 				vox.init(_shape.getCollision());
 
+				//TODO - Need an agent search here to find epithelial cells
 				List<Agent> nhbs = CollisionUtilities.getCollidingAgents(
-						vox, agents.agentSearch( location, upper ) );
+						vox, agents.treeSearch( location, upper ) );
 				
 				/* If there are any agents in this voxel, update the 
 				 * diffusivity. */
