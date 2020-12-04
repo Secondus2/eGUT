@@ -23,6 +23,7 @@ import surface.Surface;
 import surface.Voxel;
 import surface.collision.model.DefaultPullFunction;
 import surface.collision.model.DefaultPushFunction;
+import utility.Helper;
 
 
 /**
@@ -260,23 +261,28 @@ public class Collision
 		
 		
 		//Delete this section?
-		AspectReg agentReg = agent.reg();
-		AspectReg neighbourReg = neighbour.reg();
 		
-		agentReg.doEvent(agent, neighbour, 0.0,
-				AspectRef.collisionPullForceCalculation);
-		neighbourReg.doEvent(neighbour, agent, 0.0,
-				AspectRef.collisionPullForceCalculation);
-		
-		double agentPull = (agent.isAspect(AspectRef.collisionCurrentPullForce) 
-				? agent.getDouble(AspectRef.collisionCurrentPullForce) : 0.0);
-		double neighbourPull = (neighbour.isAspect(AspectRef.
-				collisionCurrentPullForce) ? 
-				neighbour.getDouble(AspectRef.collisionCurrentPullForce) : 0.0);
-		
-		double pullForce = agentPull + neighbourPull;
-		
-		_variables.setPullForce(pullForce);
+		if (!(Helper.isNullOrEmpty(agent) | Helper.isNullOrEmpty(neighbour)))
+		{
+			AspectReg agentReg = agent.reg();
+			AspectReg neighbourReg = neighbour.reg();
+			
+
+			agentReg.doEvent(agent, neighbour, 0.0,
+					AspectRef.collisionPullForceCalculation);
+			neighbourReg.doEvent(neighbour, agent, 0.0,
+					AspectRef.collisionPullForceCalculation);
+			
+			double agentPull = (agent.isAspect(AspectRef.collisionCurrentPullForce) 
+					? agent.getDouble(AspectRef.collisionCurrentPullForce) : 0.0);
+			double neighbourPull = (neighbour.isAspect(AspectRef.
+					collisionCurrentPullForce) ? 
+					neighbour.getDouble(AspectRef.collisionCurrentPullForce) : 0.0);
+			
+			double pullForce = agentPull + neighbourPull;
+			
+			_variables.setPullForce(pullForce);
+		}
 		
 		//Delete this section? ^^
 		

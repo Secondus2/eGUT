@@ -111,8 +111,8 @@ public class BiofilmBoundaryLayer extends WellMixedBoundary
 			_surfaceArea = Double.valueOf(surfaceAreaString);
 		}
 		
-		this._exchangeRate = Double.valueOf(XmlHandler.gatherAttribute(
-				xmlElement, XmlRef.exchangeRate));
+		//this._exchangeRate = Double.valueOf(XmlHandler.gatherAttribute(
+		//		xmlElement, XmlRef.exchangeRate));
 	}
 	
 	@Override

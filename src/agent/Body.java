@@ -362,6 +362,8 @@ public class Body implements Copyable, Instantiable, Settable
 	 * @param apicalNormal
 	 */
 	public Body(Point[] points, double[] apicalNormal) {
+		this._points = new LinkedList<Point>();
+		this._surfaces = new LinkedList<Surface>();
 		this._points.add(points[0]);
 		this._points.add(points[1]);
 		this._morphology = Morphology.ORIENTEDCUBOID;
