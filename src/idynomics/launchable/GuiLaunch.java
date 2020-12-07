@@ -8,21 +8,20 @@ import java.awt.event.KeyEvent;
 
 import javax.swing.AbstractAction;
 import javax.swing.ActionMap;
-import javax.swing.InputMap;
-
-import gui.GuiActions;
-import gui.GuiButtons;
-import gui.GuiMain;
-import gui.GuiMenu;
-import idynomics.Idynomics;
-
 import javax.swing.ImageIcon;
+import javax.swing.InputMap;
 import javax.swing.JComponent;
 import javax.swing.JFrame;
 import javax.swing.KeyStroke;
 import javax.swing.UIManager;
 import javax.swing.UnsupportedLookAndFeelException;
 
+import gui.GuiActions;
+import gui.GuiButtons;
+import gui.GuiEditor;
+import gui.GuiMain;
+import gui.GuiMenu;
+import idynomics.Idynomics;
 import utility.Helper;
 
 /**
@@ -118,10 +117,21 @@ public strictfp class GuiLaunch implements Runnable, Launchable
 		c.fill = GridBagConstraints.BOTH;
 		c.weighty = 1.0;
 		c.weightx = 1.0;
-		c.anchor = GridBagConstraints.PAGE_END; 
+		c.anchor = GridBagConstraints.CENTER; 
 		c.gridx = 0;
 		c.gridy = 1;
 		_masterFrame.add(GuiMain.getConstructor(),c);
+		
+		/* Set, size and scale lower part part */
+		c.fill = GridBagConstraints.BOTH;
+		c.weighty = 0.0;
+		c.weightx = 1.0;
+		c.anchor = GridBagConstraints.PAGE_END; 
+		c.gridx = 0;
+		c.gridy = 2;
+		_masterFrame.add(GuiMain.newStatusBar(),c);
+		
+		
 
 		/* Bind keys and display window */
 		keyBindings(_masterFrame.getRootPane());

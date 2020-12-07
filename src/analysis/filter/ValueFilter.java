@@ -1,5 +1,6 @@
 package analysis.filter;
 import aspect.AspectInterface;
+import expression.Expression;
 import utility.Helper;
 
 /**
@@ -22,10 +23,17 @@ public class ValueFilter implements Filter
 	}
 
 	@Override
-	public String stringValue(AspectInterface subject) 
+	public String stringValue(AspectInterface subject, String format)
 	{
 		Object obj = subject.getValue(this.property);
-		return ( Helper.isNullOrEmpty(obj) ? "NONE" : String.valueOf(obj) );
+		if( obj instanceof String )
+			return (String) obj;
+		else if ( obj instanceof Expression )
+		{
+			Expression ex = (Expression) obj;
+			obj = ex.evaluate(subject);
+		}
+		return ( Helper.isNullOrEmpty(obj) ? "NONE" : String.format( screenLocale,  format, obj) );
 	}
 
 	@Override

@@ -136,6 +136,8 @@ public class ClassRef
 	public final static String coccoidRadius =
 			aspect.calculated.CoccoidRadius.class.getName();
 	
+	public final static String cylinderRadius =
+			aspect.calculated.CylinderRadius.class.getName();	
 	/**
 	 * component volume state
 	 */
@@ -169,14 +171,14 @@ public class ClassRef
 	/**
 	 * 
 	 */
-	public final static String wetWeight = 
-			aspect.calculated.WetWeight.class.getName();
-	
-	/**
-	 * 
-	 */
 	public final static String densityScaled = 
 			aspect.calculated.DensityScaled.class.getName();
+	
+	 /**
+	 *
+	 */
+	public final static String numberWithUnit =
+			aspect.calculated.NumberWithUnit.class.getName();
 	
 	/**
 	 * 
@@ -184,22 +186,15 @@ public class ClassRef
 	public final static String cuboidApicalFace = 
 			aspect.calculated.CuboidApicalFace.class.getName();
 	
-	
-	/* ************************************************************************
-	 * Class reference library : Aspects - Calculated Once
-	 */
+	public final static String agentColouring =
+			aspect.calculated.AgentColouring.class.getName();
 	
 	/**
-	 * Number with units for conversion to double.
+	 * 
 	 */
-	
-	public final static String numberWithUnit = 
-			aspect.calculatedOnce.NumberWithUnit.class.getName();
-	
-	public final static String numWithUnit = 
-			aspect.calculated.NumWithUnit.class.getName();
-	
-	
+	public final static String agentMassProportion =
+			aspect.calculated.StructuredBiomassCalculation.class.getName();
+
 	/* ************************************************************************
 	 * Class reference library : Aspects - Event
 	 */
@@ -439,6 +434,18 @@ public class ClassRef
 	 */
 	public final static String agentAttachment =
 			processManager.library.AgentAttachment.class.getName();
+	
+	
+	 /** Process for maintenance of biofilm at maximum thickness through 
+	 * removal of all agents above threshold height
+	 */
+	public final static String agentScraper =
+			processManager.library.AgentScraper.class.getName();
+	/**
+	 * writes tables in csv
+	 */
+	public final static String tableWriter =
+			processManager.library.TableWriter.class.getName();
 	
 	/* ************************************************************************
 	 * IdynoMiCS main classes

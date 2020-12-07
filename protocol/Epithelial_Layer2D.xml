@@ -68,11 +68,10 @@
 					</list>
 				</aspect>
 				<aspect name="pigment" type="PRIMARY" class="String" value="GREEN" />
-				<aspect name="mass" type="CALCULATED" class="WetWeight"  />
-				<aspect name="WetDryRatio" class="Double"  value="4.0" />
+				<aspect name="WetDryRatio" class="Double"  value="1.0" />
 				<aspect name="surfaces"		type="CALCULATED"	class="AgentSurfaces" />
 				<!-- NOTE for testing purposes as stateExpression -->
-				<aspect name="volume" 		type="CALCULATED" 	class="StateExpression" 	input="mass/density" />
+				<aspect name="volume" 		type="CALCULATED" 	class="SimpleVolumeState" 	/>
 				<aspect name="radius"		type="PRIMARY"		class="Double"		value="0.3" 	/>
 				<aspect name="divide" 		type="EVENT" 		class="RodDivision"			 />
 				<aspect name="divisionMass" type="PRIMARY"		class="Double"		value="0.5" />
@@ -89,13 +88,14 @@
 				<aspect name="surfaces"		type="CALCULATED"	class="AgentSurfaces" />
 				<aspect name="morphology" 	type="PRIMARY" 		class="String" 		value="coccoid" />
 				<!-- NOTE for testing purposes as stateExpression -->
-				<aspect name="volume" 		type="CALCULATED" 	class="StateExpression" 	input="mass/density" />
+				<aspect name="volume" 		type="CALCULATED" 	class="SimpleVolumeState" 	/>
 				<aspect name="radius"		type="CALCULATED"	class="CoccoidRadius" 	/>
 				<aspect name="divide" 		type="EVENT" 		class="CoccoidDivision"			 />
 				<aspect name="divisionMass" type="PRIMARY"		class="Double"		value="0.5" />
 				<aspect name="growth" 		type="EVENT" 		class="SimpleGrowth" />
 				<aspect name="#isLocated" 	type="PRIMARY" 		class="Boolean" value="true" />
 				<aspect name="updateBody" 	type="EVENT" 		class="UpdateBody" 		 />
+				<aspect name="calculatePull" 	type="EVENT"	class="DifferentialInteractionForce"/>
 			</species>
 			<species name="stochasticMover">
 				<aspect name="stochasticStep" type="PRIMARY" class="Double" value="2.0" />
@@ -107,7 +107,7 @@
 				<dimension name="X" isCyclic="false" targetResolution="2" max="10.0">
 				</dimension> 
 				<dimension name="Y" isCyclic="false" targetResolution="2" max="10.0">
-					<boundary class="FixedBoundary" extreme="1">
+					<boundary class="FixedBoundary" extreme="1" layerThickness = "1.0">
 						<solute name="solute1" concentration="3.0"/>
 						<solute name="solute2" concentration="0.0"/>
 					</boundary>
@@ -140,7 +140,7 @@
 			<agents>
 				<agent>
 					<aspect name="species" type="PRIMARY" class="String" value="bacterium" />
-					<aspect  name="massMap" class="InstantiableMap">
+					<aspect  name="mass" class="InstantiableMap">
 						<map entryClass="Double" keyType="String">
 							<item key="bioMass" value="0.2"  />
 						</map>

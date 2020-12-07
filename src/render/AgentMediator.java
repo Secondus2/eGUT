@@ -16,8 +16,6 @@ import com.jogamp.opengl.util.gl2.GLUT;
 import agent.Agent;
 import compartment.AgentContainer;
 import compartment.Compartment;
-import dataIO.Log;
-import dataIO.Log.Tier;
 import grid.ArrayType;
 import grid.SpatialGrid;
 import linearAlgebra.Vector;
@@ -25,15 +23,13 @@ import referenceLibrary.AspectRef;
 import shape.CartesianShape;
 import shape.CylindricalShape;
 import shape.Dimension;
-import shape.Dimension.DimName;
-import shape.iterator.ShapeIterator;
 import shape.Shape;
 import shape.SphericalShape;
+import shape.iterator.ShapeIterator;
 import surface.Ball;
 import surface.Cuboid;
 import surface.Rod;
 import surface.Surface;
-import utility.ExtraMath;
 import utility.Helper;
 
 
@@ -55,6 +51,13 @@ public class AgentMediator implements CommandMediator {
 	
 	HashMap<String, String> soluteColors;
 	
+	/**
+	 * toggle grid view or domain view
+	 */
+	public boolean grid = false;
+	
+	public int activeCol = 0;
+	
 	GLUquadric qobj = null;
 	
 	/*
@@ -65,7 +68,7 @@ public class AgentMediator implements CommandMediator {
 	/*
 	 * pigment declaration in string format (eg: RED, BLUE etc)
 	 */
-	private String _pigment;
+	private Object _pigment;
 	
 	/* 
 	 * rgb color code
@@ -86,11 +89,6 @@ public class AgentMediator implements CommandMediator {
 	 * OpenGL Utility Toolkit
 	 */
 	private GLUT _glut;
-	
-	/**
-	 * toggle grid view or domain view
-	 */
-	public boolean grid = false;
 	
 	/**
 	 * OpenGL Utility Library
@@ -118,8 +116,6 @@ public class AgentMediator implements CommandMediator {
 
 	private float _soluteTranparancy = 0.5f;
 
-	private Tier outputLevel;
-
 	/*
 	 * temporary variables (reused)
 	 */
@@ -135,7 +131,7 @@ public class AgentMediator implements CommandMediator {
 
 	private double[] length;
 
-	private float max;
+	private float[] max;
 
 	private float conc;
 
@@ -155,6 +151,14 @@ public class AgentMediator implements CommandMediator {
 			return Vector.times( this._domainMaxima, 0.5);
 		else
 			return new double[] { 0.0, 0.0 };
+	}
+	
+	public void colStep()
+	{
+		if (activeCol > soluteColors.size())
+			activeCol = 0;
+		else
+			activeCol += 1;
 	}
 	
 	/**
@@ -237,32 +241,43 @@ public class AgentMediator implements CommandMediator {
 					AspectRef.surfaceList) ? a.get(AspectRef.surfaceList) :
 					new LinkedList<Surface>()))
 			{
-				_pigment = a.getString("pigment");
+				_pigment = a.getValue("pigment");
 				_pigment = Helper.setIfNone(_pigment, "WHITE");
-				switch (_pigment)
+				if (!(_pigment instanceof String))
 				{
-				case "GREEN" :
-					  _rgba = new float[] {0.0f, 1.0f, 0.0f};
-					  break;
-				case "RED" :
-					  _rgba = new float[] {1.0f, 0.0f, 0.0f};
-					  break;
-				case "BLUE" :
-					  _rgba = new float[] {0.01f, 0.0f, 1.0f};
-					  break;
-				case "PURPLE" :
-					  _rgba = new float[] {1.0f, 0.0f, 1.0f};
-					  break;
-				case "ORANGE" :
-					  _rgba = new float[] {1.0f, 0.6f, 0.1f};
-					  break;
-				case "BLACK" :
-					  _rgba = new float[] {0.0f, 0.0f, 0.0f};
-					  break;
-				case "WHITE" :
-				default :
-					  _rgba = new float[] {1.0f, 1.0f, 1.0f};
-					  break;
+					double[] _pigmentDouble = (double[]) _pigment;
+					for (int i = 0; i < _pigmentDouble.length; i++)
+					{
+						_rgba[i] = (float) _pigmentDouble[i];
+					}
+				}
+				else
+				{
+					switch ((String) _pigment)
+					{
+					case "GREEN" :
+						_rgba = new float[] {0.0f, 1.0f, 0.0f};
+						break;
+					case "RED" :
+						_rgba = new float[] {1.0f, 0.0f, 0.0f};
+						break;
+					case "BLUE" :
+						_rgba = new float[] {0.01f, 0.0f, 1.0f};
+						break;
+					case "PURPLE" :
+						_rgba = new float[] {1.0f, 0.0f, 1.0f};
+						break;
+					case "ORANGE" :
+						_rgba = new float[] {1.0f, 0.6f, 0.1f};
+						break;
+					case "BLACK" :
+						_rgba = new float[] {0.0f, 0.0f, 0.0f};
+						break;
+					case "WHITE" :
+					default :
+						_rgba = new float[] {1.0f, 1.0f, 1.0f};
+						break;
+					}
 				}
 				
 				/*
@@ -351,7 +366,6 @@ public class AgentMediator implements CommandMediator {
 	
 	private void draw(Rod rod) 
 	{
-		outputLevel = Tier.BULK;
 		 /* first sphere */
 		temp_posA = GLUtil.make3D(rod._points[0].getPosition());
 		 /* second sphere*/
@@ -364,11 +378,6 @@ public class AgentMediator implements CommandMediator {
 
 		applyCurrentColor();
 
-		if ( Log.shouldWrite(outputLevel) )
-		{
-			Log.out(outputLevel, "Constructing Rod with radius " + rod._radius + " and " 
-					+ _slices + " slices, " + _stacks + " stacks" );
-		}
 		GLUquadric qobj = _glu.gluNewQuadric();
 
 		/* draw first sphere */
@@ -429,20 +438,20 @@ public class AgentMediator implements CommandMediator {
 //		_gl.glBlendFunc(GL2.GL_SRC_ALPHA, GL2.GL_ONE);
 		_gl.glColor4f(0.9f,0.9f,1.0f,0.1f);
 		
-		if (this.grid)
+		if (this.activeCol != 0)
 		{
 			/* In grid view, solutes are assigned a random color and
 			 *  concentrations are indicated using a mixture of those colors
 			 *  scaled to the next highest decimal of the current maximum conc. 
 			 */
 			ShapeIterator it = _shape.getNewIterator();
-			max = 0f;
-			
+			max = new float[soluteColors.values().size()];
+			int i = 0;
 			if (soluteColors.values().size() > 0){
 				/* get the current maximum concentration */
 				for (String s : soluteColors.keySet()){
 					SpatialGrid grid = _compartment.getSolute(soluteColors.get(s));
-					max = Math.max((float) grid.getMax(ArrayType.CONCN), max);
+					max[i++] = (float) grid.getMax(ArrayType.CONCN);
 				}
 			}
 			
@@ -454,11 +463,28 @@ public class AgentMediator implements CommandMediator {
 
 					float[] col = new float[] { 0f, 0f, 0f };
 					j = 0;
-					for (String s : soluteColors.keySet()){
-						SpatialGrid grid = _compartment.getSolute(soluteColors.get(s));
-						conc = (float)grid.getValueAt(ArrayType.CONCN, 
-								it.iteratorCurrent()) / max;
-						col[j++] = conc;
+					if (this.activeCol == 1)
+					{
+						for (String s : soluteColors.keySet()){
+							SpatialGrid grid = _compartment.getSolute(soluteColors.get(s));
+							conc = (float)grid.getValueAt(ArrayType.CONCN, 
+									it.iteratorCurrent()) / max[j];
+							col[j++] = conc;
+						}
+					}
+					else
+					{
+						for (String s : soluteColors.keySet())
+						{
+							if(j == this.activeCol-2)
+							{
+								SpatialGrid grid = _compartment.getSolute(soluteColors.get(s));
+								conc = (float)grid.getValueAt(ArrayType.CONCN, 
+										it.iteratorCurrent()) / max[j];
+								col[j] = conc;
+							}
+							j++;
+						}
 					}
 					
 					_rgba=col;

@@ -2,9 +2,6 @@ package shape.iterator;
 
 import static shape.iterator.ShapeIterator.WhereAmI.UNDEFINED;
 
-import dataIO.Log;
-import dataIO.Log.Tier;
-import linearAlgebra.Vector;
 import shape.CartesianShape;
 import shape.Dimension.DimName;
 
@@ -23,11 +20,6 @@ public class CartesianShapeIterator extends ShapeIterator
 	@Override
 	protected void resetNbhIter()
 	{
-		if ( Log.shouldWrite(NHB_ITER_LEVEL) )
-		{
-			Log.out(NHB_ITER_LEVEL, " Resetting nhb iter: current coord is "+
-				Vector.toString(this._currentNeighbor));
-		}
 		this._whereIsNhb = UNDEFINED;
 		for ( DimName dim : this._shape.getDimensionNames() )
 		{
@@ -40,10 +32,6 @@ public class CartesianShapeIterator extends ShapeIterator
 				this._nbhDirection = NhbDirection.BEHIND;
 				this._nbhDimName = dim;
 				this.transformNhbCyclic();
-				if( Log.shouldWrite(NHB_ITER_LEVEL) )
-					Log.out(NHB_ITER_LEVEL, "   returning transformed neighbor "
-							+ "at "	+ Vector.toString(this._currentNeighbor) +
-						": status "+this._whereIsNhb);
 				return;
 			}
 			else if ( this.nhbJumpOverCurrent(dim) )
@@ -51,12 +39,6 @@ public class CartesianShapeIterator extends ShapeIterator
 				this._nbhDirection = NhbDirection.AHEAD;
 				this._nbhDimName = dim;
 				this.transformNhbCyclic();
-				if ( Log.shouldWrite(NHB_ITER_LEVEL) )
-				{
-					Log.out(NHB_ITER_LEVEL, "   returning transformed "+
-						"neighbor at "+Vector.toString(this._currentNeighbor)+
-						": status "+this._whereIsNhb);
-				}
 				return;
 			}
 		}
@@ -65,19 +47,8 @@ public class CartesianShapeIterator extends ShapeIterator
 	@Override
 	public int[] nbhIteratorNext()
 	{
-		if ( Log.shouldWrite(NHB_ITER_LEVEL) )
-		{
-			Log.out(NHB_ITER_LEVEL, " Looking for next nhb of "+
-				Vector.toString(this._currentCoord));
-		}
 		this.untransformNhbCyclic();
 		int nhbIndex = this._shape.getDimensionIndex(this._nbhDimName);
-		if ( Log.shouldWrite(NHB_ITER_LEVEL) )
-		{
-			Log.out(NHB_ITER_LEVEL, "   untransformed neighbor at "+
-				Vector.toString(this._currentNeighbor)+
-				", trying along "+this._nbhDimName);
-		}
 		this._nbhDirection = NhbDirection.AHEAD;
 		if ( ! this.nhbJumpOverCurrent(this._nbhDimName))
 		{
@@ -90,11 +61,6 @@ public class CartesianShapeIterator extends ShapeIterator
 			{
 				this._nbhDimName = this._shape.getDimensionName(nhbIndex);
 				this._nbhDirection = NhbDirection.BEHIND;
-				if ( Log.shouldWrite(NHB_ITER_LEVEL) )
-				{
-					Log.out(NHB_ITER_LEVEL, "   jumped into dimension "
-						+this._nbhDimName);
-				}
 				if ( ! moveNhbToMinus(this._nbhDimName) )
 					return nbhIteratorNext();
 			}

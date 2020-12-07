@@ -89,7 +89,9 @@ public class BiofilmBoundaryLayer extends WellMixedBoundary
 	 * **********************************************************************/
 	
 	public BiofilmBoundaryLayer()
-	{}
+	{
+		this._dominant = true;
+	}
 	
 	public void instantiate(Element xmlElement, Settable parent) 
 	{
@@ -109,8 +111,8 @@ public class BiofilmBoundaryLayer extends WellMixedBoundary
 			_surfaceArea = Double.valueOf(surfaceAreaString);
 		}
 		
-		this._exchangeRate = Double.valueOf(XmlHandler.gatherAttribute(
-				xmlElement, XmlRef.exchangeRate));
+		//this._exchangeRate = Double.valueOf(XmlHandler.gatherAttribute(
+		//		xmlElement, XmlRef.exchangeRate));
 	}
 	
 	@Override
@@ -130,7 +132,7 @@ public class BiofilmBoundaryLayer extends WellMixedBoundary
 	{
 		if ( ! super.isReadyForLaunch() )
 			return false;
-		return this._gridSphere != null;
+		return (this._layerThickness >= 0.0);
 	}
 
 	private void tryToCreateGridSphere()
@@ -141,7 +143,7 @@ public class BiofilmBoundaryLayer extends WellMixedBoundary
 		Shape shape = this._agents.getShape();
 		Collision collision = new Collision(null, null, shape);
 		double[] zeros = Vector.zerosDbl(shape.getNumberOfDimensions());
-		this._gridSphere = new Ball(zeros, 0.5 * this._layerThickness);
+		this._gridSphere = new Ball(zeros, this._layerThickness);
 		this._gridSphere.init(collision);
 	}
 	
@@ -189,31 +191,56 @@ public class BiofilmBoundaryLayer extends WellMixedBoundary
 		/*
 		 * Iterate over all voxels, checking if there are agents nearby.
 		 */
-		int[] coords = aShape.resetIterator();
-		double[] voxelCenter = aShape.getVoxelCentre(coords);
-		double[] voxelCenterTrimmed = Vector.zerosDbl(numDim);
-		List<Agent> neighbors;
-		BoundingBox box;
-		while ( aShape.isIteratorValid() )
+		if (this._layerThickness == 0.0 )
 		{
-			aShape.voxelCentreTo(voxelCenter, coords);
-			Vector.copyTo(voxelCenterTrimmed, voxelCenter);
-			this._gridSphere.setCenter(voxelCenterTrimmed);
-			/*
-			 * Find all nearby agents. Set the grid to zero if an agent is
-			 * within the grid's sphere
-			 */
-			box = this._gridSphere.boundingBox(this._agents.getShape());
-			neighbors = this._agents.agentSearch(box);
-			for ( Agent a : neighbors )
-				for (Surface s : (List<Surface>) a.get(AspectRef.surfaceList))
-					if ( this._gridSphere.distanceTo(s) < 0.0 )
-						{
-							grid.setValueAt(WELLMIXED, coords, 
-									WellMixedConstants.NOT_MIXED);
-							break;
-						}
+			int[] coords = aShape.resetIterator();
+			BoundingBox box = new BoundingBox();
+			List<Agent> neighbors;
+			while ( aShape.isIteratorValid() )
+			{
+				double[] voxelOrigin = aShape.getVoxelOrigin(coords);
+				double[] voxelUpper = aShape.getVoxelUpperCorner(coords);
+				box.get(voxelOrigin, voxelUpper);
+				neighbors = this._agents.agentSearch(box);
+				if (neighbors.size() > 0)
+				{
+					grid.setValueAt(WELLMIXED, coords, 
+							WellMixedConstants.NOT_MIXED);
+				}
 			coords = aShape.iteratorNext();
+			}
+			
+			
+		}
+		
+		else
+		{
+			int[] coords = aShape.resetIterator();
+			double[] voxelCenter = aShape.getVoxelCentre(coords);
+			double[] voxelCenterTrimmed = Vector.zerosDbl(numDim);
+			List<Agent> neighbors;
+			BoundingBox box;
+			while ( aShape.isIteratorValid() )
+			{
+				aShape.voxelCentreTo(voxelCenter, coords);
+				Vector.copyTo(voxelCenterTrimmed, voxelCenter);
+				this._gridSphere.setCenter(voxelCenterTrimmed);
+				/*
+				 * Find all nearby agents. Set the grid to zero if an agent is
+				 * within the grid's sphere
+				 */
+				box = this._gridSphere.boundingBox(this._agents.getShape());
+				neighbors = this._agents.treeSearch(box);
+				for ( Agent a : neighbors )
+					for (Surface s : (List<Surface>) ((Body) a.get(AspectRef.agentBody)).getSurfaces())
+						if ( this._gridSphere.distanceTo(s) < 0.0 )
+							{
+								grid.setValueAt(WELLMIXED, coords, 
+										WellMixedConstants.NOT_MIXED);
+								break;
+							}
+				coords = aShape.iteratorNext();
+			}
 		}
 	}
 	
@@ -372,9 +399,6 @@ public class BiofilmBoundaryLayer extends WellMixedBoundary
 		/*
 		 * Find all agents who are less than layerThickness away.
 		 */
-		if( Log.shouldWrite(AGENT_LEVEL) )
-			Log.out(AGENT_LEVEL, "Grabbing all agents within layer thickness "+
-					this._layerThickness);
 		out.addAll(this._agents.treeSearch(this, this._layerThickness));
 		/*
 		 * Find all agents who are unattached to others or to a boundary,

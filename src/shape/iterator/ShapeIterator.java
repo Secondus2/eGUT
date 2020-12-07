@@ -1,18 +1,15 @@
 package shape.iterator;
 
-import static dataIO.Log.Tier.BULK;
 import static shape.iterator.ShapeIterator.WhereAmI.CYCLIC;
 import static shape.iterator.ShapeIterator.WhereAmI.DEFINED;
 import static shape.iterator.ShapeIterator.WhereAmI.INSIDE;
 import static shape.iterator.ShapeIterator.WhereAmI.UNDEFINED;
 
 import boundary.SpatialBoundary;
-import dataIO.Log;
-import dataIO.Log.Tier;
 import linearAlgebra.Vector;
 import shape.Dimension;
-import shape.Shape;
 import shape.Dimension.DimName;
+import shape.Shape;
 import shape.resolution.ResolutionCalculator;
 
 public abstract class ShapeIterator
@@ -102,7 +99,6 @@ public abstract class ShapeIterator
 	 * <ul><li>Set to {@code BULK} for normal simulations</li>
 	 * <li>Set to {@code DEBUG} when trying to debug an issue</li></ul>
 	 */
-	protected static final Tier NHB_ITER_LEVEL = BULK;
 	
 	/* ***********************************************************************
 	 * CONSTRUCTORS
@@ -499,12 +495,14 @@ public abstract class ShapeIterator
 	 */
 	protected void transformNhbCyclic()
 	{
-		if ( Log.shouldWrite(NHB_ITER_LEVEL) )
+		/* Disabled Debug message
+		if ( Log.shouldWrite(Tier.DEBUG) )
 		{
-			Log.out(NHB_ITER_LEVEL, "   pre-transformed neighbor at "+
+			Log.out(Tier.DEBUG, "   pre-transformed neighbor at "+
 				Vector.toString(this._currentNeighbor)+
 				": status "+this._whereIsNhb);
 		}
+		*/
 		Dimension dim = this._shape.getDimension(this._nbhDimName);
 		if ( (this._whereIsNhb == CYCLIC) && dim.isCyclic() )
 		{
@@ -521,12 +519,6 @@ public abstract class ShapeIterator
 				/* Direction 1: the neighbor wraps above, to zero. */
 				this._currentNeighbor[dimIdx] = 0;
 			}
-		}
-		if ( Log.shouldWrite(NHB_ITER_LEVEL) )
-		{
-			Log.out(NHB_ITER_LEVEL, "   returning transformed neighbor at "+
-				Vector.toString(this._currentNeighbor)+
-				": status "+this._whereIsNhb);
 		}
 	}
 	
@@ -554,12 +546,6 @@ public abstract class ShapeIterator
 				this._currentNeighbor[dimIdx] = nVoxel;
 			}
 		}
-		if ( Log.shouldWrite(NHB_ITER_LEVEL) )
-		{
-			Log.out(NHB_ITER_LEVEL, "   un-transformed neighbor at "+
-					Vector.toString(this._currentNeighbor)+
-					": status "+this._whereIsNhb);
-		}
 	}
 	
 	/**
@@ -579,12 +565,6 @@ public abstract class ShapeIterator
 		/* Check that this coordinate is acceptable. */
 		WhereAmI where = this.whereIsNhb(dim);
 		this._whereIsNhb = where;
-		if ( Log.shouldWrite(NHB_ITER_LEVEL) )
-		{
-			Log.out(NHB_ITER_LEVEL,
-				"   tried moving to minus in "+dim+": result "+
-						Vector.toString(this._currentNeighbor)+" is "+where);
-		}
 		return (where != UNDEFINED);
 	}
 	
@@ -609,28 +589,12 @@ public abstract class ShapeIterator
 			boolean bMaxDef = this._shape.getDimension(dim).isBoundaryDefined(1);
 			this._whereIsNhb = this.whereIsNhb(dim);
 			/* Check there is space on the other side. */
-			if ( this._whereIsNhb == INSIDE || 
-					this._whereIsNhb == CYCLIC || 
+			if ( this._whereIsNhb == INSIDE || this._whereIsNhb == CYCLIC || 
 					bMaxDef )
-			{
-				/* report success. */
-				if ( Log.shouldWrite(NHB_ITER_LEVEL) )
-				{
-					Log.out(NHB_ITER_LEVEL, "   success jumping over in "+dim+
-							": result "+Vector.toString(this._currentNeighbor)+
-							" is "+this._whereIsNhb);
-				}
 				return true;
-			}
 		}
 		/* Undo jump and report failure. */
 		this._currentNeighbor[index] = this._currentCoord[index] - 1;
-		if ( Log.shouldWrite(NHB_ITER_LEVEL) )
-		{
-			Log.out(NHB_ITER_LEVEL, "   failure jumping over in "+dim+
-				": result "+Vector.toString(this._currentNeighbor)+
-				" is "+this._whereIsNhb);
-		}
 		return false;
 	}
 	

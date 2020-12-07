@@ -1,5 +1,8 @@
 package compartment;
 
+import static dataIO.Log.Tier.CRITICAL;
+import static dataIO.Log.Tier.DEBUG;
+
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
@@ -11,30 +14,34 @@ import agent.Agent;
 import agent.Body;
 import agent.predicate.IsEpithelial;
 import agent.predicate.IsLocated;
+import bookkeeper.KeeperEntry.EventType;
 import boundary.Boundary;
 import boundary.SpatialBoundary;
 import dataIO.Log;
 import dataIO.Log.Tier;
 import gereralPredicates.IsSame;
-
-import static dataIO.Log.Tier.*;
+import idynomics.Global;
 import linearAlgebra.Vector;
 import physicalObject.PhysicalObject;
 import referenceLibrary.AspectRef;
 import referenceLibrary.ClassRef;
 import referenceLibrary.XmlRef;
 import settable.Module;
-import settable.Settable;
 import settable.Module.Requirements;
+import settable.Settable;
 import shape.Dimension;
-import shape.Shape;
 import shape.Dimension.DimName;
-import spatialRegistry.*;
+import shape.Shape;
+import spatialRegistry.DummyTree;
+import spatialRegistry.EpithelialGrid;
+import spatialRegistry.RTree;
+import spatialRegistry.SpatialRegistry;
+import spatialRegistry.TreeType;
 import spatialRegistry.splitTree.SplitTree;
 import surface.BoundingBox;
-import surface.predicate.IsNotColliding;
 import surface.Surface;
 import surface.collision.Collision;
+import surface.predicate.IsNotColliding;
 import utility.ExtraMath;
 import utility.Helper;
 
@@ -100,13 +107,15 @@ public class AgentContainer implements Settable
 	 */
 	private Settable _parentNode;
 	
+	public Compartment _compartment;
+	
 	/* NOTE removed predicates, use agent.predicate.HasAspect instead.
 
 	/**
 	 * the type of spatial registry ( setting default value but can be 
 	 * overwritten).
 	 */
-	private TreeType _spatialTreeType = TreeType.RTREE;
+	private TreeType _spatialTreeType = TreeType.SPLITTREE;
 	
 	
 	private String AGENTVOLUME = AspectRef.agentVolume;
@@ -123,12 +132,11 @@ public class AgentContainer implements Settable
 	 * 
 	 * @param aShape {@code Shape} object (see shape.ShapeLibrary).
 	 */
-	public AgentContainer(Shape aShape, Collection <Surface> surfaces)
+	public AgentContainer(Compartment comp)
 	{
-		this._shape = aShape;
+		this._shape = comp.getShape();
+		this._compartment = comp;
 		this.makeAgentTree();
-		this._agentList = new LinkedList<Agent>();
-		this._surfaces = surfaces;
 	}
 
 	/**
@@ -148,15 +156,6 @@ public class AgentContainer implements Settable
 	public TreeType getSpatialTreeType() 
 	{
 		return this._spatialTreeType;
-	}
-	
-	/**
-	 * testing
-	 * @return
-	 */
-	public SplitTree<Agent> getSpatialTree() 
-	{
-		return (SplitTree<Agent>) this._agentTree;
 	}
 	
 	/**
@@ -184,11 +183,9 @@ public class AgentContainer implements Settable
 				 * change, min represents domain minima */
 				double[] min = Vector.zerosDbl(
 						this.getShape().getNumberOfDimensions() );
-				/* 
-				 * FIXME when more than max_entries agents overlap in on position
-				 *  the split tree will cause a stack overflow exception
-				 */
-				this._agentTree = new SplitTree<Agent>(this.getNumDims(), 3, 24, 
+				/* The 2D optimum is different from 3D, 2 * 2 ^ #dimensions
+				 * seems to perform well in general.  */
+				this._agentTree = new SplitTree<Agent>( 1 + (2 << min.length) , 
 						min, Vector.add( min, 
 						this.getShape().getDimensionLengths() ),
 						this._shape.getIsCyclicNaturalOrder() );
@@ -263,18 +260,21 @@ public class AgentContainer implements Settable
 	 */
 	public List<Agent> getAllLocatedAgents()
 	{
-		List<Agent> out = new LinkedList<Agent>();
-		out.addAll(this._locatedAgentList);
+		ArrayList<Agent> out = 
+				new ArrayList<Agent>(this._locatedAgentList.size() );
+		out.addAll( this._locatedAgentList );
 		return out;
 	}
+
 
 	/**
 	 * @return A list of all {@code Agent}s which do not have a location.
 	 */
 	public List<Agent> getAllUnlocatedAgents()
 	{
-		List<Agent> out = new LinkedList<Agent>();
-		out.addAll(this._agentList);
+		ArrayList<Agent> out = 
+				new ArrayList<Agent>(this._agentList.size() );
+		out.addAll( this._agentList );
 		return out;
 	}
 
@@ -284,9 +284,10 @@ public class AgentContainer implements Settable
 	 * @return A list of all Agents, i.e. those with spatial location AND
 	 * those without.
 	 */
-	public LinkedList<Agent> getAllAgents()
+	public List<Agent> getAllAgents()
 	{
-		LinkedList<Agent> out = new LinkedList<Agent>();
+		ArrayList<Agent> out = new ArrayList<Agent>(
+				this._agentList.size()+this._locatedAgentList.size() );
 		out.addAll(this._agentList);
 		out.addAll(this._locatedAgentList);
 		out.addAll(this._epithelialAgentList);
@@ -404,21 +405,9 @@ public class AgentContainer implements Settable
 	 * @return Collection of agents that may be overlap with this box: note
 	 * that there may be some false positives (but no false negatives).
 	 */
-	public List<Agent> agentSearch(double[] location, double[] dimensions)
+	public List<Agent> treeSearch(double[] location, double[] dimensions)
 	{
 		return this._agentTree.search(location, dimensions);
-	}
-
-	/**
-	 * \brief Find agents that may overlap with the given point location.
-	 * 
-	 * @param pointLocation Vector representing a point in space.
-	 * @return Collection of agents that may be overlap with this point: note
-	 * that there may be some false positives (but no false negatives).
-	 */
-	public List<Agent> agentSearch(double[] pointLocation)
-	{
-		return this.agentSearch(pointLocation, Vector.zeros(pointLocation));
 	}
 
 		// FIXME move all aspect related methods out of general classes
@@ -558,7 +547,7 @@ public class AgentContainer implements Settable
 			for ( Surface s : ((Body) a.get(AspectRef.agentBody)).getSurfaces())
 			{
 				/* on collision set boolean true and exit loop */
-				if ( collision.areColliding(aSurface, s, searchDist))
+				if ( collision.intersect(aSurface, s, searchDist))
 				{
 					c = true;
 					break;
@@ -585,7 +574,7 @@ public class AgentContainer implements Settable
 
 		/* check each surface for collision, remove if not */
 		for ( Surface s : surfaces)
-			if ( ! collision.areColliding(aSurface, s, searchDist))
+			if ( ! collision.intersect(aSurface, s, searchDist))
 				surfaces.remove(s);
 	}
 	
@@ -672,7 +661,7 @@ public class AgentContainer implements Settable
 	 */
 	public void addAgent(Agent agent)
 	{
-		if ( IsLocated.isLocated(agent) )
+		if ( IsLocated.isLocated(agent) && this.getShape().getNumberOfDimensions() > 0 )
 			this.addLocatedAgent(agent);
 		else if (IsEpithelial.isEpithelial(agent))
 			this._epithelialAgentList.add(agent);
@@ -722,7 +711,7 @@ public class AgentContainer implements Settable
 	 */
 	public void refreshSpatialRegistry()
 	{
-		this.makeAgentTree();
+		this._agentTree.clear();
 		for ( Agent a : this.getAllLocatedAgents() )
 			this.treeInsert(a);
 	}
@@ -763,22 +752,18 @@ public class AgentContainer implements Settable
 	}
 
 	/**
+	 * FIXME when this comes in use, this method needs to be update to register-
+	 * remove agents
 	 * @return A randomly chosen {@code Agent}, who is removed from this
 	 * container.
 	 * @see #chooseRandomAgent()
 	 */
 	public Agent extractRandomAgent()
 	{
-		Tier level = Tier.BULK;
 		int nAgents = this.getNumAllAgents();
 		/* Safety if there are no agents. */
 		if ( nAgents == 0 )
 		{
-			if ( Log.shouldWrite(level) )
-			{
-				Log.out(level, "No agents in this container, so cannot "+
-					"extract one: returning null");
-			}
 			return null;
 		}/* Now find an agent. */
 		int i = ExtraMath.getUniRandInt(nAgents);
@@ -794,11 +779,6 @@ public class AgentContainer implements Settable
 			/* Unlocated agent. */
 			out = this._agentList.remove(i);
 		}
-		if ( Log.shouldWrite(level) )
-		{
-			Log.out(level, "Out of "+nAgents+" agents, agent with UID "+
-					out.identity()+" was extracted randomly");
-		}
 		return out; 
 	}
 
@@ -809,8 +789,12 @@ public class AgentContainer implements Settable
 	 */
 	// TODO unify method for removing a located agent? See extractRandomAgent
 	// above
-	public void registerRemoveAgent(Agent anAgent)
+	public void registerRemoveAgent(Agent anAgent, EventType eventType, 
+			String event, String value)
 	{
+		if( Global.bookkeeping )
+			this._compartment.registerBook(	eventType, event, 
+					String.valueOf( anAgent.identity() ), value, anAgent);
 		if ( IsLocated.isLocated(anAgent) )
 		{
 			this._locatedAgentList.remove(anAgent);
@@ -831,54 +815,31 @@ public class AgentContainer implements Settable
 
 	public void agentsArrive()
 	{
-		Tier level = BULK;
-		if ( Log.shouldWrite(level) )
-			Log.out(level, "Agents arriving into compartment...");
 		Dimension dim;
 		for ( DimName dimN : this._shape.getDimensionNames() )
 		{
 			dim = this._shape.getDimension(dimN);
 			if ( dim.isCyclic() )
 			{
-				if ( Log.shouldWrite(level) )
-					Log.out(level, "   "+dimN+" is cyclic, skipping");
 				continue;
 			}
 			if ( ! dim.isSignificant() )
 			{
-				if ( Log.shouldWrite(level) )
-					Log.out(level, "   "+dimN+" is insignificant, skipping");
 				continue;
 			}
 			for ( int extreme = 0; extreme < 2; extreme++ )
 			{
-				if ( Log.shouldWrite(level) )
-				{
-					Log.out(level,
-							"Looking at "+dimN+" "+((extreme==0)?"min":"max"));
-				}
 				if ( ! dim.isBoundaryDefined(extreme) )
 				{
-					if ( Log.shouldWrite(level) )
-						Log.out(level, "   boundary not defined");
 					continue;
 				}
 				dim.getBoundary(extreme).agentsArrive();
-				if ( Log.shouldWrite(level) )
-					Log.out(level, "   boundary defined, agents ariving");
 			}
 		}
 		for ( Boundary bndry : this._shape.getNonSpatialBoundaries() )
 		{
-			if ( Log.shouldWrite(level) )
-			{
-				Log.out(level,"   other boundary "+bndry.getName()+
-						", calling agent method");
-			}
 			bndry.agentsArrive();
 		}
-		if ( Log.shouldWrite(level) )
-			Log.out(level, " All agents have now arrived");
 	}
 
 	/**
@@ -934,54 +895,23 @@ public class AgentContainer implements Settable
 	 */
 	public void agentsDepart()
 	{
-		Tier level = BULK;
-		if ( Log.shouldWrite(level) )
-			Log.out(level, "Pushing all outbound agents...");
 		Dimension dim;
 		for ( DimName dimN : this._shape.getDimensionNames() )
 		{
 			dim = this._shape.getDimension(dimN);
 			if ( dim.isCyclic() )
-			{
-				if ( Log.shouldWrite(level) )
-					Log.out(level, "   "+dimN+" is cyclic, skipping");
 				continue;
-			}
 			if ( ! dim.isSignificant() )
-			{
-				if( Log.shouldWrite(level) )
-					Log.out(level, "   "+dimN+" is insignificant, skipping");
 				continue;
-			}
 			for ( int extreme = 0; extreme < 2; extreme++ )
 			{
-				if ( Log.shouldWrite(level) )
-				{
-					Log.out(level, 
-						"Looking at "+dimN+" "+((extreme==0)?"min":"max"));
-				}
 				if ( ! dim.isBoundaryDefined(extreme) )
-				{
-					if ( Log.shouldWrite(level) )
-						Log.out(level, "   boundary not defined");
 					continue;
-				}
-				if ( Log.shouldWrite(level) )
-					Log.out(level, "   boundary defined, pushing agents");
 				dim.getBoundary(extreme).pushAllOutboundAgents();
 			}
 		}
 		for ( Boundary bndry : this._shape.getNonSpatialBoundaries() )
-		{
-			if ( Log.shouldWrite(level) )
-			{
-				Log.out(level,"   other boundary "+bndry.getName()+
-						", pushing agents");
-			}
 			bndry.pushAllOutboundAgents();
-		}
-		if ( Log.shouldWrite(level) )
-			Log.out(level, " All agents have now departed");
 	}
 
 	/**

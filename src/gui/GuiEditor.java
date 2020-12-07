@@ -1,5 +1,6 @@
 package gui;
 
+import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Component;
 import java.awt.FlowLayout;
@@ -12,11 +13,15 @@ import java.util.HashMap;
 import javax.swing.JButton;
 import javax.swing.JComboBox;
 import javax.swing.JComponent;
+import javax.swing.JFrame;
+import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 //import javax.swing.JSpinner; // to be implemented
 import javax.swing.JTabbedPane;
 import javax.swing.JTextArea;
+import javax.swing.SwingConstants;
+import javax.swing.border.BevelBorder;
 import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
 import javax.swing.plaf.basic.BasicTabbedPaneUI;
@@ -24,11 +29,11 @@ import javax.swing.plaf.basic.BasicTabbedPaneUI;
 import gui.navigator.NavigatorGui;
 import gui.navigator.PageObject;
 import referenceLibrary.XmlRef;
-import settable.ModuleSpec;
 import settable.Attribute;
 import settable.Module;
-import settable.Settable;
 import settable.Module.Requirements;
+import settable.ModuleSpec;
+import settable.Settable;
 
 
 /**
@@ -219,7 +224,7 @@ public class GuiEditor
 		else if ( node.isTagIn(new String[] 
 				/* compartment container nodes */
 				{XmlRef.agents, XmlRef.solutes, XmlRef.processManagers, 
-				XmlRef.reactions, XmlRef.environment}) )
+				XmlRef.reactions, XmlRef.environment, XmlRef.objects}) )
 		{
 			hostPane = (JTabbedPane) 
 					parent.getParent().getParent().getParent();
@@ -310,4 +315,5 @@ public class GuiEditor
 		else
 			return getFirstTabParent(component.getParent());
 	}
+
 }

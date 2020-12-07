@@ -25,7 +25,7 @@ public class ConstantConcentrationToChemostat extends Boundary
 	/**
 	 * Solute concentrations.
 	 */
-	protected Map<String,Double> _concns = new HashMap<String,Double>();
+	private Map<String,Double> _concns = new HashMap<String,Double>();
 
 	public ConstantConcentrationToChemostat()
 	{
@@ -35,8 +35,8 @@ public class ConstantConcentrationToChemostat extends Boundary
 	@Override
 	public void instantiate(Element xmlElement, Settable parent) {
 
-		this.setVolumeFlowRate( Double.valueOf( XmlHandler.obtainAttribute( 
-				xmlElement, XmlRef.volumeFlowRate, this.defaultXmlTag() ) ) );
+		this.setVolumeFlowRate( XmlHandler.obtainDouble ( 
+				xmlElement, XmlRef.volumeFlowRate, this.defaultXmlTag() ) );
 		
 		NodeList childNodes = XmlHandler.getAll(xmlElement, XmlRef.solute);
 		Element childElem;
@@ -51,11 +51,11 @@ public class ConstantConcentrationToChemostat extends Boundary
 				 */
 				if ( childElem.getParentNode() != xmlElement )
 					continue;
-				
+
 				this.setConcentration( 
 						childElem.getAttribute( XmlRef.nameAttribute ), 
-						Double.valueOf( childElem.getAttribute( 
-						XmlRef.concentration ) ) );
+						XmlHandler.gatherDouble( childElem, 
+								XmlRef.concentration) );
 			}
 		}
 	}
@@ -75,7 +75,14 @@ public class ConstantConcentrationToChemostat extends Boundary
 		this._concns.put(name, concn);
 	}
 	
-	private double getConcentration(String name)
+	/**
+	 * getConcentration of solute
+	 * 
+	 * (set to public for unit testing).
+	 * @param name
+	 * @return
+	 */
+	public double getConcentration(String name)
 	{
 		if ( this._concns.containsKey(name) )
 			return this._concns.get(name);

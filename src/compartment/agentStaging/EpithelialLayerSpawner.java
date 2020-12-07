@@ -1,20 +1,18 @@
 package compartment.agentStaging;
 
 import org.w3c.dom.Element;
+
 import agent.Agent;
 import agent.Body;
-import agent.Body.Morphology;
+import compartment.AgentContainer;
 import dataIO.Log;
-import dataIO.XmlHandler;
 import dataIO.Log.Tier;
+import dataIO.XmlHandler;
 import idynomics.Idynomics;
 import linearAlgebra.Vector;
-import physicalObject.PhysicalObject;
-import compartment.AgentContainer;
 import referenceLibrary.AspectRef;
 import referenceLibrary.XmlRef;
 import surface.BoundingBox;
-import surface.OrientedCuboid;
 import surface.Plane;
 import surface.Point;
 import utility.ExtraMath;
@@ -166,8 +164,8 @@ public class EpithelialLayerSpawner extends Spawner {
 	 */
 	public double[][] calculateLayerCorners() {
 		BoundingBox spawnDomain = this.getSpawnDomain();
-		double[] lower = spawnDomain.lowerCorner();
-		double[] higher = spawnDomain.higherCorner();
+		double[] lower = spawnDomain.getLow();
+		double[] higher = spawnDomain.getHigh();
 		double[][] corners = {lower, higher};
 		return corners;
 	}

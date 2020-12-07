@@ -2,11 +2,30 @@ package dataIO;
 
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
+import java.io.ByteArrayInputStream;
 import java.io.File;
+import java.io.FileOutputStream;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.io.OutputStream;
 import java.util.ArrayList;
+
+import org.xml.sax.InputSource;
+import org.xml.sax.SAXException;
+import org.xml.sax.XMLReader;
+import org.xml.sax.helpers.XMLReaderFactory;
+
+import com.siemens.ct.exi.core.CodingMode;
+import com.siemens.ct.exi.core.EXIFactory;
+import com.siemens.ct.exi.core.FidelityOptions;
+import com.siemens.ct.exi.core.exceptions.EXIException;
+import com.siemens.ct.exi.core.grammars.SchemaLessGrammars;
+import com.siemens.ct.exi.core.helpers.DefaultEXIFactory;
+import com.siemens.ct.exi.main.api.sax.EXIResult;
+
+import dataIO.Log.Tier;
+import idynomics.Global;
 
 /**
  * \brief Handles file operations, create folders and files, write output.
@@ -21,6 +40,21 @@ public class FileHandler
 	 * The file output stream.
 	 */
 	private BufferedWriter _output;
+	
+	/**
+	 * 
+	 */
+	private String _file;
+	
+	/**
+	 * 
+	 */
+	private boolean _encoding = false;
+	
+	/**
+	 * output buffer
+	 */
+	private StringBuffer outputBuffer;
 
 	/**
 	 * TODO Intended usage: giving files in a series unique and sequential
@@ -52,17 +86,11 @@ public class FileHandler
 			try
 			{
 				base.mkdir();
-				// NOTE Do not write log before output dir is created
-				Log.printToScreen("New directory created "+
-						base.getAbsolutePath(), false);
 				return true;
 			} 
 			catch(SecurityException se)
 			{
-				// NOTE Do not write log before output dir is created.
-				// NOTE do not print this as an error, as this would cause
-				// problems in the GUI
-				Log.printToScreen("Unable to create dir: "+dir+"\n"+se, false);
+				Log.out(Tier.CRITICAL, "Unable to create dir: "+dir+" "+se);
 				return false;
 			}
 		}
@@ -109,6 +137,11 @@ public class FileHandler
 		}
 		return result;
 	}
+	
+	public void bufferOutput()
+	{
+		this._encoding = true;
+	}
 
 	/**
 	 * opens file
@@ -146,17 +179,30 @@ public class FileHandler
 	// make a new file with unique name.
 	public void fnew(String file)
 	{
-		if ( file.split("/").length > 1 )
-			this.dir(file, 1);
-		try
+		if ( Global.write_to_disc ) 
 		{
-			File f = new File(file);
-			FileWriter fstream = new FileWriter(f, true);
-			this._output = new BufferedWriter(fstream);
-		}
-		catch (IOException e)
-		{
-			Log.printToScreen(e.toString(), false);
+			if ( file.split("/").length > 1 )
+				this.dir(file, 1);
+			if ( this._encoding )
+			{
+				this._file = file;
+				this.outputBuffer = new StringBuffer();
+			}
+			else
+			{
+				try
+				{
+					File f = new File(file);
+					FileWriter fstream = new FileWriter(f, true);
+					this._output = new BufferedWriter(fstream);
+					if( Log.shouldWrite(Tier.EXPRESSIVE) )
+						Log.out(Tier.EXPRESSIVE, "New file: " + file);
+				}
+				catch (IOException e)
+				{
+					Log.printToScreen(e.toString(), false);
+				}
+			}
 		}
 	}
 
@@ -191,16 +237,75 @@ public class FileHandler
 	 */
 	public void write(String text)
 	{
-		try
+		if ( Global.write_to_disc ) 
 		{
-			this._output.write(text);
-			if ( this._flushAll )
-				this._output.flush();
+			if ( this._encoding )
+				outputBuffer.append(text);
+			else
+			{
+				try
+				{
+					this._output.write(text);
+					if ( this._flushAll )
+						this._output.flush();
+				}
+				catch (IOException e)
+				{
+					Log.printToScreen(e.toString(), false);
+					Log.printToScreen("skipped line: " + text, false);
+				}
+			}
 		}
-		catch (IOException e)
+	}
+	
+	public void write(byte c)
+	{
+		if ( Global.write_to_disc ) 
 		{
-			Log.printToScreen(e.toString(), false);
-			Log.printToScreen("skipped line: " + text, false);
+			if ( this._encoding )
+				outputBuffer.append(c);
+			else
+			{
+				try
+				{
+					this._output.write(c);
+					if ( this._flushAll )
+						this._output.flush();
+				}
+				catch (IOException e)
+				{
+					Log.printToScreen(e.toString(), false);
+				}
+			}
+		}
+	}
+	
+	public void encode()
+	{
+		EXIFactory factory = DefaultEXIFactory.newInstance();
+		factory.setFidelityOptions(FidelityOptions.createDefault());
+		factory.setCodingMode(CodingMode.COMPRESSION);	
+		/*
+		 * Additional encoding options could be added later.
+		 * 
+		EncodingOptions encodingOptions = factory.getEncodingOptions();
+		encodingOptions.setOption("DEFLATE_COMPRESSION_VALUE", 9);
+		 */
+		SchemaLessGrammars grammer = new SchemaLessGrammars();
+		factory.setGrammars( grammer );
+				
+		try {
+			EXIResult exiResult = new EXIResult(factory);
+			OutputStream exiOutput = new FileOutputStream(this._file);
+			exiResult.setOutputStream(exiOutput);
+			XMLReader xmlReader = XMLReaderFactory.createXMLReader();
+			xmlReader.setContentHandler(exiResult.getHandler());
+			xmlReader.parse(new InputSource(new ByteArrayInputStream( 
+					outputBuffer.toString().getBytes() ) ) );
+			exiOutput.close();
+		} catch (EXIException|IOException|SAXException e) {
+			Log.out(this.getClass().getSimpleName() + " encountered error.");
+			e.printStackTrace();
 		}
 	}
 
@@ -209,14 +314,19 @@ public class FileHandler
 	 */
 	public void fclose()
 	{
-		try
+		if( this._encoding )
+			this.encode();
+		if( this._output != null )
 		{
-			this._output.flush();
-			this._output.close();
-		}
-		catch (IOException e)
-		{
-			Log.printToScreen(e.toString(), false);
+			try
+			{
+				this._output.flush();
+				this._output.close();
+			}
+			catch (IOException e)
+			{
+				Log.printToScreen(e.toString(), false);
+			}
 		}
 	}
 

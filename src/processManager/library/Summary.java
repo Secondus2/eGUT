@@ -11,9 +11,9 @@ import compartment.EnvironmentContainer;
 import dataIO.CsvExport;
 import dataIO.Log;
 import dataIO.Log.Tier;
+import processManager.ProcessManager;
 import referenceLibrary.AspectRef;
 import utility.Helper;
-import processManager.ProcessManager;
 
 /**
  * 
@@ -82,8 +82,8 @@ public class Summary extends ProcessManager
 	protected void internalStep()
 	{
 		/* output table summary to log/console */
-		if( Log.shouldWrite(Tier.NORMAL) )
-			Log.out(Tier.NORMAL, table.summary() );
+		if( Log.shouldWrite(Tier.EXPRESSIVE) )
+			Log.out(Tier.EXPRESSIVE, table.summary() );
 		
 		if (! Helper.isNullOrEmpty( this.csvOut ))
 		{

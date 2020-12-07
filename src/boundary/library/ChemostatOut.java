@@ -6,6 +6,7 @@ package boundary.library;
 import java.util.Iterator;
 
 import org.w3c.dom.Element;
+
 import boundary.Boundary;
 import dataIO.XmlHandler;
 import referenceLibrary.XmlRef;
@@ -43,8 +44,8 @@ public class ChemostatOut extends ChemostatBoundary
 	public void instantiate(Element xmlElement, Settable parent) 
 	{
 		if (! XmlHandler.hasAttribute(xmlElement, XmlRef.constantVolume))
-			this.setVolumeFlowRate( Double.valueOf( XmlHandler.obtainAttribute( 
-					xmlElement, XmlRef.volumeFlowRate, this.defaultXmlTag())));
+			this.setVolumeFlowRate( XmlHandler.obtainDouble( 
+					xmlElement, XmlRef.volumeFlowRate, this.defaultXmlTag()));
 		else
 			this.constantVolume = true;
 		this._agentRemoval = Helper.setIfNone( Boolean.valueOf( 

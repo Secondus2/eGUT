@@ -3,7 +3,6 @@ package dataIO;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 
-import dataIO.Log.Tier;
 import idynomics.Idynomics;
 
 public class Report {
@@ -21,7 +20,6 @@ public class Report {
 		String fileString = Idynomics.global.outputLocation + "/" 
 				+ fileName + ".rmd";
 		_reportFile.fnew(fileString);
-		Log.out(Tier.EXPRESSIVE, "Writing new file: " + fileString);
 		_reportFile.write(
 				"---\n" +
 				"title: \"" + Idynomics.global.simulationName + " simulation report\"\n" +

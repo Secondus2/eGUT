@@ -2,16 +2,14 @@ package surface.collision.model;
 
 import org.w3c.dom.Element;
 
-import dataIO.Log;
+import aspect.AspectInterface;
 import dataIO.XmlHandler;
-import dataIO.Log.Tier;
 import idynomics.Global;
 import linearAlgebra.Vector;
 import referenceLibrary.XmlRef;
 import settable.Settable;
 import surface.collision.CollisionFunction;
 import surface.collision.CollisionVariables;
-import utility.Helper;
 
 /**
  * Herz soft sphere collision model
@@ -34,13 +32,10 @@ public class HerzSoftSphere implements CollisionFunction
 		 * In case of hugely different Young's moduli we may want to extend
 		 * on this and calculate the effective modulus on the fly
 		 */
-		String forceScalar = XmlHandler.gatherAttribute( xmlElement, 
+		Double forceScalar = XmlHandler.gatherDouble( xmlElement, 
 				XmlRef.forceScalar);
-		if( !Helper.isNullOrEmpty( forceScalar ) )
-				this._forceScalar = Double.valueOf( forceScalar );
-		if(Log.shouldWrite(Tier.BULK))
-			Log.out(Tier.BULK, "initiating " + 
-					this.getClass().getSimpleName());
+		if( forceScalar != null )
+				this._forceScalar = forceScalar;
 	}
 	
 	/**
@@ -63,7 +58,8 @@ public class HerzSoftSphere implements CollisionFunction
 	 * between methods
 	 * @return force vector
 	 */
-	public CollisionVariables interactionForce(CollisionVariables var)
+	public CollisionVariables interactionForce(CollisionVariables var, 
+			AspectInterface first, AspectInterface second)
 	{
 		/*
 		 * If distance is negative, apply the repulsive force.
@@ -76,7 +72,7 @@ public class HerzSoftSphere implements CollisionFunction
 			
 			double c = kn * Math.pow(-var.distance, 1.5 );
 			/* dP is overwritten here. */
-			Vector.normaliseEuclidEquals( var.interactionVector, c );
+			Vector.normaliseEuclidEqualsUnchecked( var.interactionVector, c );
 			return var;
 		}
 		/* dP is not overwritten here. */

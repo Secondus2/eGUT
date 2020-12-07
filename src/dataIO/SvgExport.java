@@ -2,7 +2,6 @@ package dataIO;
 
 import org.w3c.dom.Element;
 
-import dataIO.Log.Tier;
 import idynomics.Idynomics;
 import linearAlgebra.Vector;
 import settable.Settable;
@@ -82,8 +81,6 @@ public class SvgExport implements GraphicalExporter
 				+ prefix + "_" + DigitFilenr(_filewriterfilenr)  
 				+ "_" + Idynomics.simulator.timer.getCurrentIteration() + ".svg";
 		_svgFile.fnew(fileString);
-		if( Log.shouldWrite(Tier.EXPRESSIVE) )
-			Log.out(Tier.EXPRESSIVE, "Writing new file: " + fileString);
 		_svgFile.write("<svg xmlns=\"http://www.w3.org/2000/svg\" "
 				+ "version=\"1.1\">\n");
 	}
@@ -93,8 +90,6 @@ public class SvgExport implements GraphicalExporter
 		String fileString = Idynomics.global.outputLocation + "/" 
 				+ fileName + ".svg";
 		_svgFile.fnew(fileString);
-		if( Log.shouldWrite(Tier.EXPRESSIVE) )
-			Log.out(Tier.EXPRESSIVE, "Writing new file: " + fileString);
 		_svgFile.write("<svg xmlns=\"http://www.w3.org/2000/svg\" "
 				+ "version=\"1.1\">\n");
 	}
@@ -113,6 +108,32 @@ public class SvgExport implements GraphicalExporter
 	 * Work in progress, dynamic graphical output
 	 *
 	 */
+	
+	/**
+	 * 
+	 */
+	public String resolveColour (Object pigment)
+	{
+		String rgbStatement = new String();
+		float[] pigmentArray = new float[3];
+		if (pigment instanceof String)
+		{
+			return (String) pigment;
+		}
+		else
+		{
+			pigmentArray = (float[]) pigment;
+		}
+
+		
+		int red = (int) Math.round(255 * pigmentArray[0]);
+		int green = (int) Math.round(255 * pigmentArray[1]);
+		int blue = (int) Math.round(255 * pigmentArray[2]);
+		
+		rgbStatement = "rgb(" + red + "," + green + "," + blue + ")";
+
+		return rgbStatement;
+	}
 	
 	/**
 	 * draw a circle

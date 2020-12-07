@@ -5,12 +5,18 @@ import org.w3c.dom.Element;
 import aspect.AspectInterface;
 import aspect.AspectReg;
 import instantiable.Instantiable;
+import referenceLibrary.ClassRef;
 import referenceLibrary.XmlRef;
 import settable.Attribute;
 import settable.Module;
-import settable.Settable;
 import settable.Module.Requirements;
-import surface.*;
+import settable.Settable;
+import surface.Ball;
+import surface.Cuboid;
+import surface.Plane;
+import surface.Rod;
+import surface.Surface;
+import surface.Voxel;
 
 /**
  * \brief wrapper object for physical entities within the domain such as
@@ -19,7 +25,8 @@ import surface.*;
  * @author Bastiaan Cockx @BastiaanCockx (baco@env.dtu.dk), DTU, Denmark.
  *
  */
-public class PhysicalObject implements Settable, Instantiable, AspectInterface
+
+public class PhysicalObject implements AspectInterface, Settable, Instantiable
 {
 	private Settable _parentNode;
 	
@@ -88,8 +95,25 @@ public class PhysicalObject implements Settable, Instantiable, AspectInterface
 				String.valueOf(this._surface.type()), null, false ));
 		
 		this._surface.appendToModule(modelNode);
+		
+		/* add the aspects as childNodes */
+		for ( String key : this.reg().getLocalAspectNames() )
+			modelNode.add(reg().getAspectNode(key));
+		
+		/* allow adding of new aspects */
+		modelNode.addChildSpec( ClassRef.aspect,
+				Module.Requirements.ZERO_TO_MANY);
 
 		return modelNode;
+	}
+	
+	/**
+	 * Update this module and all child modules with updated information from
+	 * the gui.
+	 */
+	public void setModule(Module node)
+	{
+		Settable.super.setModule(node);
 	}
 
 	public String defaultXmlTag() 

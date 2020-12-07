@@ -26,8 +26,8 @@ import javax.swing.text.StyleConstants;
 
 import dataIO.Log;
 import dataIO.Log.Tier;
-import idynomics.Idynomics;
 import idynomics.Global;
+import idynomics.Idynomics;
 import utility.Helper;
 
 /**
@@ -91,7 +91,7 @@ public final class GuiConsole
 		                evt.getTransferable().getTransferData(
 		                		DataFlavor.javaFileListFlavor);
 		            if ( droppedFiles.size() > 1 )
-		            	Log.out(Tier.QUIET, "Unable to open multiple files at "
+		            	Log.out(Tier.CRITICAL, "Unable to open multiple files at "
 		            			+ "once");
 		            else if ( Idynomics.simulator != null )
 		            {
@@ -235,11 +235,16 @@ public final class GuiConsole
   		{
   			// TODO
   		}
-  		if ( _autoScroll )
-  			_console.setCaretPosition(doc.getLength());
-
   	}
 	
+  	public static void scroll()
+  	{
+  		if ( _autoScroll )
+  		{
+  			Document doc =	_console.getDocument();
+  			_console.setCaretPosition(doc.getLength());
+  		}
+  	}
 	/**
 	 * \brief User input in the GUI text area.
 	 * 

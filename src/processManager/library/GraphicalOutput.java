@@ -1,22 +1,24 @@
 package processManager.library;
 
+import static grid.ArrayType.CONCN;
+
 import java.util.Collection;
 import java.util.LinkedList;
 import java.util.List;
 
 import org.w3c.dom.Element;
 
-import static grid.ArrayType.CONCN;
-
 import agent.Agent;
 import agent.Body;
+import colour.Colour;
+import colour.ColourSpecification;
+import colour.Palette;
 import compartment.AgentContainer;
 import compartment.EnvironmentContainer;
 import dataIO.GraphicalExporter;
-import dataIO.Log;
-import dataIO.Log.Tier;
 import grid.ArrayType;
 import grid.SpatialGrid;
+import idynomics.Global;
 import instantiable.Instance;
 import linearAlgebra.Vector;
 import processManager.ProcessManager;
@@ -42,6 +44,7 @@ public class GraphicalOutput extends ProcessManager
 	public static String BODY = AspectRef.agentBody;
 	public static String RADIUS = AspectRef.bodyRadius;
 	public static String PIGMENT = AspectRef.agentPigment;
+	public String PALETTE = AspectRef.colourPalette;
 	
 	public static String ARRAY_TYPE = AspectRef.gridArrayType;
 	public static String MAX_VALUE = AspectRef.visualOutMaxValue;
@@ -90,6 +93,10 @@ public class GraphicalOutput extends ProcessManager
 	 * 
 	 */
 	protected Shape _shape;
+	
+	protected Palette palette;
+	
+	protected ColourSpecification colSpec;
 
 	
 	/*************************************************************************
@@ -136,6 +143,11 @@ public class GraphicalOutput extends ProcessManager
 		
 		/* set max concentration for solute grid color gradient */
 		this._maxConcn = (double) this.getOr( MAX_VALUE, 2.0 );
+		
+		this.palette = new Palette( String.valueOf( 
+				this.getOr( AspectRef.colourPalette, Global.default_palette) ) );
+		/* placeholder spec */
+		 colSpec = new ColourSpecification(palette, "species");
 
 	}
 	
@@ -171,19 +183,11 @@ public class GraphicalOutput extends ProcessManager
 		else if (_shape instanceof CylindricalShape)
 			this._graphics.circle(Vector.zeros(size), 
 					this._shape.getDimension(DimName.R).getLength(), "lightblue");
-		else
-			Log.out(Tier.BULK,
-					"Computational domain neither rectangular nor circular, "
-					+ this._name + " will not draw a computational domain.");
 		
 		/* Draw solute grid for specified solute, if any. */
 		if ( ! _environment.isSoluteName(this._solute) )
 		{
-			//NOTE Bas [08/06/16] this should not be a critical warning since
-			// this is a sensible option if the user does not want to plot a 
-			// solute (null solute).
-			Log.out(Tier.BULK, this._name+" can't find solute " + this._solute +
-					" in the environment, no solute will be draw");
+			//skip
 		}
 		else
 		{
@@ -233,12 +237,19 @@ public class GraphicalOutput extends ProcessManager
 			}
 		}
 		/* Draw all located agents. */
+		/*
+		 * ^^
+		 */
+		
 		for ( Agent a: _agents.getAllLocatedAndEpithelialAgents() )
 			if ( a.isAspect(BODY) )
 			{
 				List<Surface> surfaces = ((Body) a.getValue(BODY)).getSurfaces();
 				for( Surface s : surfaces)
-					this._graphics.draw(s, a.getString(PIGMENT));
+//					this._graphics.draw(s, a.getValue(PIGMENT)); 
+					this._graphics.draw(s, colSpec.colorize(a)); 
+				
+					
 			}
 		/* Close the file */
 		this._graphics.closeFile();

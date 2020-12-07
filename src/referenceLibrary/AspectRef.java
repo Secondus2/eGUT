@@ -15,6 +15,7 @@ import dataIO.Log.Tier;
 public class AspectRef
 {
 
+
 	public static String[] getAllOptions()
 	{
 		Field[] fields = AspectRef.class.getFields();
@@ -128,12 +129,7 @@ public class AspectRef
 	 * TODO
 	 */
 	public final static String agentMass = "mass";
-	
-	/**
-	 * TODO
-	 */
-	public final static String agentMassMap = "massMap";
-	
+
 	/**
 	 * Agent mass that should trigger division.
 	 */
@@ -367,6 +363,21 @@ public class AspectRef
 	 * TODO
 	 */
 	public final static String agentPigment = "pigment";
+	
+	/**
+	 * TODO
+	 */
+	public final static String redComponent = "redComponent";
+	
+	/**
+	 * TODO
+	 */
+	public final static String greenComponent = "greenComponent";
+	
+	/**
+	 * TODO
+	 */
+	public final static String blueComponent = "blueComponent";
 
 	/**
 	 * TODO
@@ -392,6 +403,11 @@ public class AspectRef
 	 * TODO
 	 */
 	public final static String graphicalOutputWriter = "outputWriter";
+	
+	/**
+	 * Colour palette for graphical output
+	 */
+	public final static String colourPalette = "colourPalette";
 	
 	/**
 	 * Agent can't move
@@ -527,6 +543,12 @@ public class AspectRef
 	public static final String regionDepth = "regionDepth";
 
 	/**
+	 * Maximum thickness of a biofilm.
+	 * 
+	 */
+	public static final String maxThickness = "maxThickness";
+
+	/**
 	 * Increase speed of agent relaxation by scaling to object with highest
 	 * velocity
 	 */
@@ -579,7 +601,6 @@ public class AspectRef
 	 * Agent spacing for distributed spawner class 
 	 */
 	public static final String spawnerSpacing = "spacing";
-
 	
 	public static final String interactionFunctionMap = "interactionFunctionMap";
 	
@@ -588,4 +609,29 @@ public class AspectRef
 	 */
 	public static final String boundaryExchangeRate = "exchangeRate";
 	
+	public static final String collisionFunction = "collisionFunction";
+
+	public static final String attractionFunction = "attractionFunction";
+	
+	public static final String agentDecompression = "agentDecompression";
+
+	public static final String decompressionCellLength = "decompressionCellLength";
+
+	public static final String decompressionThreshold = "decompressionThreshold";
+
+	public static final String traversingFraction = "traversingFraction";
+
+	public static final String vCycles = "vCycles";
+
+	public static final String preSteps = "preSteps";
+
+	public static final String coarseSteps = "coarseSteps";
+
+	public static final String postSteps = "postSteps";
+
+	public static final String disableBulkDynamics = "disableBulkDynamics";
+
+	public static final String dampingFactor = "dampingFactor";
+
+	public static final String filter = "filter";
 }

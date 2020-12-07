@@ -1,5 +1,8 @@
 package compartment;
 
+import static grid.ArrayType.CONCN;
+import static grid.ArrayType.WELLMIXED;
+
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.LinkedList;
@@ -11,19 +14,17 @@ import boundary.WellMixedBoundary;
 import dataIO.Log;
 import dataIO.Log.Tier;
 import generalInterfaces.CanPrelaunchCheck;
-import static grid.ArrayType.CONCN;
-import static grid.ArrayType.WELLMIXED;
 import grid.SpatialGrid;
 import grid.WellMixedConstants;
 import idynomics.Idynomics;
 import instantiable.object.InstantiableList;
-import reaction.RegularReaction;
 import reaction.Reaction;
+import reaction.RegularReaction;
 import referenceLibrary.ClassRef;
 import referenceLibrary.XmlRef;
 import settable.Module;
-import settable.Settable;
 import settable.Module.Requirements;
+import settable.Settable;
 import shape.Shape;
 
 /**
@@ -87,8 +88,8 @@ public class EnvironmentContainer implements CanPrelaunchCheck, Settable
 								solute.getName()+"\"");
 		}
 		this._solutes.add(solute);
-		if( Log.shouldWrite(Tier.NORMAL))
-			Log.out(Tier.NORMAL, 
+		if( Log.shouldWrite(Tier.EXPRESSIVE))
+			Log.out(Tier.EXPRESSIVE, 
 					"Added solute \""+ solute.getName() +"\" to environment");
 	}
 	
@@ -313,7 +314,7 @@ public class EnvironmentContainer implements CanPrelaunchCheck, Settable
 	 * accumulate during diffusion methods when solving PDEs. Here, we
 	 * distribute these flows among the relevant spatial boundaries.
 	 */
-	public void distributeWellMixedFlows()
+	public void distributeWellMixedFlows(double dt)
 	{
 		/* Find all relevant boundaries. */
 		Collection<WellMixedBoundary> boundaries = 
@@ -329,15 +330,18 @@ public class EnvironmentContainer implements CanPrelaunchCheck, Settable
 		 */
 		if ( boundaries.size() == 1 )
 		{
-			Boundary b = boundaries.iterator().next();
+
+			Boundary b = boundaries.iterator().next();			
+
 			String partnerCompName = b.getPartnerCompartmentName();
 			Compartment partnerComp = Idynomics.simulator.getCompartment(partnerCompName);
-			double scFac = thisComp.getScalingFactor() / partnerComp.getScalingFactor();
+			double scFac = ( partnerComp == null ? 1.0 : 
+				thisComp.getScalingFactor() / partnerComp.getScalingFactor());
 			for ( SpatialGrid solute : this._solutes )
 			{
-				double solMassFlow = solute.getWellMixedMassFlow();
+				double solMassFlow = -solute.getWellMixedMassFlow();
 				b.increaseMassFlowRate(solute.getName(), 
-						solMassFlow * scFac);
+						solMassFlow/dt * scFac);
 				solute.resetWellMixedMassFlow();
 			}
 			return;

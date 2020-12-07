@@ -9,8 +9,8 @@ import agent.Agent;
 import agent.Body;
 import agent.predicate.IsLocated;
 import dataIO.Log;
-import dataIO.XmlHandler;
 import dataIO.Log.Tier;
+import dataIO.XmlHandler;
 import grid.ArrayType;
 import grid.SpatialGrid;
 import grid.WellMixedConstants;
@@ -20,9 +20,9 @@ import referenceLibrary.XmlRef;
 import settable.Attribute;
 import settable.Module;
 import settable.Settable;
-import shape.Shape;
 import shape.Dimension;
 import shape.Dimension.DimName;
+import shape.Shape;
 
 /**
  * \brief Abstract class of boundary that has a location in space.
@@ -69,9 +69,8 @@ public abstract class SpatialBoundary extends Boundary
 		
 		if ( this.needsLayerThickness() )
 		{
-			s = XmlHandler.obtainAttribute(xmlElement,
-					XmlRef.layerThickness, XmlRef.dimensionBoundary);
-			this.setLayerThickness(Double.valueOf(s));
+			this.setLayerThickness(XmlHandler.obtainDouble(xmlElement,
+					XmlRef.layerThickness, XmlRef.dimensionBoundary));
 		}
 	}
 	
@@ -123,6 +122,14 @@ public abstract class SpatialBoundary extends Boundary
 	public void setLayerThickness(double thickness)
 	{
 		this._layerThickness = thickness;
+	}
+	
+	/**
+	 * debugging purposes
+	 */
+	public double getLayerThickness()
+	{
+		return this._layerThickness;
 	}
 	
 	public double getTotalSurfaceArea()
@@ -181,7 +188,7 @@ public abstract class SpatialBoundary extends Boundary
 	 */
 	protected double calcDiffusiveFlowFixed(SpatialGrid grid, double bndrConcn)
 	{
-		Tier level = Tier.BULK;
+		Tier level = Tier.DEBUG;
 		double valueDiff = bndrConcn - grid.getValueAtCurrent(ArrayType.CONCN);
 		/* The diffusivity comes only from the current voxel. */
 		double diffusivity = grid.getValueAtCurrent(ArrayType.DIFFUSIVITY);

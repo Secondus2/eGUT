@@ -1,6 +1,5 @@
 package shape;
 
-import static dataIO.Log.Tier.BULK;
 import static shape.Dimension.DimName.R;
 
 import java.util.ArrayList;
@@ -24,17 +23,18 @@ import dataIO.XmlHandler;
 import generalInterfaces.CanPrelaunchCheck;
 import instantiable.Instance;
 import instantiable.Instantiable;
+import linearAlgebra.Orientation;
 import linearAlgebra.Vector;
 import referenceLibrary.XmlRef;
 import settable.Attribute;
 import settable.Module;
-import settable.Settable;
 import settable.Module.Requirements;
+import settable.Settable;
 import shape.Dimension.DimName;
+import shape.ShapeConventions.SingleVoxel;
 import shape.iterator.ShapeIterator;
 import shape.resolution.ResolutionCalculator;
 import shape.resolution.UniformResolution;
-import shape.ShapeConventions.SingleVoxel;
 import shape.subvoxel.SubvoxelPoint;
 import surface.Plane;
 import surface.Surface;
@@ -126,7 +126,10 @@ public abstract class Shape implements
 	 * A helper vector for finding the 'upper most' location of a voxel.
 	 */
 	protected final static double[] VOXEL_All_ONE_HELPER = Vector.vector(3,1.0);
-	
+	/**
+	 * Specifies the shape orientation.
+	 */
+	private Orientation _orientation;
 	protected Settable _parentNode;
 	private Element _currElement;
 	
@@ -149,11 +152,21 @@ public abstract class Shape implements
 		modelNode.add( new Attribute(XmlRef.resolutionCalculator, 
 				this.resCal, null, false ) );
 		
+		/* orientation node */
+		if( !(Helper.isNullOrEmpty(this._orientation) || this._orientation.isNullVector()) )
+			modelNode.add( this._orientation.getModule() );
+		
 		/* Add the child modules */
 		for ( Dimension dim : this._dimensions.values() )
 			if ( dim._isSignificant )
 				modelNode.add( dim.getModule() );
 		
+		/* Add boundaries that are not asociated with a dimension */
+		for ( Boundary bound : this._otherBoundaries)
+		{
+			if ( !bound.assistingBoundary() )
+				modelNode.add( bound.getModule());
+		}
 		
 		/* NOTE: no constructible child modules for this class thus no 
 		 * addChildSpec */
@@ -183,15 +196,16 @@ public abstract class Shape implements
 		NodeList childNodes;
 		Element childElem;
 		String str;
+		Double dbl;
 		/* FIXME is this a correct implementation? This would create multiple
 		 * layers of voxels if we have a small target resolution eg 0.5µm. 
 		 * Shouldn't this be calculated from a target volume? or maybe just
 		 * equal to the resolution so we always have 1 layer in the
 		 * insignificant dimension. [Bas 27-11-2017] */
 		double insignificantDimsLength = 1.0;
-		str = XmlHandler.gatherAttribute(xmlElem, "insignificantDimsLength");
-		if ( str != null )
-			insignificantDimsLength = Double.parseDouble(str);
+		dbl = XmlHandler.gatherDouble(xmlElem, "insignificantDimsLength");
+		if ( dbl != null )
+			insignificantDimsLength = dbl;
 		/* Set up the dimensions. */
 		Dimension dim;
 		ResolutionCalculator rC;
@@ -290,6 +304,25 @@ public abstract class Shape implements
 	 * 
 	 */
 	public abstract void setTotalVolume( double volume );
+	
+	/**
+	 * 
+	 */
+	public void setOrientation( Orientation orientation )
+	{
+		this._orientation = orientation;
+	}
+	
+	
+	public Orientation getOrientation()
+	{
+		return this._orientation;
+	}
+	
+	public boolean isOriented()
+	{
+		return !this._orientation.isNullVector();
+	}
 	
 	/* ***********************************************************************
 	 * GRID & ARRAY CONSTRUCTION
@@ -433,6 +466,19 @@ public abstract class Shape implements
 	public boolean[] getIsCyclicNaturalOrder()
 	{
 		boolean[] dims = new boolean[this.getNumberOfDimensions()];
+		int i = 0;
+		for (Dimension d : this.getSignificantDimensions())
+			dims[i++] = d.isCyclic();
+		return dims;
+	}
+	
+	/*
+	 * returns an array of booleans that indicate whether the dimensions are
+	 * periodic in their natural order.
+	 */
+	public boolean[] getIsCyclicNaturalOrderIncludingVirtual()
+	{
+		boolean[] dims = new boolean[3];
 		int i = 0;
 		for (Dimension d : this.getSignificantDimensions())
 			dims[i++] = d.isCyclic();
@@ -598,9 +644,9 @@ public abstract class Shape implements
 				Element childElem = (Element) XmlHandler.getSpecific(
 						this._currElement, XmlRef.shapeDimension, 
 						XmlRef.nameAttribute, d.name());
-				String str = XmlHandler.gatherAttribute(childElem, 
+				Double dbl = XmlHandler.gatherDouble(childElem, 
 						XmlRef.realMax);
-				this._realDimExtremeName = Helper.isNullOrEmpty(str) ? d : null;
+				this._realDimExtremeName = dbl == null ? d : null;
 			}
 		}
 		else
@@ -701,6 +747,27 @@ public abstract class Shape implements
 	public void getGlobalLocationEquals(double[] local)
 	{
 		this.getGlobalLocationTo(local, local);
+	}
+	
+	/**
+	 * 
+	 */
+	public double[] getVerifiedLocation(double[] loc)
+	{
+		if( isInside(loc))
+			return loc;
+		else
+		{
+			for( double[] d : getCyclicPoints(loc))
+				if( isInside(d))
+					return d;
+			/* if no inside point is found there is an illegal boundary 
+			 * intersection. */
+			Log.out(Tier.CRITICAL, "invalid location lookup in " + 
+					this.getClass().getSimpleName());
+			return loc;
+		}
+				
 	}
 
 	/**
@@ -857,7 +924,6 @@ public abstract class Shape implements
 	public void getMinDifferenceVectorTo(double[] destination, double[] a, 
 			double[] b)
 	{
-		Vector.checkLengths(destination, a, b);
 		int i = 0;
 		for ( Dimension dim : this._dimensions.values() )
 		{
@@ -1006,9 +1072,6 @@ public abstract class Shape implements
 	 */
 	protected void setPlanarSurface(DimName aDimName)
 	{
-		Tier level = Tier.BULK;
-		if ( Log.shouldWrite(level) )
-			Log.out(level, "Setting planar surfaces for min, max of "+aDimName);
 		Dimension dim = this.getDimension(aDimName);
 		/* Safety. */
 		if ( dim == null )
@@ -1073,16 +1136,10 @@ public abstract class Shape implements
 	 */
 	public Surface getSurface(SpatialBoundary boundary)
 	{
-		Tier level = Tier.BULK;
 		DimName dimName = boundary.getDimName();
 		int extreme = boundary.getExtreme();
 		Dimension dim = this.getDimension(dimName);
 		Surface out = dim.getSurface(extreme);
-		if ( Log.shouldWrite(level) )
-		{
-			Log.out(level, "Surface for boundary on "+dimName+" "+
-					Dimension.extremeToString(extreme)+" is a "+out.toString());
-		}
 		return out;
 	}
 	
@@ -1456,9 +1513,6 @@ public abstract class Shape implements
 	 */
 	private void calcMaxFluxPotential()
 	{
-		Tier level = BULK;
-		Log.out(level, "Calculating maximum flux potential");
-		
 		/*
 		 * Store the current iterator and use a temporary one for this method.
 		 */
@@ -1476,23 +1530,15 @@ public abstract class Shape implements
 				this._it.isIteratorValid(); this._it.iteratorNext() )
 		{
 			volume = this.getVoxelVolume(this._it.iteratorCurrent());
-			Log.out(level, "Coord "+Vector.toString(this._it.iteratorCurrent())+
-					" has volume "+volume);
 			max = 0.0;
 			for ( this._it.resetNbhIterator(); this._it.isNbhIteratorValid(); 
 					this._it.nbhIteratorNext() )
 			{
 				temp = this.nhbCurrSharedArea() / this.nhbCurrDistance();
-				Log.out(level, "   nbh "+
-						Vector.toString(this._it.nbhIteratorCurrent())+
-						" has shared area "+this.nhbCurrSharedArea()+
-						" and distance "+this.nhbCurrDistance());
 				max = Math.max(max, temp);
 			}
 			this._maxFluxPotentl = Math.max(this._maxFluxPotentl, max/volume);
 		}
-		Log.out(level, " Maximum flux potential is "+this._maxFluxPotentl);
-		
 		/*
 		 * Replace the temporary iterator with the stored one.
 		 */
@@ -1569,17 +1615,9 @@ public abstract class Shape implements
 	 */
 	public double nhbCurrDistance()
 	{
-		Tier level = Tier.BULK;
 		int[] currentCoord = this._it.iteratorCurrent();
 		int[] currentNeighbor = this._it.nbhIteratorCurrent();
 		DimName nhbDimName = this._it.currentNhbDimName();
-		if ( Log.shouldWrite(level) )
-		{
-			Log.out(level, "  calculating distance between voxels "+
-				Vector.toString(currentCoord)+" and "+
-				Vector.toString(currentNeighbor)+
-				" along dimension "+nhbDimName);
-		}
 		int i = this.getDimensionIndex(nhbDimName);
 		ResolutionCalculator rC = this.getResolutionCalculator(currentCoord, i);
 		double out = rC.getResolution();
@@ -1604,17 +1642,14 @@ public abstract class Shape implements
 				rC = this.getResolutionCalculator(currentCoord, i);
 				double radius = rC.getPosition(currentCoord[i],0.5);
 				out *= radius;
-				if ( Log.shouldWrite(level) )
-					Log.out(level, "   radius is "+radius);
 			}
-			if ( Log.shouldWrite(level) )
-				Log.out(level, "    distance is "+out);
 			return out;
 		}
 		/* If the neighbor is on an undefined boundary, return infinite
 			distance (this should never happen!) */
-		if ( Log.shouldWrite(level) )
-			Log.out(level, "    undefined distance!");
+		if ( Log.shouldWrite(Tier.CRITICAL) )
+			Log.out(Tier.CRITICAL, this.getClass().getSimpleName() + 
+					"encountered undefined distance!");
 		return Double.POSITIVE_INFINITY;
 	}
 	

@@ -1,9 +1,9 @@
 package processManager.library;
 
-import java.util.List;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.List;
 
 import org.w3c.dom.Element;
 
@@ -16,6 +16,7 @@ import dataIO.Log.Tier;
 import expression.Expression;
 import idynomics.Global;
 import idynomics.Idynomics;
+import linearAlgebra.Array;
 import linearAlgebra.Vector;
 import physicalObject.PhysicalObject;
 import processManager.ProcessManager;
@@ -25,6 +26,7 @@ import surface.Point;
 import surface.Rod;
 import surface.Surface;
 import surface.collision.Collision;
+import surface.collision.Decompress;
 import utility.Helper;
 
 /**
@@ -34,6 +36,9 @@ import utility.Helper;
  */
 public class AgentRelaxation extends ProcessManager
 {
+	
+	public String COLLISION_FUNCTION = AspectRef.collisionFunction;
+	public String ATTRACTION_FUNCTION = AspectRef.attractionFunction;
 	
 	public String SEARCH_DIST = AspectRef.collisionSearchDistance;
 	public String PULL_EVALUATION = AspectRef.collisionPullEvaluation;
@@ -53,6 +58,7 @@ public class AgentRelaxation extends ProcessManager
 	public String RADIUS = AspectRef.bodyRadius;
 	public String VOLUME = AspectRef.agentVolume;
 	public String DIVIDE = AspectRef.agentDivision;
+	public String MASS = AspectRef.agentMass;
 	
 	public String UPDATE_BODY = AspectRef.bodyUpdate;
 	public String EXCRETE_EPS = AspectRef.agentExcreteEps;
@@ -69,6 +75,10 @@ public class AgentRelaxation extends ProcessManager
 	public String STIFFNESS = AspectRef.spineStiffness;
 	
 	public String SPINE_FUNCTION = AspectRef.genericSpineFunction;
+	
+	public String DECOMPRESSION = AspectRef.agentDecompression;
+	public String DECOMPRESSION_CELL_LENGTH = AspectRef.decompressionCellLength;
+	private String DECOMPRESSION_THRESHOLD = AspectRef.decompressionThreshold;
 	
 	
 	/**
@@ -141,9 +151,9 @@ public class AgentRelaxation extends ProcessManager
 	private Shape _shape;
 	
 	/**
-	 * Collection holds all solid surfaces of the Compartment.
+	 * Collection holds all solid surfaces of the {@link #_shape}.
 	 */
-	private Collection<Surface> _compartmentSurfs;
+	private Collection<Surface> _shapeSurfs;
 	
 	/**
 	 * value under which the relaxation may be considered completed
@@ -175,7 +185,13 @@ public class AgentRelaxation extends ProcessManager
 	 * Default spine function, fall back for if none is defined by the agent.
 	 */
 	private Expression _spineFunction = 
-			new Expression( "stiffness * ( dh + SIGN(dh) * dh * dh * 1000000000000000.0 )" );
+			new Expression( "stiffness * ( dh + SIGN(dh) * dh * dh * 100.0 )" );
+	
+	private Boolean _decompression;
+	
+	private Decompress decompressionMatrix;
+
+
 	
 	/* ************************************************************************
 	 * Initiation
@@ -218,10 +234,11 @@ public class AgentRelaxation extends ProcessManager
 		
 		/* Surface objects of compartment, FIXME discovered circle returns a 
 		 * rod type shape (2 points) instead of circle (2d sphere, 1 point). */
-		this._compartmentSurfs  = agents.getSurfaces();
+		this._shapeSurfs  = this._shape.getSurfaces();
 		
 		/* Collision iterator */
-		this._iterator = this._shape.getCollision();
+		this._iterator = new Collision( this.getString(COLLISION_FUNCTION),
+				this.getString(ATTRACTION_FUNCTION), this._shape);
 		
 		/* Stress threshold, used to skip remaining steps on very low stress,
 		 * 0.0 by default */
@@ -234,13 +251,29 @@ public class AgentRelaxation extends ProcessManager
 		/* Limit the duration of biofilm compression */
 		this.compresionDuration = Helper.setIfNone( 
 				this.getDouble(COMPRESSION_DURATION), 0.0 );
-
+		
 		/* Set default spine function for rod type agents, this function is
 		 * used if it is not overwritten by the agent, obtain
 		 * ComponentExpression from process manager otherwise fall back default
 		 * is used. */
 		if ( ! Helper.isNullOrEmpty( this.getValue(SPINE_FUNCTION) ) )
 			this._spineFunction = (Expression) this.getValue(SPINE_FUNCTION);
+		
+		/* Include decompression */
+		this._decompression = Helper.setIfNone( this.getBoolean(DECOMPRESSION), 
+				false);
+		
+
+		if ( this._decompression )
+			decompressionMatrix = new Decompress( 
+					this._agents.getShape().getDimensionLengths(),
+					Helper.setIfNone(this.getDouble(DECOMPRESSION_CELL_LENGTH), //possibly change to must set since very depended on case.
+					0.0 ), Helper.setIfNone(this.getDouble(DECOMPRESSION_THRESHOLD), 
+					this._stressThreshold ), 
+					this._agents.getShape().getIsCyclicNaturalOrderIncludingVirtual(),
+					(double) this.getOr(AspectRef.traversingFraction, Global.traversing_fraction),
+					(double) this.getOr(AspectRef.dampingFactor, Global.damping_factor));
+		
 	}
 
 	/* ************************************************************************
@@ -264,7 +297,7 @@ public class AgentRelaxation extends ProcessManager
 		double st;
 		/* All located agents in this compartment */
 		Collection<Agent> allAgents = this._agents.getAllLocatedAgents();
-		
+
 		/* if higher order ODE solvers are used we need additional space to 
 		 * write. */
 		switch ( _method )
@@ -281,6 +314,8 @@ public class AgentRelaxation extends ProcessManager
 		{	
 			this._agents.refreshSpatialRegistry();
 			this.updateForces( this._agents );
+			if ( this._decompression )
+				decompressionMatrix.buildDirectionMatrix();
 			
 			/* adjust step size unless static step size is forced */
 			if( !this._dtStatic || this._method == Method.SHOVE )
@@ -295,7 +330,6 @@ public class AgentRelaxation extends ProcessManager
 					{
 						if ( Vector.normSquare( point.dxdt( radius ) ) > vs )
 							vs = Vector.normSquare( point.dxdt( radius ) );	
-						
 						if ( Vector.normSquare( point.getForce() ) > st )
 							st = Vector.normSquare( point.getForce() );
 					}
@@ -305,18 +339,21 @@ public class AgentRelaxation extends ProcessManager
 				 * mechanical stress is low. Default value is 0.0 -> only skip 
 				 * if there is no mechanical stress in the system at all. 
 				 * */
-				if ( _stressThreshold != 0.0 && this.tMech > this.compresionDuration )
+				if ( _stressThreshold != 0.0 && ( this.tMech > this.compresionDuration || compresionDuration == 0.0 ) )
 				{
 					if ( Math.sqrt(st) * Global.agent_stress_scaling < 
 							_stressThreshold )
 						break;
 				} else if ( this._method == Method.SHOVE )
 				{
+					if (_stressThreshold == 0.0)
+					{
 					Log.out(Tier.CRITICAL, AspectRef.stressThreshold + " must "
 							+ "be set for relaxation method " + 
 							Method.SHOVE.toString() );
 					Idynomics.simulator.interupt(null);
 					return;
+					}
 				}
 	
 				/* When stochastic movement is enabled update vs to represent 
@@ -340,7 +377,6 @@ public class AgentRelaxation extends ProcessManager
 				else
 					dtMech = this._maxMove / Math.max( Math.sqrt(vs) + 
 							Global.agent_move_safety, 1.0 );
-				
 				/* TODO we may want to make the dt cap settable as well */
 			}
 			
@@ -390,7 +426,10 @@ public class AgentRelaxation extends ProcessManager
 
 			/* NOTE that with proper boundary surfaces for any compartment
 			 * shape this should never yield any difference, it is here as a
-			 * fail safe */
+			 * fail safe 
+			 * 
+			 * FIXME this seems to result in crashes
+			 * */
 			for(Agent agent : allAgents)
 				for ( Point point: ( (Body) agent.get(BODY) ).getPoints() )
 					this._shape.applyBoundaries( point.getPosition() );
@@ -402,10 +441,16 @@ public class AgentRelaxation extends ProcessManager
 		this._agents.refreshSpatialRegistry();
 		
 		/* Notify user */
-		if (nstep == this._maxIter && Log.shouldWrite(Tier.QUIET) )
-			Log.out( Tier.QUIET, this.getName() + " reached maximum number of "
-					+ "iterations: " + this._maxIter);
-		if( Log.shouldWrite(Tier.DEBUG) )
+		if( Log.shouldWrite( Tier.EXPRESSIVE ) )
+		{
+			if (nstep == this._maxIter )
+				Log.out( Tier.EXPRESSIVE, this.getName() +
+						" stop condition iterations: " + this._maxIter);
+			else
+				Log.out( Tier.EXPRESSIVE, this.getName() +
+						" stop condition stress threshold");
+		}
+		if( Log.shouldWrite( Tier.DEBUG ) )
 			Log.out( Tier.DEBUG, "Relaxed " + this._agents.getNumAllAgents() + 
 					" agents after " + nstep + " iterations" );
 	}
@@ -431,7 +476,7 @@ public class AgentRelaxation extends ProcessManager
 					spineEvaluation(agent, s);
 			
 			/* Look for neighbors and resolve collisions */
-			neighbourhoodEvaluation(agent, agentSurfs, agents);
+			neighboorhoodEvaluation(agent, agentSurfs, agents);
 			
 			/*
 			 * Collisions with other physical objects and
@@ -448,18 +493,27 @@ public class AgentRelaxation extends ProcessManager
 						new ArrayList <Surface>();
 				physicalObjectSurfaces.add(p.getSurface());
 				
-				this._iterator.collision((Collection<Surface>) 
-						physicalObjectSurfaces,	p, agentSurfs, agent, pull);
+				this._iterator.collision(p.getSurface(), p, agentSurfs, agent, 0.0);
 			}
-			/*
-			 * TODO friction
-			 * FIXME here we need to selectively apply surface collision methods
-			 */
-			this._iterator.collision(this._compartmentSurfs, agentSurfs, 0.0, 0.0);
+			
 			
 			/* NOTE: testing purposes only */
 			if (this._gravity)
 				gravityEvaluation(agent, body);
+
+			if ( this._decompression )
+				for( Point p : ((Body) agent.get(BODY)).getPoints())
+				{
+					decompressionMatrix.addPressure(
+							p.getPosition(), Vector.normEuclid(p.getForce()));
+					p.addToForce(decompressionMatrix.getDirection(p.getPosition()));
+				}
+			
+			/*
+			 * TODO friction
+			 * FIXME here we need to selectively apply surface collision methods
+			 */
+			this._iterator.collision(this._shapeSurfs, null, agentSurfs, agent, 0.0);
 		}
 	}
 	
@@ -475,30 +529,34 @@ public class AgentRelaxation extends ProcessManager
 	 * @param surfaces (the surfaces of the agent).
 	 * @param agents (all agents in the compartment).
 	 */
-	private void neighbourhoodEvaluation(Agent agent, List<Surface> surfaces, 
+	private void neighboorhoodEvaluation(Agent agent, List<Surface> surfaces, 
 			AgentContainer agents)
 	{
 		double searchDist = (agent.isAspect(SEARCH_DIST) ?
 				agent.getDouble(SEARCH_DIST) : 0.0);
 		
-		/* Perform neighbourhood search and perform collision detection and
+		/* Perform neighborhood search and perform collision detection and
 		 * response. */
 		Collection<Agent> nhbs = agents.agentSearch(agent, searchDist);
 		for ( Agent neighbour: nhbs )
-			if ( agent.identity() > neighbour.identity())
+			if ( agent.identity() > neighbour.identity() )
 			{
 				/* obtain maximum distance for which pulls should be considered
 				 */
-				agent.event(PULL_EVALUATION, neighbour);
-				Double pull = agent.getDouble(CURRENT_PULL_DISTANCE);
+				Double pull = null;
+				if( searchDist != 0.0 )
+				{
+					agent.event(PULL_EVALUATION, neighbour);
+					pull = agent.getDouble(CURRENT_PULL_DISTANCE);
+				}
 				if ( pull == null || pull.isNaN() )
 					pull = 0.0;
-				Body body = ((Body) neighbour.get(BODY));
-				List<Surface> t = body.getSurfaces();
-				
+
 				/* pass this agents and neighbor surfaces as well as the pull
 				 * region to the collision iterator to update the net forces. */
-				this._iterator.collision(surfaces, agent, t, neighbour, pull);
+				this._iterator.collision(surfaces, agent, 
+						((Body) neighbour.get(BODY)).getSurfaces(), neighbour, 
+						pull);
 			}
 	}
 
@@ -552,6 +610,8 @@ public class AgentRelaxation extends ProcessManager
 	}
 
 	/**
+	 * FIXME this all needs to be properly set from the protocol file if we
+	 * we start using this
 	 * \brief gravityEvaluation,
 	 * 
 	 * NOTE: testing purposes only
@@ -570,14 +630,18 @@ public class AgentRelaxation extends ProcessManager
 		if ( tMech < compresionDuration || compresionDuration == 0.0 )
 		{
 			/* note should be mass per point */
-			double fg = agent.getDouble("mass") * 1e-12 * 35.316e9 * Global.density_difference;
+			double fg = agent.getDouble(MASS) * 1e-12 * 35.316e9 /* 1E16 */ * Global.density_difference;
 			double[] fgV;
 			
-			if( this._shape.getNumberOfDimensions() == 3)
-				 fgV = Vector.times(new double[]{ 0, -1, 0 }, fg );
-			else
-				 fgV = Vector.times(new double[]{ 0, -1 }, fg );
-				
+			if( this._shape.isOriented() )
+			{
+				fgV = Vector.times(this._shape.getOrientation().inverse(), fg );
+			} else {
+				if( this._shape.getNumberOfDimensions() == 3)
+					 fgV = Vector.times(new double[]{ 0, 0, -1 }, fg );
+				else
+					 fgV = Vector.times(new double[]{ 0, -1 }, fg );
+			}
 			
 			for ( Point p : body.getPoints() )
 				Vector.addEquals( p.getForce(), fgV ) ;

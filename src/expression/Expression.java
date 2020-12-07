@@ -2,23 +2,27 @@ package expression;
 
 import java.util.Collection;
 import java.util.HashMap;
-import java.util.Map;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 import java.util.TreeMap;
 
 import org.w3c.dom.Element;
 import org.w3c.dom.Node;
 
-import dataIO.Log.Tier;
-import instantiable.object.InstantiableMap;
-import dataIO.Log;
+import aspect.AspectInterface;
 import dataIO.XmlHandler;
+import expression.arithmetic.*;
+import expression.arithmetic.Unit.SI;
+import expression.logic.*;
+import idynomics.Idynomics;
+import instantiable.object.InstantiableMap;
 import referenceLibrary.XmlRef;
 import settable.Attribute;
 import settable.Module;
-import settable.Settable;
 import settable.Module.Requirements;
+import settable.Settable;
+import utility.GenericTrio;
 import utility.Helper;
 
 /**
@@ -76,6 +80,8 @@ public class Expression extends Component implements Settable
 	public static final String[] OPERATORS = new 
 			String[]{
 					"#e",	// euler
+					"e-",	// eg 12e-5
+					"E-",	// eg 12E-5
 					"#PI", 	// pi
 					"SIGN-", // signum function minus what follows
 					"SIGN", // signum function
@@ -92,6 +98,15 @@ public class Expression extends Component implements Settable
 					"/", 	// division
 					"+", 	// addition
 					"-",	// negative or subtraction TODO make sure this does not cause any problems
+					"!=",	// previous .. not equal to .. following
+					"=", 	// previous .. equals .. following
+					"LT", 	// previous .. less than .. following
+					"GT",	// previous .. greater than .. following
+					"NOT",	// inverts .. following boolean
+					"AND", 	// previous .. and .. following
+					"OR", 	// previous .. and/or .. following
+					"XOR", 	// previous .. exclusive or .. following
+					"XNOR", // previous .. matches .. following
 					};	
 	/**
 	 * TODO Work out what this does.
@@ -110,16 +125,14 @@ public class Expression extends Component implements Settable
 	 */
 	private List<String> _variables = new LinkedList<String>();
 	
+	protected Elemental _el;
+	
 	/**
 	 * The component object.
 	 */
 	protected Component _a;
 
 	private Settable _parentNode;
-	/**
-	 * 
-	 */
-	private static Tier LOG_LEVEL = Tier.BULK;
 	
 	/*************************************************************************
 	 * CONSTRUCTORS
@@ -136,6 +149,7 @@ public class Expression extends Component implements Settable
 	 */
 	public Expression(String expression, Map<String, Double> constants)
 	{
+		super(Type.omnifarious);
 		init(expression, constants);
 	}
 	
@@ -148,6 +162,7 @@ public class Expression extends Component implements Settable
 	 */
 	public Expression(String expression)
 	{
+		super(Type.omnifarious);
 		if (expression == null || expression.equals("") )
 			expression = Helper.obtainInput("", XmlRef.expression);
 		init(expression, null);
@@ -160,6 +175,7 @@ public class Expression extends Component implements Settable
 	 */
 	public Expression(Node xmlNode)
 	{
+		super(Type.omnifarious);
 		Element elem = (Element) xmlNode;
 
 		this._constants.instantiate(elem, this);
@@ -170,8 +186,6 @@ public class Expression extends Component implements Settable
 	
 	public void init(String expression, Map<String, Double> constants)
 	{
-		if( Log.shouldWrite(LOG_LEVEL))
-			Log.out(LOG_LEVEL, "Making an expression from \""+expression+"\"");
 		/* check for units */
 		String[] split = expression.replace("[", "TEMPSPLITMARKER").split("TEMPSPLITMARKER");
 		if ( split.length > 1 )
@@ -184,22 +198,20 @@ public class Expression extends Component implements Settable
 		/* Create the constants map if it was not given. */
 		if ( constants == null )
 			constants = new HashMap<String, Double>();
-		if( Log.shouldWrite(LOG_LEVEL))
-			Log.out(LOG_LEVEL, "  Constants defined:");
-		if( Log.shouldWrite(LOG_LEVEL))
-			for ( String key : constants.keySet() )
-				Log.out(LOG_LEVEL, "  -> "+key+" = "+constants.get(key));
 		this._constants.putAll(constants);
 		/* Build the component. */
 		this.build();
 
-		
+	}
+	
+	private double modifier( Map<SI,GenericTrio<SI,String,Double>> unitSystem )
+	{
 		if (this._unit != null)
-		{
-			this._a = new Multiplication(
-					new Constant( "unit modifier", this._unit.modifier() ), 
-					_a);
-		}
+			if ( unitSystem != null)
+				return this._unit.format(unitSystem);
+			else
+				return this._unit.modifier();
+		return 1.0;
 	}
 	
 	public Unit getUnit()
@@ -220,7 +232,7 @@ public class Expression extends Component implements Settable
 		/* Evaluation tree (strings). */
 		TreeMap<Integer, String> eval =  new TreeMap<Integer, String>();
 		/* Construction tree (components). */
-		TreeMap<Integer, Component> calc = new TreeMap<Integer, Component>();
+		TreeMap<Integer, Elemental> calc = new TreeMap<Integer, Elemental>();
 		/* Subexpressions (braces) embedded in this expression. */
 		TreeMap<Integer, Expression> subs = new TreeMap<Integer, Expression>();
 		/* 
@@ -237,7 +249,11 @@ public class Expression extends Component implements Settable
 			System.err.println("ERROR: unfinished expression root element!");
 		}
 		else
-			this._a = calc.get(calc.firstKey());
+		{
+			this._el = calc.get(calc.firstKey());
+			if( _el instanceof Component)
+				this._a = (Component) _el;
+		}
 	}
 	
 	/**
@@ -248,7 +264,7 @@ public class Expression extends Component implements Settable
 	 * @param subs Subexpressions (braces) embedded in {@link #_expression}.
 	 */
 	private void constructTreeMaps(TreeMap<Integer, String> eval, 
-			TreeMap<Integer, Component> calc, 
+			TreeMap<Integer, Elemental> calc, 
 			TreeMap<Integer, Expression> subs)
 	{
 		/*
@@ -276,27 +292,11 @@ public class Expression extends Component implements Settable
 			c = index;
 		}
 		brackets.put(this._expression.length(), Bracket.END_OF_EXPRESSION);
-		/* Debugging message. */
-		if ( Log.shouldWrite(LOG_LEVEL) )
-		{
-			Log.out(LOG_LEVEL, this._expression);
-			String msg = "";
-			for ( int i = 0; i <= this._expression.length(); i++ )
-			{
-				if ( brackets.containsKey(i) )
-					msg += brackets.get(i).getStr();
-				else
-					msg += " ";
-			}
-			Log.out(LOG_LEVEL, msg);
-		}
-		/* */
+
 		int depth = 0;
 		int start = 0;
 		for ( Integer key : brackets.keySet() )
 		{
-			if ( Log.shouldWrite(LOG_LEVEL) )
-				Log.out(LOG_LEVEL, "   "+key+" : "+brackets.get(key));
 			/*
 			 * What is handled at this level.
 			 */
@@ -314,8 +314,6 @@ public class Expression extends Component implements Settable
 				start = key;
 			if ( depth == 0 )
 			{
-				if ( Log.shouldWrite(LOG_LEVEL) )
-					Log.out(LOG_LEVEL, "    setting sub "+start+", "+(key+1));
 				this.setSub(start, key + 1, eval, subs);
 				start = key + 1;
 			}
@@ -350,12 +348,8 @@ public class Expression extends Component implements Settable
 			 */
 			// NOTE This means that any constants defined as integers (e.g. 0,
 			// 1, 2, 10, etc) will not be recognised.
-			else if ( term.contains(".") )
-			{
-				if ( Log.shouldWrite(LOG_LEVEL) )
-					Log.out(LOG_LEVEL, "      Found a new constant: "+term);
+			else if ( Helper.dblParseable( term ) )
 				calc.put(i, new Constant(term, Double.parseDouble(term)));
-			}
 			/*
 			 * Variables, hashmap-defined constants.
 			 */
@@ -406,11 +400,6 @@ public class Expression extends Component implements Settable
 	{
 		if ( equation.isEmpty() )
 			return;
-		if ( Log.shouldWrite(LOG_LEVEL) )
-		{
-			Log.out(LOG_LEVEL,
-					"   Setting equation \""+equation+"\", start at "+start);
-		}
 		/* 
 		 * Locate operators.
 		 */
@@ -422,15 +411,9 @@ public class Expression extends Component implements Settable
 			locations = identifyStrLoc( equation, oper, start );
 			if ( locations.isEmpty() )
 				absents += oper + ", ";
-			else if ( Log.shouldWrite(LOG_LEVEL) )
-				Log.out(LOG_LEVEL, "    found "+locations.size()+" of "+oper);
 			operLoc.putAll( locations );
 			for (int l : locations.keySet())
 				equation = cutString(equation, l-start, oper.length());
-		}
-		if ( (! absents.isEmpty()) && Log.shouldWrite(LOG_LEVEL) )
-		{
-			Log.out(LOG_LEVEL, "    found 0 of "+absents);
 		}
 		/*
 		 * If there are no operators in this expression, then it is a single
@@ -447,8 +430,6 @@ public class Expression extends Component implements Settable
 		int o = 0;
 		for ( Integer key : operLoc.keySet() )
 		{
-			if ( Log.shouldWrite(LOG_LEVEL) )
-				Log.out(LOG_LEVEL, "    o "+0+", key "+key+", start "+start);
 			if ( key != start )
 				this.addVar( o+start, equation.substring(o, key-start), eval);
 			o = key - start + operLoc.get(key).length();
@@ -460,8 +441,6 @@ public class Expression extends Component implements Settable
 		if ( o != 0 )
 			this.addVar(o+start, equation.substring(o,equation.length()), eval);
 		eval.putAll(operLoc);
-		if ( Log.shouldWrite(LOG_LEVEL) )
-			Log.out(LOG_LEVEL, "    eq set, eval now has size "+eval.size());
 	}
 	
 	private String cutString(String string, int start , int numberOfCharacters )
@@ -563,7 +542,7 @@ public class Expression extends Component implements Settable
 		/* Evaluation tree (strings). */
 		TreeMap<Integer, String> eval =  new TreeMap<Integer, String>();
 		/* Construction tree (components). */
-		TreeMap<Integer, Component> calc = new TreeMap<Integer, Component>();
+		TreeMap<Integer, Elemental> calc = new TreeMap<Integer, Elemental>();
 		/* Subexpressions (braces) embedded in this expression. */
 		TreeMap<Integer, Expression> subs = new TreeMap<Integer, Expression>();
 		/*
@@ -599,64 +578,79 @@ public class Expression extends Component implements Settable
 	 * the original {@link #_expression} string.
 	 * @return New component combining the previous and next components.
 	 */
-	private static Component constructComponent(String operator,
-			int here, TreeMap<Integer,Component> calc)
+	private static Elemental constructComponent(String operator,
+			int here, TreeMap<Integer,Elemental> calc)
 	{
 		int prev = (calc.floorKey( here-1 ) == null ? 
 				-1 : calc.floorKey( here-1 ) );
 		int next = (calc.ceilingKey( here+1 ) == null ? 
 				-1 : calc.ceilingKey( here+1 ) );
-		if ( Log.shouldWrite(LOG_LEVEL) )
-		{
-			Log.out(LOG_LEVEL,
-					"operator "+operator+", prev "+prev+", next "+next);
-		}
 		switch (operator)
 		{
 		case ("+"): 
-			return Arithmetic.add(calc.get(prev),calc.get(next));
+			return Arithmetic.add((Component) calc.get(prev),(Component) calc.get(next));
 		case ("*"): 
-			return Arithmetic.multiply(calc.get(prev),calc.get(next));
+			return Arithmetic.multiply((Component) calc.get(prev),(Component) calc.get(next));
 		case ("*-"): 
 			
-			return Arithmetic.multiply(calc.get(prev),flipSign(calc.get(next)));
+			return Arithmetic.multiply((Component) calc.get(prev),flipSign((Component) calc.get(next)));
 		case ("/"): 
-			return Arithmetic.divide(calc.get(prev),calc.get(next));
+			return Arithmetic.divide((Component) calc.get(prev),(Component) calc.get(next));
 		case ("/-"): 
-			return Arithmetic.divide(calc.get(prev),flipSign(calc.get(next)));
-		case ("-"): 
-			// TODO here we should really just change the sign of next
-			// Bas [16.06.16] component.changeSign does not seem to work
-			if (prev >= 0 )
-				return new Subtraction( calc.get(prev), calc.get(next));
-			else
-			{
-				return flipSign(calc.get(next));
-			}
+			return Arithmetic.divide((Component) calc.get(prev),flipSign((Component) calc.get(next)));
 		case ("^"): 
-			return new Power(calc.get(prev), calc.get(next));
+			return new Power((Component) calc.get(prev), (Component) calc.get(next));
 		case ("^-"): 
-			return new Power(calc.get(prev), flipSign(calc.get(next)));
+			return new Power((Component) calc.get(prev), flipSign((Component) calc.get(next)));
 		case ("SQRT"): 
-			return new Power(calc.get(next), new Constant("0.5",0.5));
+			return new Power((Component) calc.get(next), new Constant("0.5",0.5));
 		case ("SQRT-"): 
-			return new Power(flipSign(calc.get(next)), new Constant("0.5",0.5));
+			return new Power(flipSign((Component) calc.get(next)), new Constant("0.5",0.5));
 		case ("#e"): 
 			return Arithmetic.euler();
 		case ("#PI"): 
 			return Arithmetic.pi();
 		case ("EXP"): 
-			return new Multiplication(calc.get(prev), 
-				new Power(Arithmetic.ten(), calc.get(next)));
+			return new Multiplication((Component) calc.get(prev), 
+				new Power(Arithmetic.ten(), (Component) calc.get(next)));
 		case ("EXP-"): 
-			return new Multiplication(calc.get(prev), 
-				new Power(Arithmetic.ten(), flipSign(calc.get(next))));
+		case ("e-"): 
+		case ("E-"): 
+			return new Multiplication((Component) calc.get(prev), 
+				new Power(Arithmetic.ten(), flipSign((Component) calc.get(next))));
 		case ("LOG"): 
-			return new Logarithm(calc.get(next),Arithmetic.ten());
+			return new Logarithm((Component) calc.get(next),Arithmetic.ten());
 		case ("SIGN"): 
-			return 	new Sign(calc.get(next));
+			return 	new Sign((Component) calc.get(next));
 		case ("SIGN-"): 
-			return new Sign(flipSign(calc.get(next)));
+			return new Sign(flipSign((Component) calc.get(next)));
+		case ("-"): 
+			// TODO here we should really just change the sign of next
+			// Bas [16.06.16] component.changeSign does not seem to work
+			if (prev >= 0 )
+				return new Subtraction((Component)  calc.get(prev),(Component)  calc.get(next));
+			else
+			{
+				return flipSign((Component) calc.get(next));
+			}
+		case ("!="): 
+			return new LogicNotEqual(calc.get(prev), calc.get(next));
+		case ("="): 
+			return new LogicEqual(calc.get(prev), calc.get(next));
+		case ("LT"): 
+			return new LogicLessThan(calc.get(prev), calc.get(next));
+		case ("GT"): 
+			return new LogicGreaterThan(calc.get(prev), calc.get(next));
+		case ("NOT"): 
+			return new LogicNot(calc.get(next));
+		case ("AND"): 
+			return new LogicAnd(calc.get(prev), calc.get(next));
+		case ("OR"): 
+			return new LogicOr(calc.get(prev), calc.get(next));
+		case ("XOR"): 
+			return new LogicXor(calc.get(prev), calc.get(next));
+		case ("XNOR"): 
+			return new LogicXnor(calc.get(prev), calc.get(next));
 		}
 		System.err.println("ERROR: could not construnct component!");
 		return new Constant("ERROR!",1.0);
@@ -671,7 +665,7 @@ public class Expression extends Component implements Settable
 	 * Truncate calc tree after the operation has completed.
 	 */
 	private static void postOperatorTruncate(String operator,
-			int here, TreeMap<Integer,Component> calc)
+			int here, TreeMap<Integer,Elemental> calc)
 	{
 		int prev = (calc.floorKey( here-1 ) == null ? 
 				-1 : calc.floorKey( here-1 ) );
@@ -688,6 +682,16 @@ public class Expression extends Component implements Settable
 		case ("/-"): 
 		case ("^-"):
 		case ("EXP-"):
+		case ("e-"): 
+		case ("E-"): 
+		case ("!="): 
+		case ("="): 
+		case ("LT"): 
+		case ("GT"): 
+		case ("AND"): 
+		case ("OR"): 
+		case ("XOR"): 
+		case ("XNOR"): 
 			if ( calc.containsKey( prev ) )
 				calc.remove( prev );
 			if ( calc.containsKey( next ) )
@@ -698,6 +702,7 @@ public class Expression extends Component implements Settable
 		case ("LOG"):
 		case("SIGN"):
 		case("SIGN-"):
+		case ("NOT"): 
 			if ( calc.containsKey( next ) )
 				calc.remove( next );
 			break;
@@ -728,22 +733,52 @@ public class Expression extends Component implements Settable
 
 	@Override
 	public String reportEvaluation(Map<String, Double> variables) {
-		return this._a.reportEvaluation(variables);
+		return new Multiplication(_a, new Constant("unit Conversion", 
+				this.format( Idynomics.unitSystem ))).reportEvaluation(variables);
 	}
 
+	/**
+	 * NOTE: calculating expression but not correcting for unit system
+	 */
 	@Override
 	protected double calculateValue(Map<String, Double> variables) 
 	{
 		return this._a.getValue(variables);
+	}
+
+	@Override
+	public Object evaluate(AspectInterface subject) {
+		return this._el.evaluate(subject);
+	}
+	
+	/**
+	 * get Value for expressions where no variables are used, applying iDynoMiCS
+	 * base units
+	 * @return double
+	 */
+	public double getValue()
+	{
+		return this.format( Idynomics.unitSystem );
+	}
+	
+	/**
+	 * get Value for expressions where variables are used, applying iDynoMiCS
+	 * base units
+	 * @return double
+	 */
+	public double format( Map<String,Double> variables, 
+			Map<SI,GenericTrio<SI, String, Double>> unitSystem )
+	{
+		return this.getValue( variables ) * this.modifier( unitSystem );
 	}
 	
 	/**
 	 * get Value for expressions where no variables are used
 	 * @return double
 	 */
-	public double getValue()
+	public double format( Map<SI,GenericTrio<SI, String, Double>> unitSystem )
 	{
-		return this.getValue(new HashMap<String,Double>());
+		return this.format(new HashMap<String,Double>(), unitSystem );
 	}
 
 	@Override
