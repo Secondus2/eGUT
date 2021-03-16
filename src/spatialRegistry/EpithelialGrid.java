@@ -92,6 +92,16 @@ public class EpithelialGrid {
 			int[] lowerCellCoords = cellCoordsFromPosition(lower);
 			int[] upperCellCoords = cellCoordsFromPosition(upper);
 			
+			for (int i = 0; i < lowerCellCoords.length; i++)
+			{
+				if (upperCellCoords[i] < lowerCellCoords[i])
+				{
+					int higher = lowerCellCoords[i];
+					lowerCellCoords[i] = upperCellCoords[i];
+					upperCellCoords[i] = higher;
+				}
+			}
+			
 			/**
 			 * The coordinates of all the cells (real or not) with which the
 			 * bounding box would overlap
@@ -191,7 +201,7 @@ public class EpithelialGrid {
 	private int[] cellCoordsFromPosition (double[] position)
 	{
 		int[] intCoords = new int[position.length];
-		for (int i = 0; i < position.length; i++)
+		for (int i = 0; i < _cellSize.length; i++)
 		{
 			intCoords[i] = (int) Math.floor(
 					(position[i] - _bottomCorner[i])/_cellSize[i]);

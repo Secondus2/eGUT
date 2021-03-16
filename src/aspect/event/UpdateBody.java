@@ -1,6 +1,7 @@
 package aspect.event;
 
 import agent.Body;
+import agent.Body.Morphology;
 import aspect.AspectInterface;
 import aspect.Event;
 import referenceLibrary.AspectRef;
@@ -23,6 +24,13 @@ public class UpdateBody extends Event
 	{
 		double l = 0.0;
 		Body body = (Body) initiator.getValue(BODY);
+		
+		Morphology morphology = body.getMorphology();
+		
+		if (morphology == Morphology.CUBOID)
+		{
+			return;
+		}
 		
 		// TODO cleanup
 		if ( body.getNumberOfPoints() > 1 )
