@@ -25,8 +25,7 @@ public class BiofilmMembraneLiquid extends SpatialBoundary
 	@Override
 	protected boolean needsLayerThickness()
 	{
-		// TODO check this!
-		return true;
+		return false;
 	}
 
 	/* ***********************************************************************

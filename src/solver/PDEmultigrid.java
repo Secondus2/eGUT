@@ -726,6 +726,7 @@ public class PDEmultigrid extends PDEsolver
 			 */
 			residual = (lop - rhs) / totalNhbWeight;
 			this.tempRes[pos] = Math.max(this.tempRes[pos], Math.abs(residual));
+			//Sensitive to 0 as initial concn
 			double relChange = residual / concn;
 			/* Prepare to update the local concentration. */
 			concn += residual;

@@ -56,14 +56,14 @@ public class RegularReaction
 	 * in this reaction may be produced (stoichiometry > 0), consumed (< 0), or
 	 * unaffected (stoichiometry = 0, or unlisted) by the reaction.
 	 */
-	private InstantiableMap<String,Double> _stoichiometry = new InstantiableMap<String,Double>(
+	protected InstantiableMap<String,Double> _stoichiometry = new InstantiableMap<String,Double>(
 			String.class, Double.class, XmlRef.component, XmlRef.coefficient, 
 			XmlRef.stoichiometry, XmlRef.stoichiometric, true);
 	/**
 	 * The mathematical expression describing the rate at which this reaction
 	 * proceeds.
 	 */
-	private Component _kinetic;
+	protected Component _kinetic;
 	/**
 	 * Dictionary of mathematical expressions describing the differentiation
 	 * of {@code this._kinetic} with respect to variables, whose names are
@@ -72,7 +72,7 @@ public class RegularReaction
 	// TODO consider deletion
 	private HashMap<String, Component> _diffKinetics;
 
-	private ArrayList<String> _constituents;
+	protected ArrayList<String> _constituents;
 	
 	/* ***********************************************************************
 	 * CONSTRUCTORS

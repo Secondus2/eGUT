@@ -1,5 +1,6 @@
 package surface;
 
+import java.util.LinkedList;
 import java.util.List;
 
 import org.w3c.dom.Element;
@@ -68,7 +69,57 @@ public class Cuboid extends Surface implements HasBoundingBox {
 	public Type type() {
 		return Surface.Type.CUBOID;
 	}
-
+	
+	public double[][] allCorners ()
+	{
+		double[][] out = new double[1][1];
+		double[][] base = new double[1][1];
+		int dimension = 0;
+		while (dimension < this._points[0].nDim())
+		{
+			if (dimension == 0)
+			{
+				out = new double[2][dimension + 1];
+				out[0][dimension] = this._points[0].getPosition()[dimension];
+				out[1][dimension] = this._points[1].getPosition()[dimension];
+			}
+			
+			else 
+			{
+				int arrayNumber = (int) Math.pow(2,(dimension + 1));
+				out = new double[arrayNumber][dimension + 1];
+				for (int i = 0; i < (arrayNumber); i++)
+				{
+					if (i % 2 == 0)
+					{
+						for (int j = dimension; j > 0; j--)
+						{
+							out[i][j - 1] = base[0][j - 1];
+						}
+					}
+					else
+					{
+						for (int j = dimension; j > 0; j--)
+						{
+							out[i][j - 1] = base[1][j - 1];
+						}
+					}
+					if (i*2 >= (arrayNumber))
+					{
+						out[i][dimension] = this._points[1].getPosition()[dimension];
+					}
+					else
+					{
+						out[i][dimension] = this._points[0].getPosition()[dimension];
+					}
+				}
+			}
+			base = out;
+			dimension++;
+		}
+		return out;
+	}
+	
 	
 	public double[][] pointMatrix(Shape shape)
 	{

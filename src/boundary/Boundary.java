@@ -83,6 +83,14 @@ public abstract class Boundary implements Settable, Instantiable
 	 * out. Map keys are solute names. Units of mass (or mole) per time.
 	 */
 	protected Map<String,Double> _massFlowRate = new HashMap<String,Double>();
+	
+	/**
+	 * Rate of transport flux across this boundary. Unlike _volumeFlowRate, this
+	 * is not reciprocated in the partner boundary, because the change in the
+	 * partner compartment is handled by the reaction-diffusion solver.
+	 */
+	protected Map<String, Double> _transportFlux = new HashMap<String,Double>();
+	
 	/**
 	 * Agents that are leaving this compartment via this boundary, and
 	 * so need to travel to the connected compartment.
@@ -229,6 +237,14 @@ public abstract class Boundary implements Settable, Instantiable
 		return out;
 	}
 
+	public Boundary getPartner()
+	{
+		if (this._partner == null)
+			return null;
+		else
+			return this._partner;
+	}
+	
 	/* ***********************************************************************
 	 * SOLUTE TRANSFERS
 	 * **********************************************************************/
@@ -379,6 +395,21 @@ public abstract class Boundary implements Settable, Instantiable
 		 */
 		this.additionalPartnerUpdate();
 	}
+	
+	
+	public void setTransportFlux(String name, double rate)
+	{
+		this._transportFlux.put(name, rate);
+	}
+	
+	public double getTransportFlux(String solute)
+	{
+		if (this._transportFlux.containsKey(solute))
+			return this._transportFlux.get(solute);
+		else
+			return 0.0;
+	}
+	
 	
 	/**
 	 * Method for doing any additional pre-step updates that are specific to

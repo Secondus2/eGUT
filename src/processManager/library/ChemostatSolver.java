@@ -258,21 +258,30 @@ public class ChemostatSolver extends ProcessManager
 						/* outflows at bulk concentrations */
 						dydt [_n ] += volFlowRate;
 						for ( int i = 0; i < _n; i++ )
+						{
 							dydt[i] += volFlowRate * (y[i]/y[_n]);
+							dydt[i] += aBoundary.getTransportFlux( _solutes[i] );
+						}
 					}
 					else if ( volFlowRate > 0.0 )
 					{
 						/* inflows determined by boundary */
 						dydt [_n ] += volFlowRate;
 						for ( int i = 0; i < _n; i++ )
+						{
 							dydt[i] += aBoundary.getMassFlowRate( _solutes[i] );
+							dydt[i] += aBoundary.getTransportFlux( _solutes[i] );
+						}
 					}
 					else
 					{
 						/* diffusion flows */
 						dydt [_n ] += volFlowRate;
 						for ( int i = 0; i < _n; i++ )
+						{
 							dydt[i] += aBoundary.getMassFlowRate( _solutes[i] );
+							dydt[i] += aBoundary.getTransportFlux( _solutes[i] );
+						}
 					}
 					if ( volFlowRate != 0.0 )
 					{

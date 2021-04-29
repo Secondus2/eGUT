@@ -180,6 +180,11 @@ public class XmlRef
 	public final static String shapeDimension = "dimension";
 	
 	/**
+	 * The dimension in which flux occurs in a surface reaction.
+	 */
+	public final static String fluxDimension = "fluxDimension";
+	
+	/**
 	 * Tag for the ResolutionCalculator class that should be used for a
 	 * dimension.
 	 */
@@ -201,7 +206,12 @@ public class XmlRef
 	 * that are not controlled by an {@code Agent}.
 	 */
 	public final static String reactions = "reactions";
-
+	
+	/**
+	 * Name of a boundary at which transport reactions take place
+	 */
+	public final static String transportBoundary = "transportBoundary";
+	
 	/**
 	 * Encapsulates all agents for one compartment.
 	 */

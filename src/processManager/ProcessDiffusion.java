@@ -14,7 +14,9 @@ import agent.Agent;
 import agent.Body;
 import bookkeeper.KeeperEntry.EventType;
 import boundary.Boundary;
+import boundary.SpatialBoundary;
 import compartment.AgentContainer;
+import compartment.Compartment;
 import compartment.EnvironmentContainer;
 import dataIO.Log;
 import dataIO.Log.Tier;
@@ -27,6 +29,7 @@ import reaction.RegularReaction;
 import referenceLibrary.AspectRef;
 import shape.CartesianShape;
 import shape.Shape;
+import shape.ShapeLibrary.Dimensionless;
 import shape.subvoxel.IntegerArray;
 import shape.subvoxel.SubvoxelPoint;
 import solver.PDEsolver;
@@ -228,6 +231,15 @@ public abstract class ProcessDiffusion extends ProcessManager
 				Log.out(Tier.NORMAL, "No reactions to apply, skipping");
 			return;
 		}
+		
+		HashMap<RegularReaction, Boolean> _reactionValidity = 
+				new HashMap<RegularReaction, Boolean>();
+		
+		for (Reaction r : reactions)
+		{
+			_reactionValidity.put((RegularReaction) r, true);
+		}
+		
 		/*
 		 * Construct the "concns" dictionary once, so that we don't have to
 		 * re-enter the solute names for every voxel coordinate.
@@ -251,26 +263,297 @@ public abstract class ProcessDiffusion extends ProcessManager
 		for ( int[] coord = shape.resetIterator(); 
 				shape.isIteratorValid(); coord = shape.iteratorNext() )
 		{
+
+			Collection<SpatialBoundary> neighbouringBoundaries = 
+					shape.getNeighbouringBoundaries(coord);
+			
 			/* Get the solute concentrations in this grid voxel. */
 			for ( SpatialGrid soluteGrid : solutes )
 			{
 				concns.put(soluteGrid.getName(),
 						soluteGrid.getValueAt(CONCN, coord));
 			}
+			
+			
+			/*
+			 * Get concentrations in other compartments
+			 */
+			for ( Reaction r : reactions )
+			{
+				for (String constName : r.getConstituentNames())
+				{
+					/**
+					 * The character @ is used to reference another compartment
+					 */
+					if (constName.contains("@"))
+					{
+						String[] splitString = constName.split("@");
+						String constituent = splitString[0];
+						String compartmentName = splitString[1];
+						if (!(Idynomics.simulator.getCompartment(
+								compartmentName) == null))
+						{
+							Compartment compartment = Idynomics.simulator.
+									getCompartment(compartmentName);
+							
+							EnvironmentContainer partnerEnvironment =
+									compartment.environment;
+							
+							Shape partnerShape = compartment.getShape();
+							
+							/**
+							 * Check that the compartment referenced is not this
+							 * compartment. If it is, nothing is done as the
+							 * solute concentrations have already been recorded.
+							 */
+							if (compartment != this.getParent()) 
+							{
+								
+								/**
+								 * Check whether the referenced compartment is
+								 * connected to this compartment via a Boundary
+								 */
+								boolean connectedCompartment= false;
+								for (Boundary b : neighbouringBoundaries)
+								{
+									if (!(Helper.isNullOrEmpty(b)))
+									{
+										if (b.getPartnerCompartmentName().
+												contentEquals(compartmentName)) 
+										{
+											connectedCompartment = true;
+										}
+										
+										else
+										{
+											if (Log.shouldWrite(Tier.DEBUG))
+												Log.out(Tier.DEBUG,
+													"Reaction requires boundary"
+													+ "connection between "
+													+ this._compartmentName +
+													" and " + compartmentName +
+													". No such connection "
+													+ "exists.");
+										}
+									}
+								}
+								
+								/**
+								 * Check whether the referenced compartment is
+								 * dimensionless (reactions between two spatial
+								 * compartments is not possible as compartments
+								 * are solved separately)
+								 */
+								boolean dimensionlessPartner = false;
+								if (partnerShape instanceof Dimensionless)
+								{
+									dimensionlessPartner = true;
+								}
+										
+								else
+								{
+									if (Log.shouldWrite(Tier.DEBUG))
+										Log.out(Tier.DEBUG,
+											"Transport reaction links spatial "
+											+ "compartment to " + 
+											compartmentName + ". Transport "
+											+ "reactions between two spatial "
+											+ "compartments are not supported.");
+								}
+								
+								/**
+								 * Check whether the compartment has a solute of
+								 * the given name
+								 */
+								if (partnerEnvironment.isSoluteName(constituent)) 
+								{
+									if (dimensionlessPartner && 
+											connectedCompartment) 
+									{
+										double concn = partnerEnvironment.
+											getAverageConcentration(constituent);
+										concns.put(constName, concn);
+									}
+								}
+
+								else 
+								{
+									if (Log.shouldWrite(Tier.DEBUG))
+										Log.out(Tier.DEBUG,
+												"Reaction specifies " + 
+										"non-existent solute, " + constituent);
+								} 
+							}
+						}
+						
+						else
+						{
+							if( Log.shouldWrite(Tier.DEBUG) )
+								Log.out(Tier.DEBUG, "Reaction specifies "
+										+ "non-existent compartent" + 
+										compartmentName);
+						}
+					}
+				}
+			}
+			
 			/* Iterate over each compartment reactions. */
 			for ( Reaction r : reactions )
 			{
 				/* Write rate for each product to grid. */
 				for ( String product : r.getReactantNames() )
-					for ( SpatialGrid soluteGrid : solutes )
-						if ( product.equals(soluteGrid.getName()) )
+				{
+					
+					if (product.contains("@"))
+					{
+						String[] splitString = product.split("@");
+						String constituent = splitString[0];
+						String compartmentName = splitString[1];
+						if (!(Idynomics.simulator.getCompartment(
+								compartmentName) == null))
 						{
-							productRate = r.getProductionRate( concns, product);
-							soluteGrid.addValueAt(PRODUCTIONRATE,
-									coord, productRate);
-							totals.put(product,
-									totals.get(product) + productRate);
+							Compartment compartment = Idynomics.simulator.
+									getCompartment(compartmentName);
+							
+							EnvironmentContainer partnerEnvironment =
+									compartment.environment;
+							
+							Shape partnerShape = compartment.getShape();
+							
+							/**
+							 * Check that the compartment referenced is not this
+							 * compartment. If it is, nothing is done as the
+							 * solute concentrations have already been recorded.
+							 */
+							if (compartment != this.getParent()) 
+							{
+								
+								/**
+								 * Check whether the referenced compartment is
+								 * connected to this compartment via a Boundary
+								 */
+								Boundary transportBoundary = null;
+								for (Boundary b : neighbouringBoundaries)
+								{
+									if (!(Helper.isNullOrEmpty(b)))
+									{
+										if (b.getPartnerCompartmentName().
+												contentEquals(compartmentName)) 
+										{
+											transportBoundary = b;
+										}
+										
+										else
+										{
+											if (Log.shouldWrite(Tier.DEBUG))
+												Log.out(Tier.DEBUG,
+													"Reaction requires boundary"
+													+ "connection between "
+													+ this._compartmentName +
+													" and " + compartmentName +
+													". No such connection "
+													+ "exists.");
+										}
+									}
+								}
+								
+								/**
+								 * Check whether the referenced compartment is
+								 * dimensionless (reactions between two spatial
+								 * compartments is not possible as compartments
+								 * are solved separately)
+								 */
+								boolean dimensionlessPartner = false;
+								if (partnerShape instanceof Dimensionless)
+								{
+									dimensionlessPartner = true;
+								}
+										
+								else
+								{
+									if (Log.shouldWrite(Tier.DEBUG))
+										Log.out(Tier.DEBUG,
+											"Transport reaction links spatial "
+											+ "compartment to " + 
+											compartmentName + ". Transport "
+											+ "reactions between two spatial "
+											+ "compartments are not supported.");
+								}
+								
+								/**
+								 * Check whether the compartment has a solute of
+								 * the given name
+								 */
+								if (partnerEnvironment.isSoluteName(constituent)) 
+								{
+									if (dimensionlessPartner && 
+											transportBoundary != null) 
+									{
+										SpatialGrid solute = compartment.getSolute(constituent);
+										
+										productRate = r.getProductionRate( concns, product);
+										
+										solute.addValueAt(PRODUCTIONRATE,
+												coord, productRate);
+										
+										totals.put(product,
+												totals.get(product) + productRate);
+										
+										solute.increaseTransportFlux(
+												transportBoundary, solute.
+												voxelVolume() * productRate);
+									}
+								}
+
+								else 
+								{
+									if (Log.shouldWrite(Tier.DEBUG))
+										Log.out(Tier.DEBUG,
+												"Reaction specifies " + 
+										"non-existent solute, " + constituent);
+								} 
+							}
+							
+							else
+							{
+								for ( SpatialGrid soluteGrid : solutes )
+								{
+									if ( constituent.equals(soluteGrid.getName()) )
+									{
+										productRate = r.getProductionRate( concns, product);
+										soluteGrid.addValueAt(PRODUCTIONRATE,
+												coord, productRate);
+										totals.put(product,
+												totals.get(product) + productRate);
+									}
+								}
+							}
 						}
+						
+						else
+						{
+							if( Log.shouldWrite(Tier.DEBUG) )
+								Log.out(Tier.DEBUG, "Reaction specifies "
+										+ "non-existent compartent" + 
+										compartmentName);
+						}
+					}
+					
+					else
+					{
+						for ( SpatialGrid soluteGrid : solutes )
+						{
+							if ( product.equals(soluteGrid.getName()) )
+							{
+								productRate = r.getProductionRate( concns, product);
+								soluteGrid.addValueAt(PRODUCTIONRATE,
+										coord, productRate);
+								totals.put(product,
+										totals.get(product) + productRate);
+							}
+						}
+					}
+				}
 			}
 		}
 		

@@ -1,7 +1,8 @@
 package surface.collision;
 
+import java.util.ArrayList;
 import java.util.Collection;
-
+import java.util.LinkedList;
 
 import aspect.Aspect;
 import aspect.AspectInterface;
@@ -542,6 +543,9 @@ public class Collision
 			return this.planeSphere(plane, (Ball) otherSurface, var);
 		case ROD:
 			return this.planeRod(plane, (Rod) otherSurface, var);
+		case ORIENTEDCUBOID:
+			return this.planeOrientedCuboid(
+					plane, (OrientedCuboid) otherSurface, var);
 		default:
 			Log.out(Tier.CRITICAL, this.getClass().getSimpleName() +
 					" encountered unimplemented surface assessment.");
@@ -814,6 +818,27 @@ public class Collision
 		
 		var.distance -= sphere.getRadius();
 		return var;
+	}
+	
+	private CollisionVariables planeOrientedCuboid (Plane plane, 
+			OrientedCuboid cuboid, CollisionVariables var)
+	{
+		double[][] coordinates = cuboid.allCorners();
+		
+		double distance = Double.MAX_VALUE;
+		for (int i = 0; i < coordinates.length; i++)
+		{
+			double[] coord = coordinates[i];
+			this.planePoint(plane, coord, var);
+			double cornerDist = Double.valueOf(var.distance);
+			if (cornerDist < distance)
+				distance = cornerDist;
+			else
+				var.distance = distance;
+		}
+		
+		return var;
+		
 	}
 	
 	

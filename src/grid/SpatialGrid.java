@@ -11,8 +11,9 @@ import java.util.Set;
 import org.w3c.dom.Element;
 
 import agent.Agent;
-import agent.Body;
+import boundary.Boundary;
 import compartment.AgentContainer;
+import compartment.Compartment;
 import compartment.EnvironmentContainer;
 import dataIO.Log;
 import dataIO.Log.Tier;
@@ -24,7 +25,6 @@ import instantiable.Instantiable;
 import linearAlgebra.Array;
 import linearAlgebra.Matrix;
 import linearAlgebra.Vector;
-import referenceLibrary.AspectRef;
 import referenceLibrary.XmlRef;
 import settable.Attribute;
 import settable.Module;
@@ -81,6 +81,9 @@ public class SpatialGrid implements Settable, Instantiable
 	 * TODO
 	 */
 	protected double _wellmixedFlow = 0.0;
+	
+	protected HashMap<Boundary, Double> _transportFlux =
+			new HashMap<Boundary, Double>();
 	
 	/**
 	 * identifies what compartment hosts this grid
@@ -847,6 +850,58 @@ public class SpatialGrid implements Settable, Instantiable
 	public void resetWellMixedMassFlow()
 	{
 		this._wellmixedFlow = 0.0;
+	}
+	
+	public void increaseTransportFlux(Boundary b, double flux)
+	{
+		if (this._transportFlux.containsKey(b))
+		{
+			double currentFlux = this._transportFlux.get(b);
+			double newFlux = currentFlux + flux;
+			this._transportFlux.put(b, newFlux);
+		}
+		else
+			this._transportFlux.put(b, flux);
+	}
+	
+	public double getTransportFlux(Boundary b)
+	{
+		if (this._transportFlux.containsKey(b))
+		{
+			return this._transportFlux.get(b);
+		}
+		
+		return 0.0;
+	}
+	
+	public void resetTransportFlux()
+	{
+		for (Boundary b : this._transportFlux.keySet())
+		{
+			this._transportFlux.put(b, 0.0);
+		}
+	}
+	
+	public void setTransportFlux(Boundary b, double flux)
+	{
+		this._transportFlux.put(b, flux);
+	}
+	
+	public void applyTransportFlux()
+	{
+		for (Boundary b : this._transportFlux.keySet())
+		{
+			
+			Boundary partner = b.getPartner();
+			String partnerCompName = b.getPartnerCompartmentName();
+			Compartment partnerComp = Idynomics.simulator.getCompartment(
+					partnerCompName);
+			Compartment thisComp = (Compartment) this.getParent().getParent();
+			double scFac = ( partnerComp == null ? 1.0 : 
+				thisComp.getScalingFactor() / partnerComp.getScalingFactor());
+			partner.setTransportFlux(this.getName(),
+					this.getTransportFlux(b) * scFac);
+		}
 	}
 	
 	/* ***********************************************************************

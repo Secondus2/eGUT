@@ -642,6 +642,9 @@ public class ClassRef
 	public static final String reaction =
 			reaction.RegularReaction.class.getName();
 	
+	public static final String transportReaction = 
+			reaction.SurfaceReaction.class.getName();
+	
 	/**
 	 * TODO
 	 */

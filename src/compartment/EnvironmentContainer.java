@@ -48,7 +48,9 @@ public class EnvironmentContainer implements CanPrelaunchCheck, Settable
 	 * Collection of extracellular reactions specific to this compartment
 	 * (each Reaction knows its own name).
 	 */
-	protected InstantiableList<RegularReaction> _reactions = new InstantiableList<RegularReaction>(RegularReaction.class, null, XmlRef.reactions, XmlRef.reaction);
+	protected InstantiableList<RegularReaction> _reactions = 
+			new InstantiableList<RegularReaction>(RegularReaction.class, null, 
+					XmlRef.reactions, XmlRef.reaction);
 	/**
 	 * Name of the common grid.
 	 */
@@ -370,6 +372,7 @@ public class EnvironmentContainer implements CanPrelaunchCheck, Settable
 		for ( SpatialGrid solute : this._solutes )
 			solute.resetWellMixedMassFlow();
 	}
+	
 	
 	/* ***********************************************************************
 	 * COMMON GRID METHODS

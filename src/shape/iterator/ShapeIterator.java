@@ -4,7 +4,6 @@ import static shape.iterator.ShapeIterator.WhereAmI.CYCLIC;
 import static shape.iterator.ShapeIterator.WhereAmI.DEFINED;
 import static shape.iterator.ShapeIterator.WhereAmI.INSIDE;
 import static shape.iterator.ShapeIterator.WhereAmI.UNDEFINED;
-
 import boundary.SpatialBoundary;
 import linearAlgebra.Vector;
 import shape.Dimension;
@@ -157,6 +156,7 @@ public abstract class ShapeIterator
 		}
 		return INSIDE;
 	}
+	
 	
 	/**
 	 * \brief Find out what kind of voxel the neighbor iterator is at, within
