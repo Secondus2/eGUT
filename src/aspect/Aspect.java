@@ -51,6 +51,19 @@ public class Aspect implements Instantiable, Settable
 		 */
 		EVENT
 	}
+	
+	public enum Scale
+	{
+		LINEAR,
+		
+		LOGARITHMIC,
+		
+		NONE
+	}
+	
+	protected Scale _scale;
+	
+	protected int binNumber;
 
 	/**
 	 * The object this Aspect wraps.
@@ -291,6 +304,11 @@ public class Aspect implements Instantiable, Settable
 			this.set( ObjectFactory.loadObject( null, objectClass), name);
 			break;
 		}
+		
+		String scale = Helper.obtainInput(name, "aspect name");
+		this._scale = this.readScaleString(scale);
+		
+		
 		this.registry = ((AspectInterface) parent).reg();
 		registry.addInstatiatedAspect( name, this );
 	}
@@ -321,5 +339,17 @@ public class Aspect implements Instantiable, Settable
 	public Settable getParent() 
 	{
 		return this._parentNode;
+	}
+	
+	public Scale readScaleString (String scale)
+	{
+		if (scale.contentEquals("linear"))
+			return Scale.LINEAR;
+		else if (scale.contentEquals("logarithmic"))
+			return Scale.LOGARITHMIC;
+		else
+			Idynomics.simulator.interupt("No record type set. "
+					+ "Returning concentration.");
+		return Scale.NONE;
 	}
 }

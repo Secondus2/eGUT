@@ -24,6 +24,7 @@ import processManager.ProcessDiffusion;
 import processManager.ProcessMethods;
 import reaction.Reaction;
 import reaction.RegularReaction;
+import reaction.SurfaceReaction;
 import referenceLibrary.AspectRef;
 import referenceLibrary.XmlRef;
 import shape.Shape;
@@ -211,7 +212,7 @@ public class SolveDiffusionSteadyState extends ProcessDiffusion
 				for ( String varName : r.getConstituentNames() )
 				{
 					
-					if (varName.contains("@"))
+					if (r instanceof SurfaceReaction && varName.contains("@"))
 					{
 						Collection<SpatialBoundary> collidingBoundaries = this._agents.
 								boundarySearch(agent, Double.MIN_VALUE);

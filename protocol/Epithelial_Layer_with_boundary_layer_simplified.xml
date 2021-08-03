@@ -1,0 +1,190 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<document>
+	<simulation name="EpithelialLayer" outputfolder="../results" log="DEBUG" randomSeed="23"
+						comment="this is a file for testing purposes only.">
+		
+		<timer stepSize="1.0" endOfSimulation="10.0" />
+		
+		<speciesLib>
+			<!-- species/species library The species library contains all agent species 
+				in the simulations. This may include microbial species, plasmid and vector 
+				species, particle species etc. Species states are states that are in principal 
+				identical for all agents of that species. However note that iDynoMiCS 2.0 
+				does allow you to overwrite states on agent level. Thus if a state is defined 
+				both on species level and on agent level, the agent state will be used in 
+				the simulation. small test -->
+			<species name="gobletCell">
+				<aspect name="pigment" type="PRIMARY" class="String" value="GREEN" />
+				<speciesModule name="epithelium" />
+			</species>
+			<species name="epithelium">
+				<aspect name="surfaces"			type="CALCULATED"	class="AgentSurfaces"	  />
+				<aspect name="volume" 			type="CALCULATED" 	class="SimpleVolumeState" />
+				<aspect name="radius" 			type="PRIMARY" 		class="Double" 					value="0.23" />
+				<aspect name="divide" 			type="EVENT" 		class="CuboidDivision"		 />
+				<aspect name="#isEpithelial" 	type="PRIMARY" 		class="Boolean" value="true" />
+				<aspect name="updateBody" 		type="EVENT" 		class="UpdateBody" 	 />
+				<aspect name="epsExcretion" 	type="EVENT"		class="ExcreteEPS" 	 />
+				<aspect name="maxInternalEPS" 	type="PRIMARY" 		class="Double" value="0.3" />
+				<aspect name="epsSpecies" 		type="PRIMARY" 		class="String" value="particleEPS" />
+				<aspect name="apicalFace"		type="CALCULATED" 	class="CuboidApicalFace" />
+				<aspect name="reactions" type="PRIMARY"  class="InstantiableList"> 
+ 					<list class="RegularReaction" nodeLabel="RegularReaction" 
+ 					entryClass="RegularReaction" keyClass="String" keyLabel="name">
+						<RegularReaction name="Transport" partnerCompartment="blood">
+							<expression value="biomass * (solute1 - solute1@blood) * k">
+								<constant name="k" value="0.1" />
+							</expression>
+							<stoichiometric component="solute2@blood" coefficient="5.0" />
+							<stoichiometric component="solute2" coefficient="-5.0" />
+						</RegularReaction> 
+ 					</list>
+				</aspect>
+			</species>
+			<species name="particleEPS">
+				<aspect name="density" 			type="CALCULATEDONCE" 		class="Double" value="1.0" />
+				<aspect name="pigment" 			type="PRIMARY" 		class="String" value="BLUE" />
+				<aspect name="#isLocated" 		type="PRIMARY" 		class="Boolean" value="true" />
+				<aspect name="surfaces"			type="CALCULATED"	class="AgentSurfaces" />
+				<aspect name="morphology" 		type="PRIMARY" 		class="String" />
+				<aspect name="volume" 			type="CALCULATED" 	class="SimpleVolumeState" />
+				<aspect name="radius" 			type="CALCULATED" 	class="CoccoidRadius" />
+				<aspect name="updateBody" 		type="EVENT" 		class="UpdateBody" />
+				<aspect name="searchDist"		type="PRIMARY" 		class="Double"		value="0.3"  />
+				<aspect name ="pullDistance"		type="PRIMARY"		class="Double"		value="0.5"/>
+			</species>
+			<species name="coccoid">
+				<aspect name="surfaces"		type="CALCULATED"	class="AgentSurfaces" />
+				<aspect name="morphology" 	type="PRIMARY" 		class="String" 		value="coccoid" />
+				<!-- NOTE for testing purposes as stateExpression -->
+				<aspect name="volume" 		type="CALCULATED" 	class="SimpleVolumeState" />
+				<aspect name="radius"		type="CALCULATED"	class="CoccoidRadius" 	/>
+				<aspect name="density" 			type="CALCULATEDONCE" 		class="Double" value="1.0" />
+				<aspect name="divide" 		type="EVENT" 		class="CoccoidDivision"			 />
+				<aspect name="divisionMass" type="PRIMARY"		class="Double"		value="0.5" />
+				<aspect name="growth" 		type="EVENT" 		class="SimpleGrowth" />
+				<aspect name="#isLocated" 	type="PRIMARY" 		class="Boolean" value="true" />
+				<aspect name="updateBody" 	type="EVENT" 		class="UpdateBody" 		 />
+			</species>
+		</speciesLib>
+		<compartment name="chemostat">
+			<shape class = "Dimensionless" volume="1.0"/>
+			<solutes>
+				<solute name="solute1" concentration="5.0" defaultDiffusivity="1"  />
+				<solute name="solute2" concentration="0.1"  defaultDiffusivity="1" />
+			</solutes>
+			
+			<processManagers>
+				<process name="solveChemostat" class="ChemostatSolver" priority="0"
+					firstStep="0.0" >
+					<aspect name="soluteNames" type="PRIMARY" class="String[]" value="solute1,solute2" />
+					<aspect name="hMax" type="PRIMARY" class="Double" value="60.0" />
+					<aspect name="solver" type="PRIMARY" class="String" value="heun" />
+					<aspect name="tolerance" class="Double" value="1.0E-6" />
+				</process>
+			</processManagers>
+		</compartment>
+		<compartment name="blood">
+			<shape class = "Dimensionless" volume="10.0"/>
+			<solutes>
+				<solute name="solute1" concentration="1.0" defaultDiffusivity="1"  />
+				<solute name="solute2" concentration="5.0"  defaultDiffusivity="1" />
+			</solutes>
+			<processManagers>
+				<process name="solveChemostat" class="ChemostatSolver" priority="0"
+					firstStep="0.0" >
+					<aspect name="soluteNames" type="PRIMARY" class="String[]" value="solute1,solute2" />
+					<aspect name="hMax" type="PRIMARY" class="Double" value="60.0" />
+					<aspect name="solver" type="PRIMARY" class="String" value="heun" />
+					<aspect name="tolerance" class="Double" value="1.0E-6" />
+				</process>
+			</processManagers>
+		</compartment>
+		<compartment name="main">
+			<shape class="Rectangle">
+				<dimension name="X" isCyclic="true" targetResolution="2" max="32.0">
+				</dimension> 
+				<dimension name="Y" isCyclic="false" targetResolution="2" max="32.0">
+				<boundary extreme="1" class="BiofilmBoundaryLayer" partnerCompartment="chemostat" layerThickness="10" />
+				<boundary extreme="0" class="BiofilmMembraneLiquid" partnerCompartment="blood" />
+				</dimension>
+			</shape>
+			<solutes>
+				<solute name="solute1" concentration="5.0" defaultDiffusivity="1"  />
+				<solute name="solute2" concentration="0.1"  defaultDiffusivity="1" />
+			</solutes>
+			<reaction name="Transport">
+				<expression value=" (solute1 - solute1@blood) * k">
+					<constant name="k" value="0.1" />
+				</expression>
+				<stoichiometric component="solute2@blood" coefficient="5.0" />
+				<stoichiometric component="solute2" coefficient="-5.0" />
+			</reaction> 
+			<spawn class="differentiatedEpithelialLayerSpawner" domain="32.0, 4.0" cellShape="2.0, 4.0" priority="0">
+					<templateAgent number="8">
+						<aspect name="volumeDistribution" type="PRIMARY" class="HashMap">
+						</aspect>
+						<aspect  name="mass" class="InstantiableMap">
+							<map entryClass="Double" keyType="String">
+								<item key="biomass" value="2.0"  />
+								<item key="eps" value="0.0"  />
+							</map>
+						</aspect>
+						<aspect name="species" type="PRIMARY" class="String" value="gobletCell" />
+						<aspect name="density" type="PRIMARY" class="Double" value="1" />
+						<aspect name="pigment" type="PRIMARY" class="String" value="GREEN" />
+					</templateAgent>
+					<templateAgent number="8">
+						<aspect name="volumeDistribution" type="PRIMARY" class="HashMap">
+						</aspect>
+						<aspect  name="mass" class="InstantiableMap">
+							<map entryClass="Double" keyType="String">
+								<item key="biomass" value="2.0"  />
+								<item key="eps" value="0.0"  />
+							</map>
+						</aspect>
+						<aspect name="species" type="PRIMARY" class="String" value="epithelium" />
+						<aspect name="density" type="PRIMARY" class="Double" value="1" />
+						<aspect name="pigment" type="PRIMARY" class="String" value="RED" />
+					</templateAgent>
+			</spawn>
+			<spawn class="randomSpawner" domain="0.0, 4.0; 32.0, 8.0" priority="0" number="0" morphology="COCCOID">
+				<templateAgent>
+					<aspect name="species" type="PRIMARY" class="String" value="coccoid" />
+					<aspect  name="mass" class="InstantiableMap">
+						<map entryClass="Double" keyType="String">
+							<item key="biomass" value="2.0"  />
+							<item key="inert" value="0.0"  />
+						</map>
+					</aspect>
+				</templateAgent>
+			</spawn>
+			<processManagers>
+				<process name="agentRelax" class="AgentRelaxation"  priority="-2"
+					firstStep="0.0"  timerStepSize="1.0">
+					<aspect name="maxMovement" type="PRIMARY" class="Double" value="0.3" />
+					<aspect name = "staticAgentTimeStep" type="PRIMARY" class="Boolean" value="true" />
+					<aspect name="relaxationMethod" type="PRIMARY" class="String" value="EULER" />
+					<aspect name="stressThreshold" type="PRIMARY" class="Double" value="10000.0" />
+					<aspect name="maxIterations"   type="PRIMARY" class="Integer" value="80"/>
+				</process>
+				<process name="SolveDiffusionSteadyState" class="SolveDiffusionSteadyState" priority="-1"
+					firstStep="0.0">	
+					<aspect name="vCycles" class="Integer" value="1" />
+					<aspect name="preSteps" class="Integer" value="3" />
+					<aspect name="coarseSteps" class="Integer" value="6" />
+					<aspect name="postSteps" class="Integer" value="3" />
+					<!-- In principle they are not all the same but all in the 
+					same order of magnitude ~ 2.0e-4 m2.day-1 values here in 
+					µm^2/ minute-->
+				</process>
+				<process name="svgWriter" class="GraphicalOutput"  priority="-3"
+					firstStep="0.0"  timerStepSize="1.0">
+					<aspect name="solute" type="PRIMARY" class="String" value="solute1" />
+					<aspect name="maxConcentration" type="PRIMARY" class="Double" value="5.0" />
+					<aspect name="outputWriter" type="PRIMARY" class="String" value="SvgExport" />
+				</process>
+			</processManagers>
+		</compartment>
+	</simulation>
+</document>

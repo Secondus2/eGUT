@@ -1,5 +1,6 @@
 package surface;
 
+import shape.Dimension.DimName;
 import surface.Surface.Type;
 
 /**
@@ -63,6 +64,12 @@ public class OrientedCuboid extends Cuboid {
 				}
 			}
 		}
+	}
+	
+	private double getSurfaceArea (DimName dimN)
+	{
+		
+		return 0.0;
 	}
 	
 	private void shiftPoint0ToFace (int i)
