@@ -99,11 +99,11 @@
 				<aspect name="#isLocated" 	type="PRIMARY" 		class="Boolean" 			value="true" />
 				<aspect name="surfaces"		type="CALCULATED"	class="AgentSurfaces"		/>
 				<aspect name="morphology" 	type="PRIMARY" 		class="String" 				value="coccoid" />
-				<aspect name="volume" 		type="CALCULATED" 	class="SimpleVolumeState" 	/>
+				<aspect name="volume" 		type="CALCULATED" 	class="SimpleVolumeState" 	scale = "linear" 		binNumber = "5"/>
 				<aspect name="radius" 		type="CALCULATED" 	class="CoccoidRadius" 		/>
 				<aspect name="divide" 		type="EVENT" 		class="CoccoidDivision"		/>
 				<!-- Dry division mass (pg) -->
-				<aspect name="divisionMass"	class="Double"		value="16.507" 			scale = linear 		binNumber = 5	/>
+				<aspect name="divisionMass"	class="Double"		value="16.507" 				/>
 				<aspect name="updateBody" 	type="EVENT" 		class="UpdateBody" 			/>
 				<aspect name="evaluatePull"	type="EVENT"		class="ResolveInteractionDistance" 	 />
 				<!-- µm -->

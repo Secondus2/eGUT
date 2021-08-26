@@ -63,7 +63,7 @@ public class Aspect implements Instantiable, Settable
 	
 	protected Scale _scale;
 	
-	protected int binNumber;
+	protected int _binNumber;
 
 	/**
 	 * The object this Aspect wraps.
@@ -305,9 +305,13 @@ public class Aspect implements Instantiable, Settable
 			break;
 		}
 		
-		String scale = Helper.obtainInput(name, "aspect name");
+		String scale = Helper.obtainInput( Helper.enumToString(
+				Aspect.Scale.class).split(" "), 
+				"aspect scale", false);
 		this._scale = this.readScaleString(scale);
 		
+		String binNumber = Helper.obtainInput(name, "aspect binNumber");
+		this._binNumber = Integer.parseInt(binNumber);
 		
 		this.registry = ((AspectInterface) parent).reg();
 		registry.addInstatiatedAspect( name, this );
