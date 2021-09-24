@@ -159,18 +159,18 @@ public class Global extends ParameterSet
 	/**
 	 * enable bookkeeping.
 	 */
-	public static boolean bookkeeping = false;
+	public static boolean bookkeeping = true;
 	
 	/**
 	 * enable csv bookkeeping
 	 */
-	public static boolean csv_bookkeeping = false;
+	public static boolean csv_bookkeeping = true;
 	
 	/**
 	 * enable xml bookkeeping (also logging complete agent xml)
 	 * Warning: very slow
 	 */
-	public static boolean xml_bookkeeping = false;
+	public static boolean xml_bookkeeping = true;
 	
 	/**
 	 * console font
@@ -293,6 +293,11 @@ public class Global extends ParameterSet
 	/**
 	 * 
 	 */
+	public static double default_attachment_pull_distance = 0.2;
+	
+	/**
+	 * 
+	 */
 	public static double agent_move_safety = 0.001;
 	
 	/**
@@ -361,4 +366,6 @@ public class Global extends ParameterSet
 	 * Default decompression parameters
 	 */
 	public static double damping_factor = 0.9;
+	
+	public static int file_number_of_digits = 5;
 }

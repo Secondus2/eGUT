@@ -119,6 +119,8 @@ public class AspectRef
 	 */
 	public final static String genericSpineFunction = "genericSpineFunction";
 	
+	public final static String agentSpineFunction = "agentSpineFunction";
+	
 	/**
 	 * list with reactions owned by the agent
 	 */
@@ -526,6 +528,16 @@ public class AspectRef
 	public static final String attachmentRate = "attachmentRate";
 	
 	/**
+	 * AGENT TRANSFER
+	 */
+	
+	/**
+	 * Instantiable map of destination arrival processes (keys), along with
+	 * proportions of agents (values) going to each destination.
+	 */
+	public static final String destinations = "destinations";
+	
+	/**
 	 * 
 	 */
 	public static final String rasterScale = "rasterScale";
@@ -542,6 +554,27 @@ public class AspectRef
 	 */
 	public static final String regionDepth = "regionDepth";
 
+	
+	/**
+	 * The name of a dimension (X, Y or Z)
+	 */
+	public static final String dimensionName = "dimensionName";
+	
+	/**
+	 * The extreme of a dimension (0 or 1)
+	 */
+	public static final String dimensionExtreme = "extreme";
+	
+	/**
+	 * The size of a random walk step
+	 */
+	public static final String stepSize = "stepSize";
+	
+	/**
+	 * Thicknes of a biofilm boundary layer
+	 */
+	public static final String boundaryLayerThickness = "boundaryLayerThickness";
+	
 	/**
 	 * Maximum thickness of a biofilm.
 	 * 
@@ -634,4 +667,25 @@ public class AspectRef
 	public static final String dampingFactor = "dampingFactor";
 
 	public static final String filter = "filter";
+
+	public static final String torsionFunction = "torsionFunction";
+
+	public static final String linkerStiffness = "linkerStiffness";
+
+	public static final String linearStiffness = "linearStiffness";
+
+	public static final String torsionStiffness = "torsionStiffness";
+
+	public static final String directionalDivision = "directionalDivision";
+
+	public static final String removed = "removed";
+
+	public static final String unlinkProbabillity = "unlinkProbabillity";
+
+	public static final String shiftMass = "shiftMass";
+
+	public static final String transientRadius = "transientRadius";
+
+	public static final String linearFunction = "linearFunction";
+	
 }

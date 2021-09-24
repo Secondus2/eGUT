@@ -254,8 +254,9 @@ public class SpatialGrid implements Settable, Instantiable
 
 		String conc = XmlHandler.obtainAttribute((Element) xmlElem, 
 			XmlRef.concentration, this.defaultXmlTag());
-		if( Helper.expressionParseable(conc))
-			this.setAllTo(ArrayType.CONCN,new Expression( conc ).format( Idynomics.unitSystem ));
+		if( Helper.formatParseable(conc))
+			this.setAllTo(ArrayType.CONCN,new Expression( conc ).format( 
+					Idynomics.unitSystem ));
 		else
 			this.setTo(ArrayType.CONCN, conc);
 	
@@ -574,7 +575,7 @@ public class SpatialGrid implements Settable, Instantiable
 	 */
 	public void subtractArrayFromArray(ArrayType destination, ArrayType source)
 	{
-		Array.minusEquals(this._array.get(destination), this._array.get(source));
+		Array.minusEquals(this._array.get(destination),this._array.get(source));
 	}
 
 	/* ***********************************************************************
@@ -693,7 +694,7 @@ public class SpatialGrid implements Settable, Instantiable
 	 * 
 	 * <p>The flux from the neighboring voxel into the current one is given by
 	 * the formula <br><i>(c<sub>nhb</sub> - c<sub>itr</sub>) *
-	 * (D<sub>nhb</sub><sup>-1</sup> + D<sub>itr</sub><sup>-1</sup>)<sup>-1</sup>
+	 * (D<sub>nhb</sub><sup>-1</sup>+ D<sub>itr</sub><sup>-1</sup>)<sup>-1</sup>
 	 *  * d<sub>nhb,itr</sub><sup>-1</sup></i><br>
 	 * where subscript <i>itr</i> denotes the current iterator voxel and
 	 * <i>nhb</i> the current neighbor voxel, and
@@ -775,7 +776,7 @@ public class SpatialGrid implements Settable, Instantiable
 	 * 
 	 * <p>The time-scale from the neighboring voxel into the current one is 
 	 * given by the formula <i>SA<sub>nhb,itr</sub> * V<sub>itr</sub> *
-	 * (D<sub>nhb</sub><sup>-1</sup> + D<sub>itr</sub><sup>-1</sup>)<sup>-1</sup>
+	 * (D<sub>nhb</sub><sup>-1</sup>+ D<sub>itr</sub><sup>-1</sup>)<sup>-1</sup>
 	 *  * d<sub>nhb,itr</sub><sup>-1</sup></i>
 	 * where subscript <i>itr</i> denotes the current iterator voxel and
 	 * <i>nhb</i> the current neighbor voxel, and

@@ -2,6 +2,8 @@ package boundary;
 
 import static grid.ArrayType.WELLMIXED;
 
+import java.util.Vector;
+
 import org.w3c.dom.Element;
 import org.w3c.dom.Node;
 
@@ -14,7 +16,6 @@ import dataIO.XmlHandler;
 import grid.ArrayType;
 import grid.SpatialGrid;
 import grid.WellMixedConstants;
-import linearAlgebra.Vector;
 import referenceLibrary.AspectRef;
 import referenceLibrary.XmlRef;
 import settable.Attribute;
@@ -313,7 +314,7 @@ public abstract class SpatialBoundary extends Boundary
 		if ( Log.shouldWrite(level) )
 		{
 			Log.out(level, "Placing agent (UID: "+anAgent.identity()+
-					") at random location: "+Vector.toString(newLoc));
+					") at random location: "+ newLoc.toString());
 		}
 		body = (Body) anAgent.get(AspectRef.agentBody);
 		body.relocate(newLoc);
@@ -339,7 +340,7 @@ public abstract class SpatialBoundary extends Boundary
 		modelNode.add(new Attribute(XmlRef.extreme, 
 				String.valueOf(this._extreme), new String[]{"0", "1"}, true));
 		/* Boundary layer thickness. */
-		if ( this.needsLayerThickness() )
+		if ( this._layerThickness != 0.0 || this.needsLayerThickness() )
 		{
 			modelNode.add(new Attribute(XmlRef.layerThickness,
 					String.valueOf(this._layerThickness), null, true));
@@ -355,4 +356,6 @@ public abstract class SpatialBoundary extends Boundary
 		Dimension dimension = (Dimension) parent;
 		this._dim = dimension.getName();
 	}
+	
+	public abstract boolean isSolid();
 }

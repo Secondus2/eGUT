@@ -12,7 +12,6 @@ import org.w3c.dom.Element;
 
 import agent.Agent;
 import bookkeeper.KeeperEntry.EventType;
-import boundary.library.ChemostatBoundary;
 import boundary.library.ChemostatToBoundaryLayer;
 import boundary.spatialLibrary.BiofilmBoundaryLayer;
 import compartment.AgentContainer;
@@ -21,7 +20,6 @@ import compartment.EnvironmentContainer;
 import dataIO.Log;
 import dataIO.Log.Tier;
 import dataIO.XmlHandler;
-import idynomics.Global;
 import idynomics.Idynomics;
 import instantiable.Instantiable;
 import referenceLibrary.AspectRef;

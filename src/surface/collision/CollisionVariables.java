@@ -20,6 +20,7 @@ public class CollisionVariables
 		this.margin = margin;
 	}
 	
+
 	//Can probably delete
 	public void setPullForce (double pullForce)
 	{

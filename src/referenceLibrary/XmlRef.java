@@ -224,9 +224,27 @@ public class XmlRef
 	public final static String environment = "environment";
 	
 	/**
-	 * Encapsulates all process managers for one compartment.
+	 * Encapsulates all process managers for one compartment, except arrival
+	 * and departure processes.
 	 */
 	public final static String processManagers = "processManagers";
+	
+	/**
+	 * Process managers that run arrival processes
+	 */
+	public static final String arrivalProcesses = "arrivalProcesses";
+	
+	/**
+	 * Process managers that run departure processes
+	 */
+	public static final String departureProcesses = "departureProcesses";
+	
+	/**
+	 * Arrivals lounge is an instantiable map containing the agents arriving in
+	 * a compartment.
+	 */
+	public final static String arrivalsLounge = "arrivalsLounge";
+	
 	
 	/* Attributes */
 	////////////////
@@ -339,6 +357,12 @@ public class XmlRef
 	 * Indicates a solute concentration.
 	 */
 	public final static String concentration = "concentration";
+	
+	
+	/**
+	 * The name of the compartment from which an arrivals lounge originates
+	 */
+	public final static String originAttribute = "origin";
 	
 	//////////// NOT sorted yet
 	
@@ -531,6 +555,16 @@ public class XmlRef
 	public static final String transferCoefficient = "transferCoefficient";
 	
 	/**
+	 * Map containing names of destinations for departure processes
+	 */
+	public static final String destinationNames = "destinationNames";
+	
+	/**
+	 * List containing names of destinations for departure processes
+	 */
+	public static final String originNames = "originNames";
+	
+	/**
 	 * define transfer coefficient to be volume specific
 	 */
 	public static final String volumeSpecific = "volumeSpecific";
@@ -646,4 +680,10 @@ public class XmlRef
 	public static final String eventID = "eventType";
 
 	public static final String event = "event";
+
+	public static final String link = "link";
+
+	public static final String spring = "spring";
+
+	public static final String member = "member";
 }

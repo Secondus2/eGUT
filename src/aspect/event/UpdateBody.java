@@ -39,6 +39,6 @@ public class UpdateBody extends Event
 			double v = initiator.getDouble(VOLUME) - ExtraMath.volumeOfASphere( r );
 			l = ExtraMath.lengthOfACylinder( v, r );
 		}
-		body.update( initiator.getDouble(RADIUS), l);
+		body.update( initiator.getDouble(RADIUS), l, initiator);
 	}
 }
