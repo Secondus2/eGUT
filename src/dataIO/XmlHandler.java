@@ -4,7 +4,6 @@ import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
-import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -22,7 +21,6 @@ import javax.xml.transform.TransformerException;
 import javax.xml.transform.TransformerFactory;
 import javax.xml.transform.dom.DOMResult;
 import javax.xml.transform.sax.SAXSource;
-import javax.xml.transform.stream.StreamResult;
 
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
@@ -37,7 +35,6 @@ import com.siemens.ct.exi.core.CodingMode;
 import com.siemens.ct.exi.core.EXIFactory;
 import com.siemens.ct.exi.core.FidelityOptions;
 import com.siemens.ct.exi.core.exceptions.EXIException;
-import com.siemens.ct.exi.core.grammars.Grammars;
 import com.siemens.ct.exi.core.grammars.SchemaLessGrammars;
 import com.siemens.ct.exi.core.helpers.DefaultEXIFactory;
 import com.siemens.ct.exi.main.api.sax.EXISource;
@@ -308,6 +305,16 @@ public class XmlHandler
 				return null;
 			}
 		}
+	}
+
+	public static Boolean gatherBoolean (Element xmlElement, String attribute)
+	{
+		String string;
+		if ( xmlElement != null && xmlElement.hasAttribute(attribute) )
+			string = xmlElement.getAttribute(attribute);
+		else
+			return (Boolean) null;
+		return Boolean.parseBoolean(string);
 	}
 	
 	/**

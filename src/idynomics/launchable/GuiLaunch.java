@@ -18,7 +18,6 @@ import javax.swing.UnsupportedLookAndFeelException;
 
 import gui.GuiActions;
 import gui.GuiButtons;
-import gui.GuiEditor;
 import gui.GuiMain;
 import gui.GuiMenu;
 import idynomics.Idynomics;

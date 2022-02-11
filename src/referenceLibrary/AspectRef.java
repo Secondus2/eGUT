@@ -317,6 +317,22 @@ public class AspectRef
 	public final static String collisionRelaxationMethod = "relaxationMethod";
 
 	/**
+	 * Maximum amount of overlap in microns that may exist for a scenario
+	 * to be considered relaxed.
+	 */
+	public final static String maxAgentOverlap = "maxAgentOverlap";
+
+	/**
+	 * determines coarseness of agentRelaxation stepSize .
+	 */
+	public final static String moveGranularity = "moveGranularity";
+
+	/**
+	 * determines coarseness of agentRelaxation stepSize .
+	 */
+	public final static String shoveFactor = "shoveFactor";
+
+	/**
 	 * TODO
 	 */
 	public final static String agentExcreteEps = "epsExcretion";
@@ -360,7 +376,12 @@ public class AspectRef
 	 * TODO
 	 */
 	public final static String solverRelTolerance = "relativeTolerance";
-	
+
+	/**
+	 *
+	 */
+	public final static String solverResidualRatioThreshold = "solverResidualRatioThreshold";
+
 	/**
 	 * TODO
 	 */
@@ -661,6 +682,8 @@ public class AspectRef
 	public static final String coarseSteps = "coarseSteps";
 
 	public static final String postSteps = "postSteps";
+	
+	public static final String record = "record";
 
 	public static final String disableBulkDynamics = "disableBulkDynamics";
 
@@ -687,5 +710,20 @@ public class AspectRef
 	public static final String transientRadius = "transientRadius";
 
 	public static final String linearFunction = "linearFunction";
+
+	public static final String fileNumber = "fileNumber";
+
+	public static final String colourSpecification = "colourSpecification";
 	
+	public static final String order = "order";
+	
+	public static final String solute = "solute";
+	
+	public static final String recordType = "type";
+	
+	public static final String interval = "interval";
+
+	public static final String autoVcycleAdjust = "autoVcycleAdjust";
+
+	public static final String absoluteValue = "absoluteValue";
 }

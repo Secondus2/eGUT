@@ -5,8 +5,6 @@ package expression;
 
 import java.util.Map;
 
-import expression.Elemental.Type;
-
 /**
  * \brief The most basic component of a mathematical expression.
  * 

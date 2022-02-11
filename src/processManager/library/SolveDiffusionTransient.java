@@ -34,7 +34,6 @@ import shape.Shape;
 import shape.ShapeLibrary.Dimensionless;
 import shape.subvoxel.IntegerArray;
 import solver.PDEexplicit;
-import solver.PDEupdater;
 import utility.Helper;
 
 /**

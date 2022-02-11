@@ -3,7 +3,6 @@ package grid;
 import static grid.ArrayType.DIFFUSIVITY;
 
 import java.util.HashMap;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -31,7 +30,6 @@ import settable.Module;
 import settable.Module.Requirements;
 import settable.Settable;
 import shape.Shape;
-import surface.Surface;
 import surface.Voxel;
 import surface.collision.CollisionUtilities;
 import utility.ExtraMath;
@@ -149,7 +147,16 @@ public class SpatialGrid implements Settable, Instantiable
 		return this.getShape().getCurrVoxelVolume();
 	}
 
-	
+	/**
+	 * Temporary get diff for pde wrapper
+	 * @return
+	 */
+	@Deprecated
+	public double getDiffusivity()
+	{
+		return this._defaultDiffusivity;
+	}
+
 	public void updateDiffusivity(
 			EnvironmentContainer env, AgentContainer agents)
 	{

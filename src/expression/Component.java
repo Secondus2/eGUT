@@ -2,10 +2,7 @@
  * 
  */
 package expression;
-import java.util.HashMap;
 import java.util.Map;
-
-import aspect.AspectInterface;
 
 /**
  * \brief Abstract class for any component of a mathematical expression.

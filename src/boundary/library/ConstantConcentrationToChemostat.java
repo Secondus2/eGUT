@@ -10,10 +10,7 @@ import org.w3c.dom.Element;
 import org.w3c.dom.NodeList;
 
 import boundary.Boundary;
-import dataIO.ObjectFactory;
 import dataIO.XmlHandler;
-import grid.ArrayType;
-import referenceLibrary.ClassRef;
 import referenceLibrary.XmlRef;
 import settable.Attribute;
 import settable.Module;

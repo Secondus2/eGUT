@@ -5,17 +5,14 @@ import static dataIO.Log.Tier.DEBUG;
 
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.Map;
 
 import agent.Agent;
 import agent.Body;
 import agent.predicate.IsEpithelial;
 import agent.predicate.IsLocated;
 import bookkeeper.KeeperEntry.EventType;
-import boundary.Boundary;
 import boundary.SpatialBoundary;
 import dataIO.Log;
 import dataIO.Log.Tier;
@@ -30,7 +27,6 @@ import referenceLibrary.XmlRef;
 import settable.Module;
 import settable.Module.Requirements;
 import settable.Settable;
-import shape.Dimension;
 import shape.Dimension.DimName;
 import shape.Shape;
 import spatialRegistry.DummyTree;
@@ -881,6 +877,7 @@ public class AgentContainer implements Settable
 		/* Add the agent childConstrutor for adding of additional agents. */
 		modelNode.addChildSpec( ClassRef.agent,
 				Module.Requirements.ZERO_TO_MANY);
+		
 		/* If there are agents, add them as child nodes. */
 		for ( Agent a : this.getAllAgents() )
 			modelNode.add( a.getModule() );

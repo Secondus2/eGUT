@@ -3,7 +3,6 @@ package aspect.calculated;
 import java.util.HashMap;
 import java.util.Map;
 
-import aspect.Aspect;
 import aspect.AspectInterface;
 import aspect.Calculated;
 import expression.Expression;

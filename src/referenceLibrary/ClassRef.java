@@ -420,6 +420,13 @@ public class ClassRef
 	 */
 	public final static String solveDiffusionSteadyState =
 			processManager.library.SolveDiffusionSteadyState.class.getName();
+
+	/**
+	 * solve steady state diffusion process manager
+	 */
+	public final static String PDEWrapper =
+			processManager.library.PDEWrapper.class.getName();
+
 	/**
 	 * solve chemostat process manager
 	 */
@@ -665,6 +672,13 @@ public class ClassRef
 	 */
 	public final static String multigridResolution =
 			shape.resolution.MultigridResolution.class.getName();
+
+	/**
+	 * MgFAS resolution class, used in combination with {@link
+	 * shape.resolution.ResolutionCalculator}
+	 */
+	public final static String MgFASResolution =
+			shape.resolution.MgFASResolution.class.getName();
 	
 	/* ************************************************************************
 	 * miscellaneous
@@ -786,5 +800,8 @@ public class ClassRef
 
 	public static final String expression = 
 			expression.Expression.class.getName();
+	
+	public static final String recordKeeper = 
+			solver.mgFas.RecordKeeper.class.getName();
 
 }

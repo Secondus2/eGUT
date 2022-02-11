@@ -5,7 +5,6 @@ import java.util.List;
 
 import agent.Agent;
 import surface.BoundingBox;
-import surface.Point;
 import utility.ExtraMath;
 
 /**

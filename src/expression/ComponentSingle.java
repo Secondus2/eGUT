@@ -3,7 +3,6 @@ package expression;
 import java.util.Collection;
 import java.util.Map;
 
-import expression.Elemental.Type;
 import expression.arithmetic.Arithmetic;
 import expression.arithmetic.Constant;
 

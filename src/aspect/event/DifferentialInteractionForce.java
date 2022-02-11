@@ -14,7 +14,6 @@ import referenceLibrary.XmlRef;
 import shape.Shape;
 import surface.Surface;
 import surface.collision.Collision;
-import surface.collision.CollisionVariables;
 
 public class DifferentialInteractionForce extends Event {
 	

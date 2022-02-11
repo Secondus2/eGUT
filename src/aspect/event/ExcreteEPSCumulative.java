@@ -12,7 +12,6 @@ import agent.predicate.IsNotSpecies;
 import aspect.AspectInterface;
 import aspect.Event;
 import compartment.Compartment;
-import dataIO.Log;
 import linearAlgebra.Vector;
 import referenceLibrary.AspectRef;
 import referenceLibrary.XmlRef;

@@ -1,6 +1,5 @@
 package surface;
 
-import java.util.LinkedList;
 import java.util.List;
 
 import org.w3c.dom.Element;

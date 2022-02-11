@@ -5,14 +5,11 @@ package processManager.library;
 
 import org.w3c.dom.Element;
 
-import analysis.FilteredTable;
 import analysis.Table;
 import analysis.specs.AgentSpecification;
 import compartment.AgentContainer;
 import compartment.EnvironmentContainer;
 import dataIO.CsvExport;
-import dataIO.Log;
-import dataIO.Log.Tier;
 import processManager.ProcessManager;
 import referenceLibrary.AspectRef;
 import utility.Helper;

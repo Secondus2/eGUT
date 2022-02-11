@@ -7,8 +7,6 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Map;
 
-import expression.Elemental.Type;
-
 /**
  * \brief A component of a mathematical expression composed of two or more
  * sub-components.

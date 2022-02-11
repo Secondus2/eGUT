@@ -7,7 +7,6 @@ import org.w3c.dom.Element;
 
 import agent.Agent;
 import agent.Body;
-import agent.Body.Morphology;
 import compartment.AgentContainer;
 import dataIO.Log;
 import dataIO.XmlHandler;

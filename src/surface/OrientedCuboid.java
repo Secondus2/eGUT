@@ -1,7 +1,5 @@
 package surface;
 
-import surface.Surface.Type;
-
 /**
  * An Oriented Cuboid is a cuboid surface with only one face that interacts
  * with other agents. In the case of epithelial cells, this is the "apical face"

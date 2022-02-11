@@ -8,6 +8,7 @@ import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.Map;
 
+import analysis.quantitative.Raster;
 import boundary.Boundary;
 import boundary.SpatialBoundary;
 import boundary.WellMixedBoundary;
@@ -18,6 +19,7 @@ import grid.SpatialGrid;
 import grid.WellMixedConstants;
 import idynomics.Idynomics;
 import instantiable.object.InstantiableList;
+import linearAlgebra.Vector;
 import reaction.Reaction;
 import reaction.RegularReaction;
 import referenceLibrary.ClassRef;
@@ -166,7 +168,9 @@ public class EnvironmentContainer implements CanPrelaunchCheck, Settable
 			if ( sg.getName().equals(soluteName) )
 				return sg;
 		Log.out(Tier.CRITICAL,
-				"EnvironmentContainer can't find grid for \""+soluteName+"\"");
+				"EnvironmentContainer can't find grid for \""+soluteName+"\" " +
+						this.getClass().getSimpleName());
+		Thread.dumpStack();
 		return null;
 	}
 	
@@ -414,7 +418,7 @@ public class EnvironmentContainer implements CanPrelaunchCheck, Settable
 				this.getShape().getWellMixedBoundaries();
 		if ( bndrs.isEmpty() )
 		{
-			commonGrid.setAllTo(WELLMIXED, WellMixedConstants.NOT_MIXED);
+//			commonGrid.setAllTo(WELLMIXED, WellMixedConstants.NOT_MIXED); // should already be 0.0 ( NOT_MIXED )
 			return;
 		}
 		/*
@@ -452,7 +456,45 @@ public class EnvironmentContainer implements CanPrelaunchCheck, Settable
 		 */
 		for ( WellMixedBoundary b: bndrs )
 		{
-			b.updateWellMixedArray();
+			if( this._shape.getSignificantDimensions().size() > 2 && this._shape.getDimensionVoxelCount(2) > 2 )
+				b.updateWellMixedArray();
+			else
+			{
+				//FIXME prototype code, currently we assume extra node is always periodic, but this could be hard boundary too!!!
+				Shape aShape = this._shape;
+				int[] coords = aShape.resetIterator();
+				Raster map = this.distanceMap();
+				SpatialGrid grid = this.getCommonGrid();
+
+				double[] temp = new double[]{0,0,0};
+				this.getShape().getVoxelSideLengthsTo( temp, new int[]{0,0,0});
+				double voxelSideLength = temp[0];
+
+				while ( aShape.isIteratorValid() ) {
+					int[] loc = Vector.copy(coords);
+					// handle periodic nodes
+					if( coords[0] >= aShape.getDimensionLengths()[0]/voxelSideLength )
+						loc[0] = 0;
+					if( coords[1] >= aShape.getDimensionLengths()[1]/voxelSideLength )
+						loc[1] = 0;
+
+					double l = map._edgeDistanceMapDbl.get(
+							Vector.subset(loc, new int[]{ 0, 1}) ) * voxelSideLength;
+					double d = b.getLayerThickness();
+					double a = map._agentMap.get(
+							Vector.subset(loc, new int[]{ 0, 1}) );
+
+					if( Log.shouldWrite( Tier.DEBUG ) )
+						Log.out( Tier.DEBUG, this.getClass().getSimpleName() +
+								" " + coords[0] +  " " + coords[1] + " " + l + " " + d);
+					if( l < d || a > 0.0 )
+					{
+						grid.setValueAt(WELLMIXED, coords,
+								WellMixedConstants.NOT_MIXED);
+					}
+					coords = aShape.iteratorNext();
+				}
+			}
 			if ( b.needsToUpdateWellMixed() )
 			{
 				double sAreaFactor = b.getTotalSurfaceArea() * scaleFactor;
@@ -481,6 +523,17 @@ public class EnvironmentContainer implements CanPrelaunchCheck, Settable
 				}
 		}
 	}
+
+	public Raster distanceMap()
+	{
+		// 2D only!
+		Raster distanceMap = new Raster( ((Compartment) this._parentNode).agents, false);
+		double[] temp = new double[]{0,0,0};
+		this.getShape().getVoxelSideLengthsTo( temp, new int[]{0,0,0});
+		distanceMap.rasterize( temp[0] );
+		return distanceMap;
+	}
+
 	
 	/* ***********************************************************************
 	 * REPORTING

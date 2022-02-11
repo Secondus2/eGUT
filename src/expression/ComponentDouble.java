@@ -6,7 +6,6 @@ import java.util.Collection;
 import java.util.Map;
 
 import dataIO.Log;
-import expression.Elemental.Type;
 
 /**
  * \brief A component of a mathematical expression composed of strictly two

@@ -5,8 +5,6 @@ import java.util.HashMap;
 
 import org.w3c.dom.Element;
 
-import aspect.Aspect;
-import aspect.AspectInterface;
 import aspect.CalculatedOnce;
 import dataIO.XmlHandler;
 import expression.Expression;

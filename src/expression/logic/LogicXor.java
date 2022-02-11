@@ -5,7 +5,6 @@ import java.util.Map;
 import aspect.AspectInterface;
 import dataIO.Log;
 import dataIO.Log.Tier;
-import expression.Component;
 import expression.ComponentBoolean;
 import expression.Elemental;
 

@@ -29,11 +29,11 @@ public class CoccoidDivision extends DivisionMethod
 	{
 		Body momBody = (Body) mother.get(AspectRef.agentBody);
 		Body daughterBody = (Body) daughter.get(AspectRef.agentBody);
-		
+
 		double[] originalPos = momBody.getPosition(0);
 		double[] shift = Vector.randomPlusMinus(originalPos.length, 
 				0.5*mother.getDouble(AspectRef.bodyRadius));
-		
+
 		Point p = momBody.getPoints().get(0);
 		p.setPosition(Vector.add(originalPos, shift));
 		Point q = daughterBody.getPoints().get(0);
