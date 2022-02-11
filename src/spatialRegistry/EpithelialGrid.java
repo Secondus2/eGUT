@@ -32,7 +32,7 @@ public class EpithelialGrid {
 	 * This is the dimensions which defines what is "above" or "below" an
 	 * epithelial cell. It is defined by the OrientedCuboid's apical normal.
 	 */
-	private int _keyDimension;
+	private int _normalDimension;
 	
 	private double[] _cellSize;
 	
@@ -53,7 +53,7 @@ public class EpithelialGrid {
 		this._numberOfDimensions = this._normal.length;
 		for (int i = 0; i < this._normal.length; i++)
 			if (this._normal[i] != 0.0)
-				this._keyDimension = i;
+				this._normalDimension = i;
 	}
 
 	/**
@@ -81,8 +81,8 @@ public class EpithelialGrid {
 		double[] lower = boundingBox.getLow();
 		double[] upper = boundingBox.getHigh();
 		
-		if (lower[_keyDimension] > _topCorner[_keyDimension] ||
-				upper[_keyDimension] < _bottomCorner[_keyDimension])
+		if (lower[_normalDimension] > _topCorner[_normalDimension] ||
+				upper[_normalDimension] < _bottomCorner[_normalDimension])
 			//The bounding box is not directly above the epithelial agent.
 			return agentList;
 		
