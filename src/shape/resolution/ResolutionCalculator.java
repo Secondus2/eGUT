@@ -151,10 +151,18 @@ public abstract class ResolutionCalculator implements Copyable, Instantiable
 	 */
 	public int getVoxelIndex(double location)
 	{
+		return this.getVoxelIndex(location, false);
+	}
+	
+	public int getVoxelIndex(double location, boolean allowUpperEdges)
+	{
 		if ( location < this._dimension.getExtreme(0) ||
 				location >= this._dimension.getExtreme(1) )
 		{
-			throw new IllegalArgumentException("Location out of range");
+			if (allowUpperEdges && location == this._dimension.getExtreme(1))
+				location -= this._resolution;
+			else
+				throw new IllegalArgumentException("Location out of range");
 		}
 		return (int) ((location - this._dimension.getExtreme(0))
 						/ this._resolution);
@@ -173,10 +181,18 @@ public abstract class ResolutionCalculator implements Copyable, Instantiable
 
 	public int getNodeIndex(double location)
 	{
+		return this.getNodeIndex(location, false);
+	}
+	
+	public int getNodeIndex(double location, boolean allowUpperEdges)
+	{
 		if ( location < this._dimension.getExtreme(0) ||
 				location >= this._dimension.getExtreme(1) )
 		{
-			throw new IllegalArgumentException("Location out of range");
+			if (allowUpperEdges && location == this._dimension.getExtreme(1))
+				location -= this._resolution;
+			else
+				throw new IllegalArgumentException("Location out of range");
 		}
 		if( this.getNVoxel() > 1 )
 			return (int) ((( location + 0.5*this._resolution ) -
@@ -201,9 +217,14 @@ public abstract class ResolutionCalculator implements Copyable, Instantiable
 
 	public int getElementIndex(double location)
 	{
+		return this.getElementIndex(location, false);
+	}
+	
+	public int getElementIndex(double location, boolean allowUpperEdges)
+	{
 		return( this._nodeSystem ?
-				getNodeIndex(location) :
-				getVoxelIndex(location) );
+				getNodeIndex(location, allowUpperEdges) :
+				getVoxelIndex(location, allowUpperEdges) );
 	}
 
 	public int getElementIndex(double location, double resolution)
@@ -211,6 +232,21 @@ public abstract class ResolutionCalculator implements Copyable, Instantiable
 		return( this._nodeSystem ?
 				getNodeIndex(location, resolution) :
 				getVoxelIndex(location, resolution) );
+	}
+	
+	public int getExtremeElementIndex(int extreme)
+	{
+		double virtualLocation;
+		if (extreme == 0)
+			virtualLocation = this._dimension.getExtreme(0);
+		else if (extreme == 1)
+			virtualLocation = this._dimension.getExtreme(1) -
+			this._resolution;
+		else
+			virtualLocation = (Double) null;
+		
+		return this.getElementIndex(virtualLocation);
+		
 	}
 	
 	public Object copy()

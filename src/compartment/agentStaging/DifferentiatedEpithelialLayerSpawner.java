@@ -83,16 +83,11 @@ public class DifferentiatedEpithelialLayerSpawner extends EpithelialLayerSpawner
 		}
 				
 		this._template = _templates[i];
-		Agent newEpithelialCell = new Agent(this.getTemplate());
-		newEpithelialCell.set(AspectRef.agentBody, new Body(
-				position, this._normal));
-		newEpithelialCell.set(AspectRef.cuboidOrientation,
-				this._normal);
-		newEpithelialCell.setCompartment( this.getCompartment() );
-		newEpithelialCell.registerBirth();
+		
+		super.spawnEpithelialAgent(position, index);
+		
 		_templateFrequency[i] --;
 		_agentCount++;
-		thisEpithelium.listAgent(newEpithelialCell, index);
 	}
 	
 	

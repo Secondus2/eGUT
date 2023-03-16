@@ -561,6 +561,24 @@ public abstract class Shape implements
 	}
 	
 	/**
+	 * Returns length of this shape in the specified dimension
+	 * @param dimension
+	 * @return
+	 */
+	public double getDimensionLength(Dimension dimension)
+	{
+		for ( Dimension dim : this._dimensions.values() )
+		{
+			if (dimension.getName() == dim.getName()
+					&& dim.isSignificant())
+			{
+				return dim.getLength();
+			}
+		}
+		return 0;
+	}
+	
+	/**
 	 * \brief Set the dimension lengths of this shape.
 	 * 
 	 * <p><b>Note</b>: If <b>lengths</b> has more than elements than this shape
@@ -1359,7 +1377,12 @@ public abstract class Shape implements
 	 */
 	public int[] getCoords(double[] loc)
 	{
-		return this.getCoords(loc, null);
+		return this.getCoords(loc, null, false);
+	}
+	
+	public int[] getCoords(double[] loc, double[] inside)
+	{
+		return this.getCoords(loc, inside, false);
 	}
 	
 	/**
@@ -1370,7 +1393,8 @@ public abstract class Shape implements
 	 * @param inside - array to write sub-coordinates into, can be null.
 	 * @return - the array coordinates corresponding to location loc.
 	 */
-	public int[] getCoords(double[] loc, double[] inside)
+	public int[] getCoords(double[] loc,
+			double[] inside, boolean allowUpperEdges)
 	{
 		int[] coord = new int[3];
 		ResolutionCalculator rC;
@@ -1382,7 +1406,7 @@ public abstract class Shape implements
 			if( loc.length < dim+1)
 				coord[dim] = 0;
 			else
-				coord[dim] = rC.getElementIndex(loc[dim]);
+				coord[dim] = rC.getElementIndex(loc[dim], allowUpperEdges);
 			if ( inside != null )
 			{
 				inside[dim] = loc[dim] - 
@@ -1401,7 +1425,7 @@ public abstract class Shape implements
 			rC = this.getResolutionCalculator(coord, dim);
 			/* if the location comes from a 1D or 2D system set the coordinate
 			 * index for additional dimensions to 0. */
-			if( loc.length < dim+1)
+			if( getNumberOfDimensions() < dim+1)
 				coord[dim] = 0;
 			else
 				coord[dim] = rC.getElementIndex(loc[dim], resolution[dim]);

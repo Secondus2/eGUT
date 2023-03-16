@@ -16,7 +16,9 @@ import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.text.DecimalFormat;
+import java.util.Arrays;
 import java.util.Calendar;
+import java.util.Collections;
 import java.util.Random;
 
 import linearAlgebra.Vector;
@@ -1050,5 +1052,27 @@ public final class ExtraMath
 		out[1] = (linearIndex/xWidth) % yHeight;
 		out[2] = linearIndex/(xWidth*yHeight);
 		return out; 
+	}
+	
+	public static double minimum (double[] array)
+	{
+		double min = array[0];
+		for (double num : array)
+		{
+			if (num < min)
+				min = num;
+		}
+		return min;
+	}
+	
+	public static double maximum (double[] array)
+	{
+		double max = array[0];
+		for (double num : array)
+		{
+			if (num > max)
+				max = num;
+		}
+		return max;
 	}
 }

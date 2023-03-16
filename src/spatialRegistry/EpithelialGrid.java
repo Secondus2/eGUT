@@ -4,6 +4,8 @@ import java.util.ArrayList;
 import java.util.List;
 
 import agent.Agent;
+import compartment.Epithelium;
+import shape.Shape;
 import surface.BoundingBox;
 import utility.ExtraMath;
 
@@ -40,6 +42,8 @@ public class EpithelialGrid {
 	private int _cellNumber;
 	
 	private Agent[] _epithelialAgents;
+	
+	private Epithelium _epithelium;
 	
 	
 	public EpithelialGrid() {
@@ -208,6 +212,19 @@ public class EpithelialGrid {
 		return intCoords;
 	}
 	
+	/**
+	 * Getters
+	 */
+	public double[] getLayerSideLengths()
+	{
+		double[] out = this._topCorner;
+		for (int i = 0; i < out.length; i++)
+		{
+			out[i] -= this._bottomCorner[i];
+		}
+		return out;
+	}
+	
 	
 	/**
 	 * Setters
@@ -225,8 +242,8 @@ public class EpithelialGrid {
 		this._normal = normal;
 	}
 
-	public void setCellSize(double[] cellSize) {
-		this._cellSize = cellSize;
+	public void setCellShape(Shape cellShape) {
+		this._cellSize = cellShape.getDimensionLengths();
 	}
 
 	public void setCellGrid(int[] cellGrid) {

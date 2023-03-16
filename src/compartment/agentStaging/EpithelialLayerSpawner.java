@@ -1,10 +1,14 @@
 package compartment.agentStaging;
 
+import java.util.LinkedList;
+
 import org.w3c.dom.Element;
 
 import agent.Agent;
 import agent.Body;
 import compartment.AgentContainer;
+import compartment.Compartment;
+import compartment.Epithelium;
 import dataIO.Log;
 import dataIO.Log.Tier;
 import dataIO.XmlHandler;
@@ -12,14 +16,18 @@ import idynomics.Idynomics;
 import linearAlgebra.Vector;
 import referenceLibrary.AspectRef;
 import referenceLibrary.XmlRef;
+import settable.Settable;
 import surface.BoundingBox;
 import surface.Plane;
 import surface.Point;
 import utility.ExtraMath;
+import shape.CartesianShape;
 import shape.Dimension;
 import shape.Dimension.DimName;
 import spatialRegistry.EpithelialGrid;
 import shape.Shape;
+import shape.ShapeLibrary.Cuboid;
+import shape.ShapeLibrary.Rectangle;
 
 /**
  * This class produces a layer of epithelial cells as defined in the XML file.
@@ -32,12 +40,11 @@ import shape.Shape;
  * @author Tim Foster
  */
 public class EpithelialLayerSpawner extends Spawner {
-
-	private int _numberOfDimensions;
 	
-	private double[] _cellSideLengths;
+	private Dimension _normalDimension;
 	
-	private double[] _layerSideLengths;
+	private LinkedList <Dimension> _nonNormalDimensions
+		= new LinkedList <Dimension>();
 	
 	private double[] _bottomCorner;
 	
@@ -47,13 +54,27 @@ public class EpithelialLayerSpawner extends Spawner {
 	
 	protected double[] _normal;
 	
-	protected Plane _apicalSurface;
+	protected double[] _cellSideLengths;
 	
-	private double[][] _layerCorners;
+	protected Shape _layerShape;
+	
+	protected Shape _cellShape;
+	
+	protected Plane _apicalSurface;
 	
 	private int[] _cellArray;
 	
-	protected EpithelialGrid thisEpithelium;
+	private Epithelium _epithelium;
+	
+	@Override
+	public void instantiate(Element xmlElem, Settable parent)
+	{
+		Compartment comp = ( (Epithelium) parent).getCompartment();
+		
+		this._epithelium = (Epithelium) parent;
+		
+		this.init(xmlElem, comp.agents, comp.getName());
+	}
 
 	public void init(
 		
@@ -61,39 +82,49 @@ public class EpithelialLayerSpawner extends Spawner {
 		
 		super.init(xmlElem, agents, compartmentName);
 		
-		this._layerCorners = this.calculateLayerCorners();
+		if (this._compartment.getShape().getNumberOfDimensions() == 2)
+		{
+			this._layerShape = new Rectangle();
+			this._cellShape = new Rectangle();
+		}
 		
-		this._numberOfDimensions = _layerCorners[0].length;
+		else
+		{
+			this._layerShape = new Cuboid();
+			this._cellShape = new Cuboid();
+		}
 		
-		this._layerSideLengths = this.getSideLengths(_layerCorners);
+		double[][] layerCorners = this.calculateLayerCorners();
 		
-		this._bottomCorner = _layerCorners[0];
+		double[] layerSideLengths = this.getSideLengths(layerCorners);
 		
-		this._topCorner = _layerCorners[1];
+		this._layerShape.setDimensionLengths(layerSideLengths);
+		
+		this._bottomCorner = layerCorners[0];
+		
+		this._topCorner = layerCorners[1];
 		
 		if ( XmlHandler.hasAttribute(xmlElem, XmlRef.cellShape) )
 		{
-			this._cellSideLengths =	Vector.dblFromString(
+			this._cellSideLengths = Vector.dblFromString(
 					xmlElem.getAttribute(XmlRef.cellShape));
 		}
 		
-		this.checkDimensions();
+		this._cellShape.setDimensionLengths(this._cellSideLengths);
 		
-		this.orientEpithelialLayer();
+		this.checkDimensions();
 		
 		this.calculateCellNumbers();
 		
-		this.thisEpithelium = new EpithelialGrid();
+		EpithelialGrid grid = this._epithelium.getGrid();
 		
-		thisEpithelium.setBottomCorner(_bottomCorner);
-		thisEpithelium.setTopCorner(_topCorner);
-		thisEpithelium.setNormal(_normal);
-		thisEpithelium.setCellNumber(_numberOfAgents);
-		thisEpithelium.setCellGrid(_cellArray);
-		thisEpithelium.setCellSize(_cellSideLengths);
-		thisEpithelium.init();
-		
-
+		grid.setBottomCorner(_bottomCorner);
+		grid.setTopCorner(_topCorner);
+		grid.setNormal(_normal);
+		grid.setCellNumber(_numberOfAgents);
+		grid.setCellGrid(_cellArray);
+		grid.setCellShape(this._cellShape);
+		grid.init();
 	}
 
 /** SIMPLER METHOD. THIS MAY BE PREFERABLE.
@@ -126,34 +157,39 @@ public class EpithelialLayerSpawner extends Spawner {
 **/
 
 	public void spawn() {
-		if (this._numberOfDimensions == 2)
+		if (this._layerShape.getNumberOfDimensions() == 2)
 			spawn(false);
-		else if (this._numberOfDimensions == 3)
+		else if (this._layerShape.getNumberOfDimensions() == 3)
 			spawn(true);
 	}
 	
 	public void spawn (boolean thirdDimension) {
-		double[] bottomCorner = new double[this._numberOfDimensions];
+		double[] bottomCorner = 
+			new double[this._layerShape.getNumberOfDimensions()];
 		int[] cellCoordinates;
 		int xWidth = this._cellArray[0];
 		int yHeight = this._cellArray[1];
 		for (int i = 0; i < this._numberOfAgents; i++) {
-			if (thirdDimension) {
+			if (thirdDimension) 
+			{
 				cellCoordinates = ExtraMath.
-					CoordinatesFromLinearIndex(i, xWidth, yHeight);}
-			else {
+					CoordinatesFromLinearIndex(i, xWidth, yHeight);
+			}
+			else 
+			{
 				cellCoordinates = ExtraMath.
 					CoordinatesFromLinearIndex(i, xWidth);
 			}
-			for (int j = 0; j < this._numberOfDimensions; j++) {
-				bottomCorner[j] = 
+			for (int j = 0; j < 
+					this._cellShape.getNumberOfDimensions(); j++) 
+			{
+						bottomCorner[j] = 
 						this._bottomCorner[j] + 
 						((double) cellCoordinates[j] * this._cellSideLengths[j]);
 			}
 			Point[] position = positionNewCell(bottomCorner);
 			spawnEpithelialAgent (position, i);
 		}
-		this._agents.setEpithelium (thisEpithelium);
 	}
 	
 	/**
@@ -171,10 +207,11 @@ public class EpithelialLayerSpawner extends Spawner {
 	}
 	
 	public double[] getSideLengths(double[][] corners) {
-		
-		double[] sideLengths = new double[this._numberOfDimensions];
-		for (int i = 0; i < this._numberOfDimensions; i++) {
-			sideLengths[i] = corners[1][i] - corners[0][i];			
+		int numberDimensions = 
+				this._compartment.getShape().getNumberOfDimensions();
+		double[] sideLengths = new double[numberDimensions];
+		for (int i = 0; i < numberDimensions; i++) {
+			sideLengths[i] = corners[1][i] - corners[0][i];
 		}
 		return sideLengths;
 	}
@@ -182,93 +219,71 @@ public class EpithelialLayerSpawner extends Spawner {
 	
 	public void checkDimensions() {
 		
-		if (this._numberOfDimensions != 
-				this.getCompartment().getShape().getNumberOfDimensions()) {
-			if( Log.shouldWrite(Tier.CRITICAL))
-				Log.out(Tier.CRITICAL, "Warning: Compartment "
-						+ this.getCompartment().getName() + " and epithelial "
-						+ "layer have different numbers of dimensions");
-			Idynomics.simulator.interupt("Interrupted due to dimension "
-					+ "mismatch between compartment and epithelial layer.");
-		}
-		if (this._numberOfDimensions != this._cellSideLengths.length) {
-			if( Log.shouldWrite(Tier.CRITICAL))
-				Log.out(Tier.CRITICAL, "Warning: Epithelial layer and "
-						+ "epithelial cells have different numbers of"
-						+ " dimensions.");
-			Idynomics.simulator.interupt("Interrupted due to dimension "
-					+ "mismatch between epithelial cells and epithelial "
-					+ "layer.");
-		}
-		int multiCellDimensions = 0;
-		for (int i = 0; i < _layerCorners[0].length; i++) {
-			if (this._layerSideLengths[i] % this._cellSideLengths[i] != 0.0) {
-				if( Log.shouldWrite(Tier.CRITICAL))
-					Log.out(Tier.CRITICAL, "Warning: Epithelial layer side"
-							+ " length not divisible by cell side length in"
-							+ " dimension " + i+1);
-				Idynomics.simulator.interupt("Interrupted to prevent bad cell "
-						+ "fitting");
+		//Find dimension the epithelium sits in (normal dimension)
+		
+		//Ensure epithelium is at the extreme of this dimension
+		
+		//Ensure the other dimension lengths are divisible by the cell size
+		
+		LinkedList<Integer> nonSpannedDimensions =
+				new LinkedList<Integer>();
+		
+		LinkedList<Integer> spannedDimensions =
+				new LinkedList<Integer>();
+		
+		LinkedList<Integer> zeroDimensions =
+				new LinkedList<Integer>();
+		
+		int numberOfDimensions = this._layerShape.getNumberOfDimensions();
+		
+		this._normal = new double[numberOfDimensions];
+		
+		double[] layerLengths = this._layerShape.getDimensionLengths();
+		
+		double[] compartmentLengths= this._compartment.
+				getShape().getDimensionLengths();
+		
+		for (int i = 0; i < numberOfDimensions; i++)
+		{
+			Dimension dim = this._compartment.getShape().getDimension(
+					this._compartment.getShape().getDimensionName(i));
+			if (layerLengths[i] == compartmentLengths[i])
+			{
+				this._normal[i] = 0;
+				spannedDimensions.add(i);
+				this._nonNormalDimensions.add(
+						this._layerShape.getDimension(
+						this._layerShape.getDimensionName(i)));
 			}
-			if (this._layerSideLengths[i] / this._cellSideLengths[i] != 1.0) {
-				multiCellDimensions ++;
-			}
-		}
-		if (multiCellDimensions == _layerCorners[0].length) {
-			if( Log.shouldWrite(Tier.CRITICAL))
-				Log.out(Tier.CRITICAL, "Warning: Epithelial layer is more than"
-						+ "one cell thick.");
-		}
-	}
-	
-	/**
-	 * Calculates the orientation of the epithelial layer, interrupting the 
-	 * simulation if it cannot be calculated, and adds a plane to the
-	 * Compartment, corresponding to the apical surface of the epithelium
-	 */
-	public void orientEpithelialLayer()
-	{
-		//count tracks how many dimensions the epithelium does not fully span
-		int count = 0;
-		double[] normal = new double[this._numberOfDimensions];
-		Shape compartmentShape = this.getCompartment().getShape();
-		for (int i = 0; i < this._numberOfDimensions; i++) {
-			if (this._layerSideLengths[i] == compartmentShape.
-					getDimensionLengths()[i]) 
-				normal[i] = 0.0;
 			
-			else {
-				DimName dimName = compartmentShape.getDimensionName(i);
-				Dimension dim = compartmentShape.getDimension(dimName);
+			else
+			{
+				nonSpannedDimensions.add(i);
+				
+				this._normalDimension =
+						this._layerShape.getDimension(
+						this._layerShape.getDimensionName(i));
+				
 				double dimBottom = dim.getExtreme(0);
 				double dimTop = dim.getExtreme(1);
+				
 				if (this._bottomCorner[i] == dimBottom)
-				{
-					//The cells sit along the bottom of the dimension, so the 
-					//epithelial layer faces "up" (+1.0)
-					normal[i] = 1.0;
-					this._apicalCorner = this._topCorner;
-				}
+					this._normal[i] = 1;
 				else if (this._topCorner[i] == dimTop)
-				{
-					//The cells sit along the top of the dimension, so the 
-					//epithelial layer faces "down" (-1.0)
-					normal[i] = -1.0;
-					this._apicalCorner = this._bottomCorner;
-				}
+					this._normal[i] = -1;
 				else
 				{
 					if( Log.shouldWrite(Tier.CRITICAL))
 						Log.out(Tier.CRITICAL, "Epithelial layer must lie at "
 								+ "the extreme of a dimension.");
 					Idynomics.simulator.interupt("Epithelial layer must lie "
-							+ "at the extreme of a dimension");
+						+ "at the extreme of a dimension");
 				}
-				count++;
 			}
 		}
 		
-		if (count != 1) {
+		if (nonSpannedDimensions.size() > 1)
+		{
 			if( Log.shouldWrite(Tier.CRITICAL))
 				Log.out(Tier.CRITICAL, "Warning: There is more than one "
 						+ "dimension in which the epithelial layer does not "
@@ -277,28 +292,103 @@ public class EpithelialLayerSpawner extends Spawner {
 			Idynomics.simulator.interupt("Interrupted as epithelial layer does "
 					+ "not span the compartment");
 		}
-		this._normal = normal;
-		//this._apicalSurface = new Plane(normal, this._apicalCorner);
-		//PhysicalObject epithelialSurface = new PhysicalObject();
-		//epithelialSurface.setParent(this._parentNode);
-		//epithelialSurface.setSurface(this._apicalSurface);
-		//epithelialSurface.set("species",this.get("species"));
-		//this._agents.addPhysicalObject(epithelialSurface);
+		
+		else if (nonSpannedDimensions.size() == 1)
+		{
+			int dimensionIndex = nonSpannedDimensions.get(0);
+			if (layerLengths[dimensionIndex] == 0)
+			{
+				zeroDimensions.add(dimensionIndex);
+			}
+			else
+			{
+				if( Log.shouldWrite(Tier.CRITICAL))
+					Log.out(Tier.CRITICAL, "Warning: epithelial layer in "
+							+ this.getCompartment().getName() + " has thickness"
+							+ " in its normal dimension. It should be a flat "
+							+ "surface.");
+				Idynomics.simulator.interupt("Interrupted due to epithelial"
+						+ " layer thickness in normal dimension");
+			}
+				
+		}
+		
+		/*
+		 * All dimensions are spanned and therefore the epithelium
+		 * is as big as the compartment
+		 */
+		else 
+		{
+			if( Log.shouldWrite(Tier.CRITICAL))
+				Log.out(Tier.CRITICAL, "Warning: epithelial layer in "
+						+ this.getCompartment().getName() + " has the "
+						+ "same dimensions as the compartment. It "
+						+ "should be a flat surface");
+			Idynomics.simulator.interupt("Interrupted due to epithelial"
+					+ " layer having same dimensions as compartment.");
+		}
+		
+		if (numberOfDimensions != 
+				this.getCompartment().getShape().getNumberOfDimensions()) {
+			if( Log.shouldWrite(Tier.CRITICAL))
+				Log.out(Tier.CRITICAL, "Warning: Compartment "
+						+ this.getCompartment().getName() + " and epithelial "
+						+ "layer have different numbers of dimensions");
+			Idynomics.simulator.interupt("Interrupted due to dimension "
+					+ "mismatch between compartment and epithelial layer.");
+		}
+		
+		
+		if (numberOfDimensions != 
+				this._cellShape.getNumberOfDimensions()) {
+			if( Log.shouldWrite(Tier.CRITICAL))
+				Log.out(Tier.CRITICAL, "Warning: Epithelial layer and "
+						+ "epithelial cells have different numbers of"
+						+ " dimensions.");
+			Idynomics.simulator.interupt("Interrupted due to dimension "
+					+ "mismatch between epithelial cells and epithelial "
+					+ "layer.");
+		}
+		
+		for (Dimension dim : this._nonNormalDimensions) {
+			if (this._layerShape.getDimensionLength(dim) %
+					this._cellShape.getDimensionLength(dim) != 0.0) {
+				if( Log.shouldWrite(Tier.CRITICAL))
+					Log.out(Tier.CRITICAL, "Warning: Epithelial layer side"
+							+ " length not divisible by cell side length in"
+							+ " dimension " + dim.getName());
+				Idynomics.simulator.interupt("Interrupted to prevent bad cell "
+						+ "fitting");
+			}
+		}
+		
+		//Check normal
+		for (int i = 0; i < numberOfDimensions ;i++)
+		{
+			
+		}
+		
 	}
+	
 	
 	/**
 	 * Calculate the number of cells in the epithelial layer.
 	 */
-	
 	public void calculateCellNumbers () {
-		this._cellArray = new int[this._numberOfDimensions];
+		this._cellArray = new int[this._layerShape.getNumberOfDimensions()];
 		int agentNumber = 1;
-		for (int i = 0; i < this._numberOfDimensions; i++) {
-			this._cellArray[i] = (int) 
-					(this._layerSideLengths[i] / this._cellSideLengths[i]);
-			agentNumber *= 
-					(this._layerSideLengths[i] / this._cellSideLengths[i]);
+		int dimIndex;
+		int cellNumber;
+		for (Dimension d : this._nonNormalDimensions) {
+			dimIndex = this._layerShape.getDimensionIndex(d);
+			cellNumber = (int) (this._layerShape.getDimensionLength(d) / 
+							this._cellShape.getDimensionLength(d));
+			this._cellArray[dimIndex] = cellNumber;
+			agentNumber *= cellNumber;
 		}
+		dimIndex = this._layerShape.
+				getDimensionIndex(this._normalDimension);
+		this._cellArray[dimIndex] = 1;
 		this.setNumberOfAgents(agentNumber);
 	}
 	
@@ -327,8 +417,7 @@ public class EpithelialLayerSpawner extends Spawner {
 		newEpithelialCell.set(AspectRef.agentBody, new Body(
 				position, this._normal));
 		newEpithelialCell.setCompartment( this.getCompartment() );
-		newEpithelialCell.registerBirth();
-		thisEpithelium.listAgent(newEpithelialCell, index);
+		newEpithelialCell.registerBirth(this._epithelium, index);
 	}
 	
 	

@@ -106,6 +106,9 @@ public class Compartment implements CanPrelaunchCheck, Instantiable, Settable, C
 	/**
 	 * EnvironmentContainer deals with all solutes.
 	 */
+	
+	public LinkedList<Epithelium> epithelia = new LinkedList<Epithelium>();
+	
 	public EnvironmentContainer environment;
 	/**
 	 * ProcessManagers handle the interactions between agents and solutes.
@@ -319,6 +322,12 @@ public class Compartment implements CanPrelaunchCheck, Instantiable, Settable, C
 		for ( Element e : XmlHandler.getElements( agents, XmlRef.agent) )
 			this.addAgent(new Agent( e, this ));
 		
+		for ( Element e : XmlHandler.getElements( agents, XmlRef.epithelium ))
+		{
+			this.epithelia.add( (Epithelium)
+					Instance.getNew(e, this.agents, (String[])null));
+		}
+		
 		this.agents.update();
 		
 		if( Log.shouldWrite(Tier.EXPRESSIVE))
@@ -497,6 +506,15 @@ public class Compartment implements CanPrelaunchCheck, Instantiable, Settable, C
 	public void addAgent(Agent agent)
 	{
 		this.agents.addAgent(agent);
+		agent.setCompartment(this);
+		if( Global.bookkeeping )
+			registerBook(EventType.ARRIVE, "Arrive", 
+					String.valueOf(agent.identity()), null, agent);
+	}
+	
+	public void addAgent(Agent agent, Epithelium epithelium, int index)
+	{
+		this.agents.addAgent(agent, epithelium, index);
 		agent.setCompartment(this);
 		if( Global.bookkeeping )
 			registerBook(EventType.ARRIVE, "Arrive", 
