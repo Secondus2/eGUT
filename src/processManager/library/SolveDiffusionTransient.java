@@ -72,11 +72,6 @@ public class SolveDiffusionTransient extends ProcessDiffusion
 		 */
 		super.internalStep();
 		
-		for ( SpatialGrid var : this._environment.getSolutes() )
-		{
-			var.applyTransportFlux();
-		}
-		
 		/*
 		 * If any mass has flowed in or out of the well-mixed region,
 		 * distribute it among the relevant boundaries.
@@ -181,187 +176,32 @@ public class SolveDiffusionTransient extends ProcessDiffusion
 				concns.clear();
 				for ( String varName : r.getConstituentNames() )
 				{
-					
-					if (varName.contains("@"))
+					if ( this._environment.isSoluteName(varName) )
 					{
-						Collection<SpatialBoundary> collidingBoundaries = this._agents.
-								boundarySearch(agent, Double.MIN_VALUE);
-						String[] splitString = varName.split("@");
-						String constituent = splitString[0];
-						String compartmentName = splitString[1];
-						if (!(Idynomics.simulator.getCompartment(
-								compartmentName) == null))
-						{
-							Compartment compartment = Idynomics.simulator.
-									getCompartment(compartmentName);
-							
-							EnvironmentContainer partnerEnvironment =
-									compartment.environment;
-							
-							Shape partnerShape = compartment.getShape();
-							
-							/**
-							 * Check that the compartment referenced is not this
-							 * compartment. If it is, nothing is done as the
-							 * solute concentrations have already been recorded.
-							 */
-							if (compartment != this.getParent()) 
-							{
-								
-								/**
-								 * Check whether the referenced compartment is
-								 * connected to this compartment via a Boundary
-								 */
-								boolean connectedCompartment= false;
-								for (Boundary b : collidingBoundaries)
-								{
-									if (!(Helper.isNullOrEmpty(b)))
-									{
-										if (b.getPartnerCompartmentName().
-												contentEquals(compartmentName)) 
-										{
-											connectedCompartment = true;
-										}
-										
-										else
-										{
-											if (Log.shouldWrite(Tier.DEBUG))
-												Log.out(Tier.DEBUG,
-													"Reaction requires boundary"
-													+ "connection between "
-													+ this._compartmentName +
-													" and " + compartmentName +
-													". No such connection "
-													+ "exists.");
-										}
-									}
-								}
-								
-								/**
-								 * Check whether the referenced compartment is
-								 * dimensionless (reactions between two spatial
-								 * compartments is not possible as compartments
-								 * are solved separately)
-								 */
-								boolean dimensionlessPartner = false;
-								if (partnerShape instanceof Dimensionless)
-								{
-									dimensionlessPartner = true;
-								}
-										
-								else
-								{
-									if (Log.shouldWrite(Tier.DEBUG))
-										Log.out(Tier.DEBUG,
-											"Transport reaction links spatial "
-											+ "compartment to " + 
-											compartmentName + ". Transport "
-											+ "reactions between two spatial "
-											+ "compartments are not supported.");
-								}
-								
-								/**
-								 * Check whether the compartment has a solute of
-								 * the given name
-								 */
-								if (partnerEnvironment.isSoluteName(constituent)) 
-								{
-									if (dimensionlessPartner && 
-											connectedCompartment) 
-									{
-										solute = partnerEnvironment.
-											getSoluteGrid(constituent);
-										
-										concn = partnerEnvironment.
-												getAverageConcentration(
-														constituent);
-										
-										concns.put(varName, concn);
-										
-										
-									}
-								}
-
-								else 
-								{
-									if (Log.shouldWrite(Tier.DEBUG))
-										Log.out(Tier.DEBUG,
-												"Reaction specifies " + 
-										"non-existent solute, " + constituent);
-								} 
-							}
-							
-							else
-							{
-								if ( this._environment.isSoluteName(varName) )
-								{
-									solute = this._environment.getSoluteGrid(varName);
-									concn = solute.getValueAt(CONCN, coord.get());
-								}
-								else if ( biomass.containsKey(varName) )
-								{
-									concn = biomass.get(varName) * 
-											distributionMap.get(coord) * perVolume;
-			
-								}
-								else if ( agent.isAspect(varName) )
-								{
-									/*
-									 * Check if the agent has other mass-like aspects
-									 * (e.g. EPS).
-									 */
-									concn = agent.getDouble(varName) * 
-											distributionMap.get(coord) * perVolume;
-								}
-								else
-								{
-									// TODO safety?
-									concn = 0.0;
-								}
-								concns.put(varName, concn);
-							
-							}
-						}
-						
-						else
-						{
-							if( Log.shouldWrite(Tier.DEBUG) )
-								Log.out(Tier.DEBUG, "Reaction specifies "
-										+ "non-existent compartent" + 
-										compartmentName);
-						}
+						solute = this._environment.getSoluteGrid(varName);
+						concn = solute.getValueAt(CONCN, coord.get());
 					}
-					
+					else if ( biomass.containsKey(varName) )
+					{
+						concn = biomass.get(varName) * 
+								distributionMap.get(coord) * perVolume;
+
+					}
+					else if ( agent.isAspect(varName) )
+					{
+						/*
+						 * Check if the agent has other mass-like aspects
+						 * (e.g. EPS).
+						 */
+						concn = agent.getDouble(varName) * 
+								distributionMap.get(coord) * perVolume;
+					}
 					else
 					{
-					
-						if ( this._environment.isSoluteName(varName) )
-						{
-							solute = this._environment.getSoluteGrid(varName);
-							concn = solute.getValueAt(CONCN, coord.get());
-						}
-						else if ( biomass.containsKey(varName) )
-						{
-							concn = biomass.get(varName) * 
-									distributionMap.get(coord) * perVolume;
-	
-						}
-						else if ( agent.isAspect(varName) )
-						{
-							/*
-							 * Check if the agent has other mass-like aspects
-							 * (e.g. EPS).
-							 */
-							concn = agent.getDouble(varName) * 
-									distributionMap.get(coord) * perVolume;
-						}
-						else
-						{
-							// TODO safety?
-							concn = 0.0;
-						}
-						concns.put(varName, concn);
+						// TODO safety?
+						concn = 0.0;
 					}
+					concns.put(varName, concn);
 				}
 				
 				/* 
@@ -375,219 +215,52 @@ public class SolveDiffusionTransient extends ProcessDiffusion
 				{
 					double quantity;
 					productRate = r.getProductionRate(concns,product);
-					if (product.contains("@"))
-					{
-						Collection<SpatialBoundary> collidingBoundaries = this._agents.
-								boundarySearch(agent, Double.MIN_VALUE);
-						String[] splitString = product.split("@");
-						String constituent = splitString[0];
-						String compartmentName = splitString[1];
-						if (!(Idynomics.simulator.getCompartment(
-								compartmentName) == null))
-						{
-							Compartment compartment = Idynomics.simulator.
-									getCompartment(compartmentName);
-							
-							EnvironmentContainer partnerEnvironment =
-									compartment.environment;
-							
-							Shape partnerShape = compartment.getShape();
-							
-							/**
-							 * Check that the compartment referenced is not this
-							 * compartment. If it is, nothing is done as the
-							 * solute concentrations have already been recorded.
-							 */
-							if (compartment != this.getParent()) 
-							{
-								
-								/**
-								 * Check whether the referenced compartment is
-								 * connected to this compartment via a Boundary
-								 */
-								Boundary transportBoundary = null;
-								for (Boundary b : collidingBoundaries)
-								{
-									if (!(Helper.isNullOrEmpty(b)))
-									{
-										if (b.getPartnerCompartmentName().
-												contentEquals(compartmentName)) 
-										{
-											transportBoundary = b;
-										}
-										
-										else
-										{
-											if (Log.shouldWrite(Tier.DEBUG))
-												Log.out(Tier.DEBUG,
-													"Reaction requires boundary"
-													+ "connection between "
-													+ this._compartmentName +
-													" and " + compartmentName +
-													". No such connection "
-													+ "exists.");
-										}
-									}
-								}
-								
-								/**
-								 * Check whether the referenced compartment is
-								 * dimensionless (reactions between two spatial
-								 * compartments is not possible as compartments
-								 * are solved separately)
-								 */
-								boolean dimensionlessPartner = false;
-								if (partnerShape instanceof Dimensionless)
-								{
-									dimensionlessPartner = true;
-								}
-										
-								else
-								{
-									if (Log.shouldWrite(Tier.DEBUG))
-										Log.out(Tier.DEBUG,
-											"Transport reaction links spatial "
-											+ "compartment to " + 
-											compartmentName + ". Transport "
-											+ "reactions between two spatial "
-											+ "compartments are not supported.");
-								}
-								
-								/**
-								 * Check whether the compartment has a solute of
-								 * the given name
-								 */
-								if (partnerEnvironment.isSoluteName(constituent)) 
-								{
-									if (dimensionlessPartner && 
-											transportBoundary != null) 
-									{
-										solute = this._environment.getSoluteGrid(constituent);
-										
-										solute.increaseTransportFlux(
-												transportBoundary, volume * 
-												productRate * this.getTimeStepSize());
-									}
-								}
-
-								else 
-								{
-									if (Log.shouldWrite(Tier.DEBUG))
-										Log.out(Tier.DEBUG,
-												"Reaction specifies " + 
-										"non-existent solute, " + constituent);
-								} 
-							}
-							
-							else
-							{
-								if ( this._environment.isSoluteName(constituent) )
-								{
-									solute = this._environment.getSoluteGrid(constituent);
-									quantity = 
-											productRate * volume * this.getTimeStepSize();
-									solute.addValueAt(PRODUCTIONRATE, coord.get(), quantity
-											);
-								}
-								else if ( newBiomass.containsKey(constituent) )
-								{
-									quantity = 
-											productRate * this.getTimeStepSize() * volume;
-									newBiomass.put(constituent, newBiomass.get(constituent)
-											+ quantity );
-								}
-								/* FIXME this can create conflicts if users try to mix mass-
-								 * maps and simple mass aspects	 */
-								else if ( agent.isAspect(constituent) )
-								{
-									/*
-									 * Check if the agent has other mass-like aspects
-									 * (e.g. EPS).
-									 */
-									quantity = 
-											productRate * this.getTimeStepSize() * volume;
-									newBiomass.put(constituent, agent.getDouble(constituent)
-											+ quantity);
-								}
-								else
-								{
-									quantity = 
-											productRate * this.getTimeStepSize() * volume;
-									//TODO quick fix If not defined elsewhere add it to the map
-									newBiomass.put(constituent, quantity);
-									System.out.println("agent reaction catched " + 
-											constituent);
-									// TODO safety?
-			
-								}
-								if( Global.bookkeeping )
-									agent.getCompartment().registerBook(
-											EventType.REACTION, 
-											constituent, 
-											String.valueOf( agent.identity() ), 
-											String.valueOf( quantity ), null );
-							
-							}
-						}
-						
-						else
-						{
-							if( Log.shouldWrite(Tier.DEBUG) )
-								Log.out(Tier.DEBUG, "Reaction specifies "
-										+ "non-existent compartent" + 
-										compartmentName);
-						}
-					}
 					
+					if ( this._environment.isSoluteName(product) )
+					{
+						solute = this._environment.getSoluteGrid(product);
+						quantity = 
+								productRate * volume * this.getTimeStepSize();
+						solute.addValueAt(PRODUCTIONRATE, coord.get(), quantity
+								);
+					}
+					else if ( newBiomass.containsKey(product) )
+					{
+						quantity = 
+								productRate * this.getTimeStepSize() * volume;
+						newBiomass.put(product, newBiomass.get(product)
+								+ quantity );
+					}
+					/* FIXME this can create conflicts if users try to mix mass-
+					 * maps and simple mass aspects	 */
+					else if ( agent.isAspect(product) )
+					{
+						/*
+						 * Check if the agent has other mass-like aspects
+						 * (e.g. EPS).
+						 */
+						quantity = 
+								productRate * this.getTimeStepSize() * volume;
+						newBiomass.put(product, agent.getDouble(product)
+								+ quantity);
+					}
 					else
 					{
-						if ( this._environment.isSoluteName(product) )
-						{
-							solute = this._environment.getSoluteGrid(product);
-							quantity = 
-									productRate * volume * this.getTimeStepSize();
-							solute.addValueAt(PRODUCTIONRATE, coord.get(), quantity
-									);
-						}
-						else if ( newBiomass.containsKey(product) )
-						{
-							quantity = 
-									productRate * this.getTimeStepSize() * volume;
-							newBiomass.put(product, newBiomass.get(product)
-									+ quantity );
-						}
-						/* FIXME this can create conflicts if users try to mix mass-
-						 * maps and simple mass aspects	 */
-						else if ( agent.isAspect(product) )
-						{
-							/*
-							 * Check if the agent has other mass-like aspects
-							 * (e.g. EPS).
-							 */
-							quantity = 
-									productRate * this.getTimeStepSize() * volume;
-							newBiomass.put(product, agent.getDouble(product)
-									+ quantity);
-						}
-						else
-						{
-							quantity = 
-									productRate * this.getTimeStepSize() * volume;
-							//TODO quick fix If not defined elsewhere add it to the map
-							newBiomass.put(product, quantity);
-							System.out.println("agent reaction catched " + 
-									product);
-							// TODO safety?
-	
-						}
-						if( Global.bookkeeping )
-							agent.getCompartment().registerBook(
-									EventType.REACTION, 
-									product, 
-									String.valueOf( agent.identity() ), 
-									String.valueOf( quantity ), null );
-					
+						quantity = 
+								productRate * this.getTimeStepSize() * volume;
+						//TODO quick fix If not defined elsewhere add it to the map
+						newBiomass.put(product, quantity);
+						System.out.println("agent reaction catched " + 
+								product);
+						// TODO safety?
+
 					}
+					if( Global.bookkeeping )
+						agent.getCompartment().registerBook(
+								EventType.REACTION, 
+								product, 
+								String.valueOf( agent.identity() ), 
+								String.valueOf( quantity ), null );
 				}
 			}
 		

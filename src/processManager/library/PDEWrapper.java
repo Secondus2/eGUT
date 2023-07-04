@@ -2,6 +2,7 @@ package processManager.library;
 
 import static grid.ArrayType.*;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
@@ -12,24 +13,27 @@ import agent.Body;
 import bookkeeper.KeeperEntry;
 import boundary.Boundary;
 import boundary.WellMixedBoundary;
+import dataIO.Log;
 import dataIO.ObjectFactory;
+import dataIO.Log.Tier;
 import idynomics.Global;
+
 import org.w3c.dom.Element;
 
 import compartment.AgentContainer;
+import compartment.Compartment;
 import compartment.EnvironmentContainer;
 import grid.SpatialGrid;
 import processManager.ProcessDiffusion;
 import processManager.ProcessMethods;
 import reaction.Reaction;
 import reaction.RegularReaction;
+import reaction.RegularReaction.ReactionType;
+import reaction.SoluteAtSite;
 import referenceLibrary.AspectRef;
 import referenceLibrary.XmlRef;
 import shape.Shape;
 import shape.subvoxel.IntegerArray;
-import solver.mgFas.Domain;
-import solver.mgFas.Multigrid;
-import solver.mgFas.SolverGrid;
 import solver.mgFas.*;
 import utility.Helper;
 
@@ -43,6 +47,10 @@ public class PDEWrapper extends ProcessDiffusion
     public static String ABS_TOLERANCE = AspectRef.solverAbsTolerance;
 
     public static String REL_TOLERANCE = AspectRef.solverRelTolerance;
+	
+	private static final String SD_TAG = AspectRef.agentSurfaceDistributionMap;
+	
+	private static final String EPITHELIAL = AspectRef.isEpithelial;
     
     private Multigrid multigrid;
 
@@ -52,7 +60,6 @@ public class PDEWrapper extends ProcessDiffusion
 
     public double solverResidualRatioThreshold;
 
-//    private AgentContainer _agents;
     /**
      *
      * Initiation from protocol file:
@@ -147,8 +154,11 @@ public class PDEWrapper extends ProcessDiffusion
          * Estimate agent growth based on the steady-state solute
          * concentrations.
          */
-        for ( Agent agent : this._agents.getAllLocatedAgents() )
+        for ( Agent agent : this._agents.getAllAgents() )
             this.applyAgentGrowth(agent);
+        
+        for (Agent agent : this._agents.getAllAgents() )
+        	this.applyTransferReactions(agent);
 
         for ( SpatialGrid var : this._environment.getSolutes() )
         {
@@ -192,6 +202,9 @@ public class PDEWrapper extends ProcessDiffusion
     {
         for( Agent agent : this._agents.getAllAgents() )
             applyAgentReactions(agent, sols, resorder, reacGrid, resolution, voxelVolume);
+        
+        for (Agent agent : this._agents.getAllAgents())
+        	solveTransferReactions (agent, sols, resorder, reacGrid, resolution, voxelVolume);
     }
 
     /**
@@ -216,7 +229,23 @@ public class PDEWrapper extends ProcessDiffusion
         @SuppressWarnings("unchecked")
         List<Reaction> reactions =
                 (List<Reaction>) agent.getValue(XmlRef.reactions);
-        if ( reactions == null )
+        
+        ArrayList<Reaction> volumeReactions =
+        		new ArrayList<Reaction>();
+        
+        for (Reaction r : reactions)
+        {
+        	if (r instanceof RegularReaction)
+        	{
+        		if ( ((RegularReaction) r).getType()
+        				== ReactionType.VOLUME)
+        			volumeReactions.add((RegularReaction) r);
+        	}
+        	else
+        		volumeReactions.add(r);
+        }
+        
+        if ( Helper.listIsNullOrEmpty(volumeReactions) )
             return;
         /*
          * Get the distribution map and scale it so that its contents sum up to
@@ -238,15 +267,31 @@ public class PDEWrapper extends ProcessDiffusion
         double concn, productRate, volume, perVolume;
 
         double[] center = ((Body) agent.get(AspectRef.agentBody)).getCenter(shape);
+        
+        IntegerArray coord;
+        
+        if (agent.getBoolean(EPITHELIAL) != null
+        		&& agent.getBoolean(EPITHELIAL))
+        {
+        	coord = new IntegerArray();
+        }
+        else
+        {
+        	coord = new IntegerArray(shape.getCoords(center, null, resolution));
+        }
 
-        IntegerArray coord = new IntegerArray(
-                shape.getCoords( center, null, resolution ));
 
-
-
-        volume = voxelVolume;
+        if ( agent.getBoolean(EPITHELIAL) != null
+        		&& agent.getBoolean(EPITHELIAL))
+        {
+        	volume = agent.getDouble(AspectRef.agentVolume);
+        }
+        else
+        	volume = voxelVolume;
+        
         perVolume = 1.0/volume;
-        for ( Reaction r : reactions )
+        
+        for ( Reaction r : volumeReactions )
         {
             /*
              * Build the dictionary of variable values. Note that these
@@ -259,7 +304,8 @@ public class PDEWrapper extends ProcessDiffusion
             for ( String varName : r.getConstituentNames() )
             {
                 mGrid = FindGrid(concGrid, varName);
-                if ( mGrid != null ) {
+                if ( !Helper.isNullOrEmpty(coord.get()) &&
+                		mGrid != null ) {
                     solute = mGrid._conc[resorder];
                     concn = solute.getValueAt(coord.get(), true);
                 }
@@ -293,7 +339,8 @@ public class PDEWrapper extends ProcessDiffusion
             for ( String productName : r.getReactantNames() )
             {
                 mGrid = FindGrid(concGrid, productName);
-                if ( mGrid != null )
+                if ( !Helper.isNullOrEmpty(coord.get())
+                		&& mGrid != null )
                 {
                     solute = mGrid._reac[resorder];
                     productRate = r.getProductionRate(concns, productName);
@@ -302,7 +349,258 @@ public class PDEWrapper extends ProcessDiffusion
             }
         }
     }
-
+    
+    private void solveTransferReactions(Agent agent, MultigridSolute[] concGrid,
+    		int resorder, SolverGrid[] reacGrid, double[] resolution,
+            double voxelVolume)
+    {
+    	/*
+         * Get the agent's reactions: if it has none, then there is nothing
+         * more to do.
+         */
+        @SuppressWarnings("unchecked")
+        List<Reaction> reactions =
+                (List<Reaction>) agent.getValue(XmlRef.reactions);
+        
+        ArrayList<RegularReaction> transferReactions =
+        		new ArrayList<RegularReaction>();
+        
+        for (Reaction r : reactions)
+        {
+        	if (r instanceof RegularReaction)
+        	{
+        		if ( ((RegularReaction) r).getType()
+        				== ReactionType.TRANSFER)
+        			transferReactions.add((RegularReaction) r);
+        	}
+        }
+        
+        if ( Helper.listIsNullOrEmpty(transferReactions))
+        	return;
+        /*
+         * Get the distribution map
+         */
+        
+        Shape shape = agent.getEpithelium().getCompartment().getShape();
+        
+        if (!agent.isAspect(SD_TAG))
+        	this.setupAgentDistributionMaps(shape);
+        Map<Shape, HashMap<IntegerArray,Double>> map =
+        		(Map<Shape, HashMap<IntegerArray,Double>>) agent.get(SD_TAG);
+        HashMap<IntegerArray,Double> coverageMap = map.get(
+        		agent.getEpithelium().getCompartment().getShape());
+        		
+        double surfaceArea = agent.getEpithelium().
+        		epithelialCellSurfaceArea(agent);
+        
+        double agentVolume = (double) agent.get(AspectRef.agentVolume);
+        
+        /*
+         * Get the agent biomass kinds as a map. Copy it now so that we can
+         * use this copy to store the changes.
+         */
+        Map<String,Double> biomass = ProcessMethods.getAgentMassMap(agent);
+        /*
+         * Now look at all the voxels this agent covers.
+         */
+        Map<String,Double> concns = new HashMap<String,Double>();
+        SolverGrid solute;
+        MultigridSolute mGrid;
+        double concn, transferRate;
+        
+        for ( RegularReaction r : transferReactions )
+	    {
+        	
+        	/*
+             * Build the dictionary of variable values. Note that these
+             * will likely overlap with the names in the reaction
+             * stoichiometry (handled after the reaction rate), but will
+             * not always be the same. Here we are interested in those that
+             * affect the reaction, and not those that are affected by it.
+             */
+        	
+        	concns.clear();
+        	
+        	
+        	 for ( String varName : r.getConstituentNames() )
+        	 {
+	            	
+	            concn = 0.0;
+	           	
+	           	SoluteAtSite constituent =
+	            		new SoluteAtSite(varName);
+	           	
+	           	if (constituent.site.equals("compartment"))
+	           	{
+	           		constituent.setSite(this._compartmentName);
+	           	}
+	            
+	            if (constituent.site instanceof Compartment)
+	            {
+	            	if (constituent.siteName.equals(this._compartmentName))
+		           	{
+	            		for (IntegerArray coord : coverageMap.keySet())
+	                    {
+	            			double[] inside;
+	            			if (coord.get().length == 2)
+	            			{
+	            				inside = new double[] {0.5, 0.5};
+	            			}
+	            			
+	            			else
+	            			{
+	            				inside = new double[] {0.5, 0.5, 0.5};
+	            			}
+	            			
+	            			/*
+	            			 * Global location of the global
+	            			 * coordinate in which the cell sits
+	            			 */
+	            			double[] coordLocation = shape.
+	            					getLocation(coord.get(), inside);
+	            			
+	            			int[] resolvedCoord = shape.
+	            					getCoords(coordLocation, null, resolution);
+	            			
+		           			mGrid = FindGrid(concGrid, constituent.soluteName);
+		    	            if ( mGrid != null ) 
+		    	            {
+		    	                solute = mGrid._conc[resorder];
+		    	                concn += solute.getValueAt(resolvedCoord, true)
+		    	               		*coverageMap.get(coord);
+		    	            }
+	                    }
+		           	}
+	            		
+	            	else
+		            {
+		            	SpatialGrid sg = ((Compartment) constituent.site).
+		            		getSolute(constituent.soluteName);
+		            	concn = sg.getSingleValue(CONCN);
+		            }
+	            }
+        	
+	            else if (constituent.site instanceof String &&
+	            		((String) constituent.site).equalsIgnoreCase("agent"))
+	            {
+	            	double soluteMass;
+	            	
+	            	if ( biomass.containsKey(constituent.soluteName) )
+	            	{
+	            		soluteMass =
+		           				biomass.get(constituent.soluteName);
+	            	}
+	            	
+	            	/*
+	                 * Check if the agent has other mass-like aspects
+	                 * (e.g. EPS).
+	                 */
+	            	else if ( agent.isAspect(constituent.soluteName) )
+	            	{
+	            		soluteMass =
+	            				agent.getDouble(constituent.soluteName);
+	            	}
+	            	
+	            	else
+	            	{
+	            		if (Log.shouldWrite(Tier.CRITICAL))
+	    					Log.out(Tier.CRITICAL, "Solute " +
+	    					constituent.soluteName + " not found. PDEWrapper "
+	    					+ "using value of 0.");
+	            		soluteMass = 0.0;
+	            	}
+	            		
+	            	concn = soluteMass / agentVolume;
+	            }
+	            	
+	            else
+	            {
+	            	if (Log.shouldWrite(Tier.CRITICAL))
+    					Log.out(Tier.CRITICAL, "Site " +
+    					constituent.site + " not found in transfer reaction.");
+	            }
+	            
+	            	
+	        concns.put(varName, concn);
+		    }
+	        
+	        for (IntegerArray coord : coverageMap.keySet())
+	        {
+	        	
+	        	double[] inside;
+    			if (coord.get().length == 2)
+    			{
+    				inside = new double[] {0.5, 0.5};
+    			}
+    			
+    			else
+    			{
+    				inside = new double[] {0.5, 0.5, 0.5};
+    			}
+    			
+    			/*
+    			 * Global location of the global
+    			 * coordinate in which the cell sits
+    			 */
+    			double[] coordLocation = shape.
+    					getLocation(coord.get(), inside);
+    			
+    			int[] resolvedCoord = shape.
+    					getCoords(coordLocation, null, resolution);
+	        	
+	            /*
+	             * Now that we have the reaction rate, we can distribute the
+	             * effects of the reaction. Note again that the names in the
+	             * stoichiometry may not be the same as those in the reaction
+	             * variables (although there is likely to be a large overlap).
+	             */
+	
+	            for ( String productName : r.getReactantNames() )
+	            {	
+	            	SoluteAtSite product = new SoluteAtSite(productName);
+	            	
+	            	if (product.site.equals("compartment"))
+		           	{
+		           		product.setSite(this._compartmentName);
+		           	}
+	            	
+	            	if (product.site instanceof Compartment)
+	            	{
+	            		if (product.siteName.equals(this._compartmentName))
+		            	{
+	            			mGrid = FindGrid(concGrid, product.soluteName);
+	    	                if ( mGrid != null ) 
+	    	                {
+	    	                	solute = mGrid._reac[resorder];
+	    	                	
+	    	                	/*
+	    	                	 * The transfer rate returned by a transfer reaction
+	    	                	 * is a rate of mass production per unit time, per
+	    	                	 * unit surface area (in a 3D sim) or per unit length
+	    	                	 * (in a 2D sim). However, when applying a production
+	    	                	 * rate, the solver grid expects a rate of production
+	    	                	 * per unit time per unit volume (3D) or per unit area
+	    	                	 * (2D). In order to match this, the transfer rate
+	    	                	 * should be divided by the grid resolution as the
+	    	                	 * transfer only takes place at one face of the voxel,
+	    	                	 * not throughout it as with other reactions.
+	    	                	 * 
+	    	                	 * Furthermore, the transfer rate is multiplied by the
+	    	                	 * proportion of the agent's surface that is in contact
+	    	                	 * with the focal voxel.
+	    	                	 */
+	    	                    transferRate = r.getProductionRate(concns, productName);
+	    	                    double productionRate = (transferRate * coverageMap.get(coord))
+	    	                    		/ resolution[0];
+	    	                    solute.addValueAt( productionRate, resolvedCoord , true );
+	    	                }
+		            	}
+	            	}
+	            }
+        	}
+	    }
+    }
+    
     private void applyAgentGrowth(Agent agent)
     {
         /*
@@ -312,14 +610,40 @@ public class PDEWrapper extends ProcessDiffusion
         @SuppressWarnings("unchecked")
         List<RegularReaction> reactions =
                 (List<RegularReaction>) agent.getValue(XmlRef.reactions);
-        if ( reactions == null )
+        
+        ArrayList<Reaction> volumeReactions =
+        		new ArrayList<Reaction>();
+        
+        for (Reaction r : reactions)
+        {
+        	if (r instanceof RegularReaction)
+        	{
+        		if ( ((RegularReaction) r).getType()
+        				== ReactionType.VOLUME)
+        			volumeReactions.add((RegularReaction) r);
+        	}
+        	else
+        		volumeReactions.add(r);
+        }
+        
+        if ( Helper.listIsNullOrEmpty(volumeReactions) )
             return;
 
         Shape shape = this._agents.getShape();
         double[] center = ((Body) agent.get(AspectRef.agentBody)).getCenter(shape);
-
-        IntegerArray coord = new IntegerArray(
-                shape.getCoords( center ));
+        
+        IntegerArray coord;
+        
+        if (agent.getBoolean(EPITHELIAL) != null
+        		&& agent.getBoolean(EPITHELIAL))
+        {
+        	coord = new IntegerArray();
+        }
+        else
+        {
+        	coord = new IntegerArray(shape.getCoords(center));
+        }
+        
         /*
          * Get the agent biomass kinds as a map. Copy it now so that we can
          * use this copy to store the changes.
@@ -334,111 +658,382 @@ public class PDEWrapper extends ProcessDiffusion
         Map<String,Double> concns = new HashMap<String,Double>();
         SpatialGrid solute;
         double concn, productRate, volume, perVolume;
-
-            volume = this._agents.getShape().getVoxelVolume( coord.get() );
-            perVolume = 1.0 / volume;
-            for ( Reaction r : reactions )
+        
+        if (agent.getBoolean(EPITHELIAL) != null
+        		&& agent.getBoolean(EPITHELIAL))
+        {
+        	volume = agent.getDouble(AspectRef.agentVolume);
+        }
+        else
+        	volume = this._agents.getShape().getVoxelVolume( coord.get() );
+        
+        perVolume = 1.0 / volume;
+        for ( Reaction r : volumeReactions )
+        {
+            /*
+             * Build the dictionary of variable values. Note that these
+             * will likely overlap with the names in the reaction
+             * stoichiometry (handled after the reaction rate), but will
+             * not always be the same. Here we are interested in those that
+             * affect the reaction, and not those that are affected by it.
+             */
+            concns.clear();
+            for ( String varName : r.getConstituentNames() )
             {
-                /*
-                 * Build the dictionary of variable values. Note that these
-                 * will likely overlap with the names in the reaction
-                 * stoichiometry (handled after the reaction rate), but will
-                 * not always be the same. Here we are interested in those that
-                 * affect the reaction, and not those that are affected by it.
-                 */
-                concns.clear();
-                for ( String varName : r.getConstituentNames() )
+                if ( !Helper.isNullOrEmpty(coord.get()) &&
+                		this._environment.isSoluteName( varName ) )
                 {
-                    if ( this._environment.isSoluteName( varName ) )
-                    {
-                        solute = this._environment.getSoluteGrid( varName );
-                        concn = solute.getValueAt( CONCN, coord.get() );
-                    }
-                    else if ( biomass.containsKey( varName ) )
-                    {
-                        concn = biomass.get( varName ) * perVolume;
-
-                    }
-                    else if ( agent.isAspect( varName ) )
-                    {
-                        /*
-                         * Check if the agent has other mass-like aspects
-                         * (e.g. EPS).
-                         */
-                        concn = agent.getDouble( varName ) * perVolume;
-                    }
-                    else
-                    {
-                        // TODO safety?
-                        concn = 0.0;
-                    }
-                    concns.put(varName, concn);
+                    solute = this._environment.getSoluteGrid( varName );
+                    concn = solute.getValueAt( CONCN, coord.get() );
                 }
-                /*
-                 * Now that we have the reaction rate, we can distribute the
-                 * effects of the reaction. Note again that the names in the
-                 * stoichiometry may not be the same as those in the reaction
-                 * variables (although there is likely to be a large overlap).
-                 */
-
-                for ( String productName : r.getReactantNames() )
+                else if ( biomass.containsKey( varName ) )
                 {
-                    /* FIXME: it is probably faster if we get the reaction rate
-                     * once and then calculate the rate per product from that
-                     * for each individual product
+                    concn = biomass.get( varName ) * perVolume;
+
+                }
+                else if ( agent.isAspect( varName ) )
+                {
+                    /*
+                     * Check if the agent has other mass-like aspects
+                     * (e.g. EPS).
                      */
-                    productRate = r.getProductionRate(concns,productName);
-                    double quantity;
-
-                    if ( this._environment.isSoluteName(productName) )
-                    {
-                        solute = this._environment.getSoluteGrid(productName);
-                        quantity =
-                                productRate * volume * this.getTimeStepSize();
-                        solute.addValueAt(PRODUCTIONRATE, coord.get(), quantity
-                        );
-                    }
-                    else if ( newBiomass.containsKey(productName) )
-                    {
-                        quantity =
-                                productRate * this.getTimeStepSize() * volume;
-                        newBiomass.put(productName, newBiomass.get(productName)
-                                + quantity );
-                    }
-                    /* FIXME this can create conflicts if users try to mix mass-
-                     * maps and simple mass aspects	 */
-                    else if ( agent.isAspect(productName) )
-                    {
-                        /*
-                         * Check if the agent has other mass-like aspects
-                         * (e.g. EPS).
-                         */
-                        quantity =
-                                productRate * this.getTimeStepSize() * volume;
-                        newBiomass.put(productName, agent.getDouble(productName)
-                                + quantity);
-                    }
-                    else
-                    {
-                        quantity =
-                                productRate * this.getTimeStepSize() * volume;
-                        //TODO quick fix If not defined elsewhere add it to the map
-                        newBiomass.put(productName, quantity);
-                        System.out.println("agent reaction catched " +
-                                productName);
-                        // TODO safety?
-
-                    }
-                    if( Global.bookkeeping )
-                        agent.getCompartment().registerBook(
-                                KeeperEntry.EventType.REACTION,
-                                productName,
-                                String.valueOf( agent.identity() ),
-                                String.valueOf( quantity ), null );
+                    concn = agent.getDouble( varName ) * perVolume;
                 }
+                else
+                {
+                    // TODO safety?
+                    concn = 0.0;
+                }
+                concns.put(varName, concn);
             }
+            /*
+             * Now that we have the reaction rate, we can distribute the
+             * effects of the reaction. Note again that the names in the
+             * stoichiometry may not be the same as those in the reaction
+             * variables (although there is likely to be a large overlap).
+             */
+
+            for ( String productName : r.getReactantNames() )
+            {
+                /* FIXME: it is probably faster if we get the reaction rate
+                 * once and then calculate the rate per product from that
+                 * for each individual product
+                 */
+                productRate = r.getProductionRate(concns,productName);
+                double quantity;
+
+                if ( !Helper.isNullOrEmpty(coord.get()) &&
+                		this._environment.isSoluteName(productName) )
+                {
+                    solute = this._environment.getSoluteGrid(productName);
+                    quantity =
+                            productRate * volume * this.getTimeStepSize();
+                    solute.addValueAt(PRODUCTIONRATE, coord.get(), quantity
+                    );
+                }
+                else if ( newBiomass.containsKey(productName) )
+                {
+                    quantity =
+                            productRate * this.getTimeStepSize() * volume;
+                    newBiomass.put(productName, newBiomass.get(productName)
+                            + quantity );
+                }
+                /* FIXME this can create conflicts if users try to mix mass-
+                 * maps and simple mass aspects	 */
+                else if ( agent.isAspect(productName) )
+                {
+                    /*
+                     * Check if the agent has other mass-like aspects
+                     * (e.g. EPS).
+                     */
+                    quantity =
+                            productRate * this.getTimeStepSize() * volume;
+                    newBiomass.put(productName, agent.getDouble(productName)
+                            + quantity);
+                }
+                else
+                {
+                    quantity =
+                            productRate * this.getTimeStepSize() * volume;
+                    //TODO quick fix If not defined elsewhere add it to the map
+                    newBiomass.put(productName, quantity);
+                    System.out.println("agent reaction catched " +
+                            productName);
+                    // TODO safety?
+
+                }
+                if( Global.bookkeeping )
+                    agent.getCompartment().registerBook(
+                            KeeperEntry.EventType.REACTION,
+                            productName,
+                            String.valueOf( agent.identity() ),
+                            String.valueOf( quantity ), null );
+            }
+        }
         ProcessMethods.updateAgentMass(agent, newBiomass);
     }
+
+    private void applyTransferReactions(Agent agent)
+    {
+    	/*
+         * Get the agent's reactions: if it has none, then there is nothing
+         * more to do.
+         */
+        @SuppressWarnings("unchecked")
+        List<Reaction> reactions =
+                (List<Reaction>) agent.getValue(XmlRef.reactions);
+        
+        ArrayList<RegularReaction> transferReactions =
+        		new ArrayList<RegularReaction>();
+        
+        for (Reaction r : reactions)
+        {
+        	if (r instanceof RegularReaction)
+        	{
+        		if ( ((RegularReaction) r).getType()
+        				== ReactionType.TRANSFER)
+        			transferReactions.add((RegularReaction) r);
+        	}
+        }
+        
+        if ( Helper.listIsNullOrEmpty(transferReactions)  )
+            return;
+        
+        double surfaceArea = agent.getEpithelium().
+        		epithelialCellSurfaceArea(agent);
+        
+        /*
+         * Get the distribution map
+         */
+        
+        if (!agent.isAspect(SD_TAG))
+        	this.setupAgentDistributionMaps(
+        			agent.getEpithelium().getCompartment().getShape());
+        Map<Shape, HashMap<IntegerArray,Double>> map =
+        		(Map<Shape, HashMap<IntegerArray,Double>>) agent.get(SD_TAG);
+        HashMap<IntegerArray,Double> coverageMap = map.get(
+        		agent.getEpithelium().getCompartment().getShape());
+        		
+        /*
+         * Get the agent biomass kinds as a map. Copy it now so that we can
+         * use this copy to store the changes.
+         */
+        Map<String,Double> biomass = ProcessMethods.getAgentMassMap(agent);
+        /*
+         * Now look at all the voxels this agent covers.
+         */
+        Map<String,Double> concns = new HashMap<String,Double>();
+        SpatialGrid solute;
+        double concn, productRate;
+        
+        double agentVolume = (double) agent.get(AspectRef.agentVolume);
+        
+        for ( RegularReaction r : transferReactions )
+	    {
+        	
+        	/*
+             * Build the dictionary of variable values. Note that these
+             * will likely overlap with the names in the reaction
+             * stoichiometry (handled after the reaction rate), but will
+             * not always be the same. Here we are interested in those that
+             * affect the reaction, and not those that are affected by it.
+             */
+        	
+        	concns.clear();
+        	
+        	
+        	 for ( String varName : r.getConstituentNames() )
+        	 {
+	            	
+	            concn = 0.0;
+	           	
+	           	SoluteAtSite constituent =
+	            		new SoluteAtSite(varName);
+	            
+	           	if (constituent.site.equals("compartment"))
+	           	{
+	           		constituent.setSite(this._compartmentName);
+	           	}
+	           	
+	            if (constituent.site instanceof Compartment)
+	            {
+	            	if (constituent.siteName.equals(this._compartmentName))
+		           	{
+	            		for (IntegerArray coord : coverageMap.keySet())
+	                    {
+		           			solute = this._environment.getSoluteGrid( 
+	            					constituent.soluteName );
+		    	            concn += solute.getValueAt( CONCN, coord.get() )
+	    	                    		*coverageMap.get(coord);
+	                    }
+		           	}
+	            		
+	            	else
+		            {
+		            	SpatialGrid sg = ((Compartment) constituent.site).
+		            		getSolute(constituent.soluteName);
+		            	concn = sg.getSingleValue(CONCN);
+		            }
+	            }
+        	
+	            else if (constituent.site instanceof String &&
+	            		((String) constituent.site).equalsIgnoreCase("agent"))
+	            {
+	            	double soluteMass;
+	            	
+	            	if ( biomass.containsKey(constituent.soluteName) )
+	            	{
+	            		soluteMass =
+		           				biomass.get(constituent.soluteName);
+	            	}
+	            	
+	            	/*
+	                 * Check if the agent has other mass-like aspects
+	                 * (e.g. EPS).
+	                 */
+	            	else if ( agent.isAspect(constituent.soluteName) )
+	            	{
+	            		soluteMass =
+	            				agent.getDouble(constituent.soluteName);
+	            	}
+	            	
+	            	else
+	            	{
+	            		if (Log.shouldWrite(Tier.CRITICAL))
+	    					Log.out(Tier.CRITICAL, "Solute " +
+	    					constituent.soluteName + " not found. PDEWrapper "
+	    					+ "using value of 0.");
+	            		soluteMass = 0.0;
+	            	}
+	            		
+	            	concn = soluteMass / agentVolume;
+	            }
+	            	
+	            else
+	            {
+	            	if (Log.shouldWrite(Tier.CRITICAL))
+    					Log.out(Tier.CRITICAL, "Site " +
+    					constituent.site + " not found in transfer reaction.");
+	            }
+	            
+	            	
+	            concns.put(varName, concn);
+	        
+        	}
+	        
+	        for ( String productName : r.getReactantNames() )
+       	 	{
+			 
+				/*
+	             * Now that we have the reaction rate, we can distribute the
+	             * effects of the reaction. Note again that the names in the
+	             * stoichiometry may not be the same as those in the reaction
+	             * variables (although there is likely to be a large overlap).
+	             */
+	        	
+	        	/*
+	        	 * This is a rate in units mass per unit time, per unit
+	        	 * surface area in 3D or units mass per unit time, per
+	        	 * unit length in 2D
+	        	 */
+	        	productRate = r.getProductionRate(concns, productName);
+				 
+	            double productMass;
+	           	
+	           	SoluteAtSite product =
+	            		new SoluteAtSite(productName);
+	           	
+	           	if (product.site.equals("compartment"))
+	           	{
+	           		product.setSite(this._compartmentName);
+	           	}
+	            
+	            if (product.site instanceof Compartment)
+	            {
+	            	if (product.siteName.equals(this._compartmentName))
+		           	{
+	            		for (IntegerArray coord : coverageMap.keySet())
+	                    {
+		           			solute = this._environment.getSoluteGrid( 
+	            					product.soluteName );
+		    	            productMass =
+	                                productRate * surfaceArea * this.getTimeStepSize()
+	                                *coverageMap.get(coord);
+	                        solute.addValueAt(PRODUCTIONRATE, coord.get(), productMass);
+	                    }
+		           	}
+	            		
+	            	else
+		            {
+		            	SpatialGrid sg = ((Compartment) product.site).
+	            				getSolute(product.soluteName);
+	            		double productMassFlowRate =
+                               productRate * surfaceArea;
+	            		if (agent.getEpithelium().getBoundary().
+	            				getPartnerCompartmentName().
+	            				equalsIgnoreCase(product.siteName))
+	            		{
+	            			agent.getEpithelium().getBoundary().
+	            				increaseMassFlowRate(product.soluteName,
+	            						-productMassFlowRate);
+	            		}
+	            		
+	            		else
+	            		{
+	            			if (Log.shouldWrite(Tier.CRITICAL))
+		    					Log.out(Tier.CRITICAL, "Transfer reaction site "
+		    					+ product.siteName + " does not match "
+		    					+ "epithelium's partner boundary, " +
+		    					agent.getEpithelium().getBoundary().
+		    					getPartnerCompartmentName() + ".");
+	            		}
+		            }
+	            }
+       	
+	            else if (product.site instanceof String &&
+	            		((String) product.site).equalsIgnoreCase("agent"))
+	            {
+	            	Map<String,Double> newBiomass = (HashMap<String,Double>)
+	                            ObjectFactory.copy(biomass);
+	            	
+	            	if ( newBiomass.containsKey(product.soluteName) )
+	            	{
+	            		productMass =
+	                            productRate * this.getTimeStepSize() 
+	                            * surfaceArea;
+	            		
+						newBiomass.put(product.soluteName,
+								newBiomass.get(product.soluteName)
+	                            + productMass );
+	            	}
+	            	
+	            	/*
+	                 * Check if the agent has other mass-like aspects
+	                 * (e.g. EPS).
+	                 */
+	            	else if ( agent.isAspect(product.soluteName) )
+	            	{
+	            		 productMass =
+	                                productRate * this.getTimeStepSize() * surfaceArea;
+	                        newBiomass.put(product.soluteName,
+	                        		agent.getDouble(product.soluteName)
+	                                + productMass);
+	            	}
+	            	
+	            	ProcessMethods.updateAgentMass(agent, newBiomass);
+	            }
+	            	
+	            else
+	            {
+	            	if (Log.shouldWrite(Tier.CRITICAL))
+    					Log.out(Tier.CRITICAL, "Site " +
+    					product.site + " not found in transfer reaction.");
+	            }
+		    }
+	    }
+    }
+    
+    
 
     private MultigridSolute FindGrid(MultigridSolute[] grids, String name)
     {

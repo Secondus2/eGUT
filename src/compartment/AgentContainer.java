@@ -10,6 +10,7 @@ import java.util.List;
 
 import agent.Agent;
 import agent.Body;
+import agent.Body.Morphology;
 import agent.predicate.IsEpithelial;
 import agent.predicate.IsLocated;
 import bookkeeper.KeeperEntry.EventType;
@@ -17,6 +18,7 @@ import boundary.SpatialBoundary;
 import dataIO.Log;
 import dataIO.Log.Tier;
 import gereralPredicates.IsSame;
+import gui.GuiMenu.RenderThis;
 import idynomics.Global;
 import idynomics.Idynomics;
 import linearAlgebra.Vector;
@@ -82,12 +84,13 @@ public class AgentContainer implements Settable
 	/**
 	 * List containing all epithelial agents.
 	 */
-	private LinkedList<Agent> _epithelialAgentList = new LinkedList<Agent>();
+	private LinkedList<Epithelium> _epithelia =
+			new LinkedList<Epithelium>();
 	
 	/**
 	 * Grid representing the entirety of the epithelium
 	 */
-	private EpithelialGrid _epithelium;
+	private EpithelialGrid _epithelialGrid;
 	
 	/**
 	 * All dead agents waiting for their death to be recorded as output before
@@ -202,8 +205,11 @@ public class AgentContainer implements Settable
 	{
 		for ( Agent a : this._agentList )
 			a.setCompartment(aCompartment);
-		for ( Agent a : this._epithelialAgentList )
-			a.setCompartment(aCompartment);
+		for (Epithelium e : this._epithelia)
+		{
+			for ( Agent a : e._agentList)
+				a.setCompartment(aCompartment);
+		}
 		for ( Agent a : this._locatedAgentList )
 			a.setCompartment(aCompartment);
 	}
@@ -242,8 +248,11 @@ public class AgentContainer implements Settable
 	 */
 	public int getNumAllAgents()
 	{
+		int epithelialCells = 0;
+		for (Epithelium e : this._epithelia)
+			epithelialCells += e._agentList.size();
 		return this._agentList.size() + this._locatedAgentList.size()
-		+ this._epithelialAgentList.size();
+		+ epithelialCells;
 	}
 	
 	
@@ -288,7 +297,17 @@ public class AgentContainer implements Settable
 				this._agentList.size()+this._locatedAgentList.size() );
 		out.addAll(this._agentList);
 		out.addAll(this._locatedAgentList);
-		out.addAll(this._epithelialAgentList);
+		for (Epithelium e : this._epithelia)
+			out.addAll(e._agentList);
+		return out;
+	}
+	
+	public List<Agent> getAllNonEpithelialAgents()
+	{
+		ArrayList<Agent> out = new ArrayList<Agent>(
+				this._agentList.size()+this._locatedAgentList.size() );
+		out.addAll(this._agentList);
+		out.addAll(this._locatedAgentList);
 		return out;
 	}
 	
@@ -306,7 +325,8 @@ public class AgentContainer implements Settable
 	{
 		LinkedList<Agent> out = new LinkedList<Agent>();
 		out.addAll(this._locatedAgentList);
-		out.addAll(this._epithelialAgentList);
+		for (Epithelium e : this._epithelia)
+			out.addAll(e._agentList);
 		return out;	
 	}
 	
@@ -317,13 +337,9 @@ public class AgentContainer implements Settable
 	public LinkedList <Agent> getAllEpithelialAgents()
 	{
 		LinkedList<Agent> out = new LinkedList<Agent>();
-		out.addAll(this._epithelialAgentList);
+		for (Epithelium e : this._epithelia)
+			out.addAll(e._agentList);
 		return out;	
-	}
-	
-	public void setEpithelium (EpithelialGrid epithelium)
-	{
-		this._epithelium = epithelium;
 	}
 	
 	/**
@@ -355,9 +371,9 @@ public class AgentContainer implements Settable
 	{
 		ArrayList<Agent> fullSearch = new ArrayList<Agent>();
 		fullSearch.addAll(this._agentTree.search(boundingBox));
-		if (this._epithelium != null)
+		if (this._epithelialGrid != null)
 		{
-			fullSearch.addAll(this._epithelium.search(boundingBox));
+			fullSearch.addAll(this._epithelialGrid.search(boundingBox));
 		}
 		return fullSearch;
 	}
@@ -387,9 +403,9 @@ public class AgentContainer implements Settable
 	{
 		ArrayList<Agent> fullSearch = new ArrayList<Agent>();
 		fullSearch.addAll(this._agentTree.search(boundingBoxes));
-		if (this._epithelium != null)
+		if (this._epithelialGrid != null)
 		{
-			fullSearch.addAll(this._epithelium.search(boundingBoxes));
+			fullSearch.addAll(this._epithelialGrid.search(boundingBoxes));
 		}
 		return fullSearch;
 	}
@@ -659,15 +675,44 @@ public class AgentContainer implements Settable
 	 */
 	public void addAgent(Agent agent)
 	{
-		if ( IsLocated.isLocated(agent) && this.getShape().getNumberOfDimensions() > 0 )
+		if (IsEpithelial.isEpithelial(agent))
+		{
+			if (Log.shouldWrite(Tier.CRITICAL))
+				Log.out(Tier.CRITICAL, "Epithelial agents cannot "
+						+ "be added to the compartment unless as "
+						+ "part of an epithelium.");
+		}
+		
+		else if ( IsLocated.isLocated(agent) && this.getShape().getNumberOfDimensions() > 0 )
 			this.addLocatedAgent(agent);
-		else if (IsEpithelial.isEpithelial(agent))
-			this._epithelialAgentList.add(agent);
+		
 		else
 		{
 			this._agentList.add(agent);
 			agent.simplifyLocation();
 		}
+		
+		Body agentBody = (Body) agent.get(AspectRef.agentBody);
+		List<Point> points = agentBody.getPoints();
+	}
+	
+	public void addAgent(Agent agent, Epithelium epithelium, int index)
+	{
+		if (IsEpithelial.isEpithelial(agent))
+		{
+			epithelium.addAgent(agent, index);
+			if (!this._epithelia.contains(epithelium))
+				this._epithelia.add(epithelium);
+			agent.setEpithelium(epithelium);
+		}
+		
+		else
+		{
+			if (Log.shouldWrite(Tier.CRITICAL))
+				Log.out(Tier.CRITICAL, "Epithelium argument "
+						+ "given when agent is not epithelial.");
+		}
+			
 		
 		Body agentBody = (Body) agent.get(AspectRef.agentBody);
 		List<Point> points = agentBody.getPoints();
@@ -814,7 +859,7 @@ public class AgentContainer implements Settable
 		}
 		else if ( IsEpithelial.isEpithelial(anAgent) )
 		{
-			this._epithelialAgentList.remove(anAgent);
+			anAgent.getEpithelium()._agentList.remove(anAgent);
 		}
 		else
 			this._agentList.remove(anAgent);
@@ -879,8 +924,18 @@ public class AgentContainer implements Settable
 				Module.Requirements.ZERO_TO_MANY);
 		
 		/* If there are agents, add them as child nodes. */
-		for ( Agent a : this.getAllAgents() )
+		for ( Agent a : this.getAllNonEpithelialAgents() )
 			modelNode.add( a.getModule() );
+		
+		/*
+		 * Add epithelium
+		 */
+		modelNode.addChildSpec( ClassRef.epithelium,
+				Module.Requirements.ZERO_TO_MANY);
+		
+		for (Epithelium e : this._epithelia)
+			modelNode.add( e.getModule() );
+			
 		return modelNode;
 	
 	}

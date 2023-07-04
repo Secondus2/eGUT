@@ -47,6 +47,18 @@ public class RegularReaction
 	protected String _name;
 	
 	/**
+	 * 
+	 */
+	public enum ReactionType
+	{
+		VOLUME,
+		
+		TRANSFER
+	}
+	
+	protected ReactionType _type;
+	
+	/**
 	 * identifies what environment hosts this reaction, null if this reaction
 	 * is not a compartment reaction
 	 */
@@ -109,11 +121,13 @@ public class RegularReaction
 	 * @param name Name of the reaction.
 	 */
 	public RegularReaction(
-			Map<String,Double> stoichiometry, Component kinetic, String name)
+			Map<String,Double> stoichiometry, Component kinetic, String name,
+			ReactionType type)
 	{
 		this._name = name;
 		this._stoichiometry.putAll(stoichiometry);
 		this._kinetic = kinetic;
+		this._type = type;
 	}
 	
 	/**
@@ -128,9 +142,9 @@ public class RegularReaction
 	 * @param name Name of the reaction.
 	 */
 	public RegularReaction(
-			Map<String, Double> stoichiometry, String kinetic, String name)
+			Map<String, Double> stoichiometry, String kinetic, String name, ReactionType type)
 	{
-		this(stoichiometry, new Expression(kinetic), name);
+		this(stoichiometry, new Expression(kinetic), name, type);
 	}
 	
 	/**
@@ -146,9 +160,9 @@ public class RegularReaction
 	 * @param name Name of the reaction.
 	 */
 	public RegularReaction(String chemSpecies, double stoichiometry, 
-											String kinetic, String name)
+									String kinetic, String name, ReactionType type)
 	{
-		this( getHM(chemSpecies, stoichiometry), new Expression(kinetic), name);
+		this( getHM(chemSpecies, stoichiometry), new Expression(kinetic), name, type);
 	}
 	
 	@SuppressWarnings("unchecked")
@@ -165,7 +179,29 @@ public class RegularReaction
 			xmlElem = XmlHandler.findUniqueChild(xmlElem, XmlRef.reaction);
 		}
 		
-		this._name = XmlHandler.obtainAttribute(xmlElem, XmlRef.nameAttribute, this.defaultXmlTag());
+		this._name = XmlHandler.obtainAttribute(
+				xmlElem, XmlRef.nameAttribute, this.defaultXmlTag());
+		
+		String type = XmlHandler.gatherAttribute(
+				xmlElem, XmlRef.reactionType);
+		
+		if (Helper.isNullOrEmpty(type))
+			type = "volume";
+		
+		switch (type.toLowerCase())
+		{
+		case "volume":
+			this._type = ReactionType.VOLUME;
+			break;
+			
+		case "transfer":
+			this._type = ReactionType.TRANSFER;
+			break;
+			
+		default:
+			this._type = ReactionType.VOLUME;
+		}
+		
 		/*
 		 * Build the stoichiometric map.
 		 */
@@ -194,7 +230,8 @@ public class RegularReaction
 				ObjectFactory.copy(this._stoichiometry);
 		// NOTE: _kinetic is not copyable, this will become an issue of you
 		// want to do evo addaptation simulations
-		return new RegularReaction(stoichiometry, this._kinetic, this._name);
+		return new RegularReaction(stoichiometry,
+				this._kinetic, this._name, this._type);
 	}
 	
 	/* ***********************************************************************
@@ -208,6 +245,11 @@ public class RegularReaction
 	public String getName()
 	{
 		return this._name;
+	}
+	
+	public ReactionType getType()
+	{
+		return this._type;
 	}
 	
 	/* (non-Javadoc)
@@ -256,7 +298,7 @@ public class RegularReaction
 	 * @return The rate of this reaction.
 	 * @see #getFluxes(HashMap)
 	 */
-	private double getRate(Map<String, Double> concentrations)
+	protected double getRate(Map<String, Double> concentrations)
 	{
 		double out = this._kinetic.getValue(concentrations);
 		//String msg = "   reaction \""+this._name+"\" variables: ";
@@ -273,7 +315,7 @@ public class RegularReaction
 	 * @param reactantName The name of the chemical species of interest.
 	 * @return The stoichiometry of this chemical species in this reaction.
 	 */
-	private double getStoichiometry(String reactantName)
+	protected double getStoichiometry(String reactantName)
 	{
 		if ( this._stoichiometry.containsKey(reactantName) )
 			return this._stoichiometry.get(reactantName);
@@ -291,6 +333,8 @@ public class RegularReaction
 	
 	/* (non-Javadoc)
 	 * @see reaction.ReactionInterface#getProductionRate(java.util.Map, java.lang.String)
+	 * Returns a production rate per unit volume and
+	 * per unit time
 	 */
 	@Override
 	public double getProductionRate(Map<String, Double> concentrations, 
@@ -304,7 +348,7 @@ public class RegularReaction
 											this.getRate(concentrations);
 	}
 	
-	private void checkNegatives( Map<String, Double> concentrations )
+	protected void checkNegatives( Map<String, Double> concentrations )
 	{
 		for ( String s : concentrations.keySet() )
 		{
@@ -352,6 +396,9 @@ public class RegularReaction
 		
 		modelNode.add(new Attribute(XmlRef.nameAttribute, 
 				this._name, null, false ));
+		
+		modelNode.add(new Attribute(XmlRef.reactionType, 
+				this._type.toString(), null, false ));
 		
 		modelNode.add(((Expression) _kinetic).getModule());
 		

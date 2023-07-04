@@ -18,6 +18,7 @@ import boundary.SpatialBoundary;
 import compartment.AgentContainer;
 import compartment.Compartment;
 import compartment.EnvironmentContainer;
+import compartment.Epithelium;
 import dataIO.Log;
 import dataIO.XmlHandler;
 import dataIO.Log.Tier;
@@ -32,6 +33,8 @@ import referenceLibrary.AspectRef;
 import referenceLibrary.XmlRef;
 import settable.Module;
 import shape.CartesianShape;
+import shape.Dimension;
+import shape.Dimension.DimName;
 import shape.Shape;
 import shape.ShapeLibrary.Dimensionless;
 import shape.subvoxel.IntegerArray;
@@ -97,6 +100,8 @@ public abstract class ProcessDiffusion extends ProcessManager
 	 * voxels a located {@code Agent} covers.
 	 */
 	private static final String VD_TAG = AspectRef.agentVolumeDistributionMap;
+	
+	private static final String SD_TAG = AspectRef.agentSurfaceDistributionMap;
 	
 	public LinkedList<RecordKeeper> _recordKeepers = 
 			new LinkedList<RecordKeeper>();
@@ -278,9 +283,6 @@ public abstract class ProcessDiffusion extends ProcessManager
 		for ( int[] coord = shape.resetIterator(); 
 				shape.isIteratorValid(); coord = shape.iteratorNext() )
 		{
-
-			Collection<SpatialBoundary> neighbouringBoundaries = 
-					shape.getNeighbouringBoundaries(coord);
 			
 			/* Get the solute concentrations in this grid voxel. */
 			for ( SpatialGrid soluteGrid : solutes )
@@ -289,283 +291,21 @@ public abstract class ProcessDiffusion extends ProcessManager
 						soluteGrid.getValueAt(CONCN, coord));
 			}
 			
-			
-			/*
-			 * Get concentrations in other compartments
-			 */
-			for ( Reaction r : reactions )
-			{
-				for (String constName : r.getConstituentNames())
-				{
-					/**
-					 * The character @ is used to reference another compartment
-					 */
-					if (constName.contains("@"))
-					{
-						String[] splitString = constName.split("@");
-						String constituent = splitString[0];
-						String compartmentName = splitString[1];
-						if (!(Idynomics.simulator.getCompartment(
-								compartmentName) == null))
-						{
-							Compartment compartment = Idynomics.simulator.
-									getCompartment(compartmentName);
-							
-							EnvironmentContainer partnerEnvironment =
-									compartment.environment;
-							
-							Shape partnerShape = compartment.getShape();
-							
-							/**
-							 * Check that the compartment referenced is not this
-							 * compartment. If it is, nothing is done as the
-							 * solute concentrations have already been recorded.
-							 */
-							if (compartment != this.getParent()) 
-							{
-								
-								/**
-								 * Check whether the referenced compartment is
-								 * connected to this compartment via a Boundary
-								 */
-								boolean connectedCompartment= false;
-								for (Boundary b : neighbouringBoundaries)
-								{
-									if (!(Helper.isNullOrEmpty(b)))
-									{
-										if (b.getPartnerCompartmentName().
-												contentEquals(compartmentName)) 
-										{
-											connectedCompartment = true;
-										}
-										
-										else
-										{
-											if (Log.shouldWrite(Tier.DEBUG))
-												Log.out(Tier.DEBUG,
-													"Reaction requires boundary"
-													+ "connection between "
-													+ this._compartmentName +
-													" and " + compartmentName +
-													". No such connection "
-													+ "exists.");
-										}
-									}
-								}
-								
-								/**
-								 * Check whether the referenced compartment is
-								 * dimensionless (reactions between two spatial
-								 * compartments is not possible as compartments
-								 * are solved separately)
-								 */
-								boolean dimensionlessPartner = false;
-								if (partnerShape instanceof Dimensionless)
-								{
-									dimensionlessPartner = true;
-								}
-										
-								else
-								{
-									if (Log.shouldWrite(Tier.DEBUG))
-										Log.out(Tier.DEBUG,
-											"Transport reaction links spatial "
-											+ "compartment to " + 
-											compartmentName + ". Transport "
-											+ "reactions between two spatial "
-											+ "compartments are not supported.");
-								}
-								
-								/**
-								 * Check whether the compartment has a solute of
-								 * the given name
-								 */
-								if (partnerEnvironment.isSoluteName(constituent)) 
-								{
-									if (dimensionlessPartner && 
-											connectedCompartment) 
-									{
-										double concn = partnerEnvironment.
-											getAverageConcentration(constituent);
-										concns.put(constName, concn);
-									}
-								}
-
-								else 
-								{
-									if (Log.shouldWrite(Tier.DEBUG))
-										Log.out(Tier.DEBUG,
-												"Reaction specifies " + 
-										"non-existent solute, " + constituent);
-								} 
-							}
-						}
-						
-						else
-						{
-							if( Log.shouldWrite(Tier.DEBUG) )
-								Log.out(Tier.DEBUG, "Reaction specifies "
-										+ "non-existent compartent" + 
-										compartmentName);
-						}
-					}
-				}
-			}
-			
 			/* Iterate over each compartment reactions. */
 			for ( Reaction r : reactions )
 			{
 				/* Write rate for each product to grid. */
 				for ( String product : r.getReactantNames() )
 				{
-					
-					if (product.contains("@"))
+					for ( SpatialGrid soluteGrid : solutes )
 					{
-						String[] splitString = product.split("@");
-						String constituent = splitString[0];
-						String compartmentName = splitString[1];
-						if (!(Idynomics.simulator.getCompartment(
-								compartmentName) == null))
+						if ( product.equals(soluteGrid.getName()) )
 						{
-							Compartment compartment = Idynomics.simulator.
-									getCompartment(compartmentName);
-							
-							EnvironmentContainer partnerEnvironment =
-									compartment.environment;
-							
-							Shape partnerShape = compartment.getShape();
-							
-							/**
-							 * Check that the compartment referenced is not this
-							 * compartment. If it is, nothing is done as the
-							 * solute concentrations have already been recorded.
-							 */
-							if (compartment != this.getParent()) 
-							{
-								
-								/**
-								 * Check whether the referenced compartment is
-								 * connected to this compartment via a Boundary
-								 */
-								Boundary transportBoundary = null;
-								for (Boundary b : neighbouringBoundaries)
-								{
-									if (!(Helper.isNullOrEmpty(b)))
-									{
-										if (b.getPartnerCompartmentName().
-												contentEquals(compartmentName)) 
-										{
-											transportBoundary = b;
-										}
-										
-										else
-										{
-											if (Log.shouldWrite(Tier.DEBUG))
-												Log.out(Tier.DEBUG,
-													"Reaction requires boundary"
-													+ "connection between "
-													+ this._compartmentName +
-													" and " + compartmentName +
-													". No such connection "
-													+ "exists.");
-										}
-									}
-								}
-								
-								/**
-								 * Check whether the referenced compartment is
-								 * dimensionless (reactions between two spatial
-								 * compartments is not possible as compartments
-								 * are solved separately)
-								 */
-								boolean dimensionlessPartner = false;
-								if (partnerShape instanceof Dimensionless)
-								{
-									dimensionlessPartner = true;
-								}
-										
-								else
-								{
-									if (Log.shouldWrite(Tier.DEBUG))
-										Log.out(Tier.DEBUG,
-											"Transport reaction links spatial "
-											+ "compartment to " + 
-											compartmentName + ". Transport "
-											+ "reactions between two spatial "
-											+ "compartments are not supported.");
-								}
-								
-								/**
-								 * Check whether the compartment has a solute of
-								 * the given name
-								 */
-								if (partnerEnvironment.isSoluteName(constituent)) 
-								{
-									if (dimensionlessPartner && 
-											transportBoundary != null) 
-									{
-										SpatialGrid solute = compartment.getSolute(constituent);
-										
-										productRate = r.getProductionRate( concns, product);
-										
-										solute.addValueAt(PRODUCTIONRATE,
-												coord, productRate);
-										
-										totals.put(product,
-												totals.get(product) + productRate);
-										
-										solute.increaseTransportFlux(
-												transportBoundary, solute.
-												voxelVolume() * productRate);
-									}
-								}
-
-								else 
-								{
-									if (Log.shouldWrite(Tier.DEBUG))
-										Log.out(Tier.DEBUG,
-												"Reaction specifies " + 
-										"non-existent solute, " + constituent);
-								} 
-							}
-							
-							else
-							{
-								for ( SpatialGrid soluteGrid : solutes )
-								{
-									if ( constituent.equals(soluteGrid.getName()) )
-									{
-										productRate = r.getProductionRate( concns, product);
-										soluteGrid.addValueAt(PRODUCTIONRATE,
-												coord, productRate);
-										totals.put(product,
-												totals.get(product) + productRate);
-									}
-								}
-							}
-						}
-						
-						else
-						{
-							if( Log.shouldWrite(Tier.DEBUG) )
-								Log.out(Tier.DEBUG, "Reaction specifies "
-										+ "non-existent compartent" + 
-										compartmentName);
-						}
-					}
-					
-					else
-					{
-						for ( SpatialGrid soluteGrid : solutes )
-						{
-							if ( product.equals(soluteGrid.getName()) )
-							{
-								productRate = r.getProductionRate( concns, product);
-								soluteGrid.addValueAt(PRODUCTIONRATE,
-										coord, productRate);
-								totals.put(product,
-										totals.get(product) + productRate);
-							}
+							productRate = r.getProductionRate( concns, product);
+							soluteGrid.addValueAt(PRODUCTIONRATE,
+									coord, productRate);
+							totals.put(product,
+									totals.get(product) + productRate);
 						}
 					}
 				}
@@ -602,7 +342,7 @@ public abstract class ProcessDiffusion extends ProcessManager
 		 * Reset the agent biomass distribution maps.
 		 */
 		Map<Shape, HashMap<IntegerArray,Double>> mapOfMaps;
-		for ( Agent a : this._agents.getAllLocatedAndEpithelialAgents() )
+		for ( Agent a : this._agents.getAllLocatedAgents() )
 		{
 			if ( a.isAspect(VD_TAG) )
 				mapOfMaps = (Map<Shape, HashMap<IntegerArray,Double>>)a.get(VD_TAG);
@@ -778,23 +518,82 @@ public abstract class ProcessDiffusion extends ProcessManager
 				}
 		}
 		
+		
+		/*
+		 * For epithelial agents, we need to calculate how much of
+		 * the boundary/surface of the domain is covered by the 
+		 * epithelial cell, rather than its volume
+		 * 
+		 * 
+		 * 
+		 * 1. Find the layer of voxels that this epithelium interacts
+		 * with
+		 * 
+		 * 2. Identify the proportion of each of these voxels covered
+		 * by the agent
+		 * 
+		 * 3. This should probably be done in a different class, for example
+		 * in EpithelialBoundary?
+		 */
 		for (Agent a: this._agents.getAllEpithelialAgents())
 		{
+			if ( a.isAspect(SD_TAG) )
+				mapOfMaps = 
+				(Map<Shape, HashMap<IntegerArray,Double>>)a.get(SD_TAG);
+			
+			else
+				mapOfMaps = new HashMap<
+					Shape, HashMap<IntegerArray,Double>>();
+			
+			if (!Helper.isNullOrEmpty(mapOfMaps.get(shape)))
+			{
+				return;
+			}
+			
+			Epithelium epithelium = a.getEpithelium();
+			Dimension dim = epithelium.getDimension();
+			DimName dimName = dim.getName();
+			int dimNum = dimName.dimNum();
 			Body agentBody = (Body) a.get(AspectRef.agentBody);
 			double[] cellBottomCorner = 
 					agentBody.getPoints().get(0).getPosition();
 			double[] cellTopCorner = 
 					agentBody.getPoints().get(1).getPosition();
-			int[] bottomVoxel = shape.getCoords(cellBottomCorner);
+			
+			int[] bottomVoxel = shape.getCoords(cellBottomCorner, null, true);
+			int[] topVoxel = shape.getCoords(cellTopCorner, null, true);
 			double[] voxelSideLengths = new double[nDim];
 			shape.getVoxelSideLengthsTo(voxelSideLengths, bottomVoxel);
-			double[] dimensions = new double[nDim];
 			
-			for (int i = 0; i < nDim; i++)
-				dimensions[i] = cellTopCorner[i] - cellBottomCorner[i];
+			ArrayList<int[]> voxels = new ArrayList<int[]>();
 			
-			ArrayList<int[]> voxels = (ArrayList<int[]>) 
-				shape.getVoxelsFromVolume(cellBottomCorner,cellTopCorner);
+			if (nDim == 2)
+			{
+				for (int i = bottomVoxel[0]; i <= topVoxel[0]; i++)
+				{
+					for (int j = bottomVoxel[1]; j <= topVoxel[1]; j++)
+					{
+						voxels.add(new int[]{i, j, 0});
+					}
+				}
+			}
+			
+			else if (nDim == 3)
+			{
+				for (int i = bottomVoxel[0]; i <= topVoxel[0]; i++)
+				{
+					for (int j = bottomVoxel[1]; j <= topVoxel[1]; j++)
+					{
+						for (int k = bottomVoxel[2]; k <= topVoxel[2]; k++)
+						{
+							voxels.add(new int[]{i, j, k});
+						}
+					}
+				}
+			}
+			
+			//ArrayList<int[]> voxels = (ArrayList<int[]>) 
+			//	shape.getVoxelsFromVolume(cellBottomCorner,cellTopCorner);
 			
 			double[] proportions = new double[voxels.size()];
 			
@@ -805,35 +604,41 @@ public abstract class ProcessDiffusion extends ProcessManager
 				
 				double proportion = 1.0;
 				
-				for (int i = 0; i < nDim; i++) {
-					double proportionInThisDimension;
-					double voxelLower = 
-						(double) voxels.get(v)[i] * voxelSideLengths[i];
-					double voxelUpper = voxelLower + voxelSideLengths[i];
+				for (int i = 0; i < nDim; i++)
+				{
 					
-					if (voxelLower < cellBottomCorner[i])
+					if (i != dimNum)
 					{
-						if (voxelUpper > cellTopCorner[i])
+						
+						double proportionInThisDimension;
+						double voxelLower = 
+							(double) voxels.get(v)[i] * voxelSideLengths[i];
+						double voxelUpper = voxelLower + voxelSideLengths[i];
+						
+						if (voxelLower < cellBottomCorner[i])
 						{
-							proportionInThisDimension = (cellTopCorner[i] 
-								- cellBottomCorner[i])/voxelSideLengths[i];
+							if (voxelUpper > cellTopCorner[i])
+							{
+								proportionInThisDimension = (cellTopCorner[i] 
+									- cellBottomCorner[i])/voxelSideLengths[i];
+							}
+							
+							else
+							{	
+								proportionInThisDimension = (voxelUpper - 
+									cellBottomCorner[i]) / voxelSideLengths[i];
+							}
 						}
 						
-						else
-						{	
-							proportionInThisDimension = (voxelUpper - 
-								cellBottomCorner[i]) / voxelSideLengths[i];
+						else if (voxelUpper > cellTopCorner[i])
+						{
+							proportionInThisDimension = (cellTopCorner[i] - 
+								voxelLower) / voxelSideLengths[i];
 						}
+						
+						else proportionInThisDimension = 1.0;
+						proportion *= proportionInThisDimension;
 					}
-					
-					else if (voxelUpper > cellTopCorner[i])
-					{
-						proportionInThisDimension = (cellTopCorner[i] - 
-							voxelLower) / voxelSideLengths[i];
-					}
-					
-					else proportionInThisDimension = 1.0;
-					proportion *= proportionInThisDimension;
 				}
 				
 				proportions[v] = proportion;
@@ -858,17 +663,25 @@ public abstract class ProcessDiffusion extends ProcessManager
 				}
 			}
 			
-			mapOfMaps = (Map<Shape, HashMap<IntegerArray,Double>>)
-					a.getValue(VD_TAG);
-			
+			mapOfMaps.put(shape, new HashMap<IntegerArray,Double>());
 			distributionMap = mapOfMaps.get(shape);
 			
 			for (int i = 0; i < voxels.size(); i++)
 			{
 				IntegerArray iArray = new IntegerArray(voxels.get(i));
-				distributionMap.put
+				if (proportionList.get(i) != 0)
+				{
+					/*
+					 * Resulting proportion is the proportion of the
+					 * agent's own surface area in contact with the
+					 * voxel
+					 */
+					distributionMap.put
 					(iArray, (proportionList.get(i)/totalOfProportions));
+				}
 			}
+			
+			a.set(SD_TAG, mapOfMaps);
 		}
 	}
 	

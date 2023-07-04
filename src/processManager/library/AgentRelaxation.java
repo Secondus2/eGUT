@@ -328,7 +328,7 @@ public class AgentRelaxation extends ProcessManager
 			this._agents.refreshSpatialRegistry();
 			this._iterator.resetOverlap();
 
-			this.updateForces( this._agents.getAllAgents(), this._agents );
+			this.updateForces( this._agents.getAllLocatedAgents(), this._agents );
 			dtMech = sizeStep( allAgents );
 
 			if ( this._decompression )

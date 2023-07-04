@@ -10,6 +10,7 @@ import aspect.Aspect.AspectClass;
 import aspect.AspectInterface;
 import aspect.AspectReg;
 import compartment.Compartment;
+import compartment.Epithelium;
 import dataIO.Log;
 import dataIO.Log.Tier;
 import dataIO.XmlHandler;
@@ -52,6 +53,8 @@ public class Agent implements AspectInterface, Settable, Instantiable
 	 */
 	protected AspectReg _aspectRegistry = new AspectReg();
 	private Settable _parentNode;
+	
+	private Epithelium _epithelium;
 	
 		
 	/*************************************************************************
@@ -326,6 +329,12 @@ public class Agent implements AspectInterface, Settable, Instantiable
 		this._compartment.addAgent(this);
 		this.set(AspectRef.birthday, Idynomics.simulator.timer.getCurrentTime());
 	}
+	
+	public void registerBirth(Epithelium epithelium, int index)
+	{
+		this._compartment.addAgent(this, epithelium, index);
+		this.set(AspectRef.birthday, Idynomics.simulator.timer.getCurrentTime());
+	}
 
 	/**
 	 * \brief Registers the death of an agent with the agentContainer.
@@ -407,6 +416,11 @@ public class Agent implements AspectInterface, Settable, Instantiable
 		Settable.super.setModule(node);
 		this.initiate(); // Updates species module if changed
 	}
+	
+	public void setEpithelium(Epithelium epithelium)
+	{
+		this._epithelium = epithelium;
+	}
 
 	/**
 	 * respond to gui command to remove the agent
@@ -436,5 +450,10 @@ public class Agent implements AspectInterface, Settable, Instantiable
 	public Settable getParent() 
 	{
 		return this._parentNode;
+	}
+	
+	public Epithelium getEpithelium()
+	{
+		return this._epithelium;
 	}
 }
