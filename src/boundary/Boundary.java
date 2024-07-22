@@ -28,7 +28,6 @@ import settable.Attribute;
 import settable.Module;
 import settable.Module.Requirements;
 import settable.Settable;
-import shape.Shape;
 import utility.Helper;
 
 /**
@@ -82,6 +81,13 @@ public abstract class Boundary implements Settable, Instantiable
 	 * out. Map keys are solute names. Units of mass (or mole) per time.
 	 */
 	protected Map<String,Double> _massFlowRate = new HashMap<String,Double>();
+	
+	/**
+	 * Rate of transport flux across this boundary. Unlike _volumeFlowRate, this
+	 * is not reciprocated in the partner boundary, because the change in the
+	 * partner compartment is handled by the reaction-diffusion solver.
+	 */
+	protected Map<String, Double> _transportFlux = new HashMap<String,Double>();
 	
 	/**
 	 * Agents that are leaving this compartment via this boundary, and
@@ -218,17 +224,8 @@ public abstract class Boundary implements Settable, Instantiable
 				out = (Boundary) bClass.newInstance();
 				this.setPartner(out);
 				out.setPartner(this);
-				
 				/* oh dear TODO better to assign compartment name on boundary creation or just associate the compartment */
-				if (this.getParent() instanceof Shape)
-				{
-					out._partnerCompartmentName = ((Compartment) this.getParent().getParent()).getName();
-				}
-				
-				else
-				{
-					out._partnerCompartmentName = ((Compartment) this.getParent().getParent().getParent()).getName();
-				}
+				out._partnerCompartmentName = ((Compartment) this.getParent().getParent().getParent()).getName();
 			}
 			catch (Exception e)
 			{
@@ -396,6 +393,21 @@ public abstract class Boundary implements Settable, Instantiable
 		 */
 		this.additionalPartnerUpdate();
 	}
+	
+	
+	public void setTransportFlux(String name, double rate)
+	{
+		this._transportFlux.put(name, rate);
+	}
+	
+	public double getTransportFlux(String solute)
+	{
+		if (this._transportFlux.containsKey(solute))
+			return this._transportFlux.get(solute);
+		else
+			return 0.0;
+	}
+	
 	
 	/**
 	 * Method for doing any additional pre-step updates that are specific to

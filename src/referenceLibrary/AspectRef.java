@@ -47,8 +47,6 @@ public class AspectRef
 	 */
 	public final static String deathday = "deathday";
 	
-	public final static String deathMass = "deathMass";
-	
 	/**
 	 * TODO
 	 */
@@ -83,11 +81,6 @@ public class AspectRef
 	 * TODO
 	 */
 	public final static String isEpithelial = "#isEpithelial";
-	
-	/**
-	 * The epithelium to which an epithelial agent belongs
-	 */
-	public final static String epithelium = "epithelium";
 	
 	/**
 	 * TODO
@@ -176,12 +169,6 @@ public class AspectRef
 	 * TODO
 	 */
 	public final static String agentVolumeDistributionMap = "volumeDistribution";
-	
-	
-	/**
-	 * TODO
-	 */
-	public final static String agentSurfaceDistributionMap = "surfaceDistribution";
 
 	/**
 	 * TODO
@@ -715,11 +702,6 @@ public class AspectRef
 	public static final String directionalDivision = "directionalDivision";
 
 	public static final String removed = "removed";
-	
-	public static final String fewNeighboursRemoval = "fewNeighboursRemoval";
-	
-	public static final String fewNeighboursRemovalProbability
-		= "fewNeighboursRemovalProbability";
 
 	public static final String unlinkProbabillity = "unlinkProbabillity";
 
@@ -744,15 +726,4 @@ public class AspectRef
 	public static final String autoVcycleAdjust = "autoVcycleAdjust";
 
 	public static final String absoluteValue = "absoluteValue";
-	
-	public static final String volumeChange = "volumeChange";
-	
-	public static final String volumeTarget = "volumeTarget";
-	
-	public static final String soluteConcentrations = "soluteConcentrations";
-	
-	public static final String soluteMasses = "soluteMasses";
-	
-	public static final String thresholdVolume = "thresholdVolume";
-
 }
