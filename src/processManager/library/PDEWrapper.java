@@ -852,18 +852,15 @@ public class PDEWrapper extends ProcessDiffusion {
             concns.clear();
             for ( String varName : r.getConstituentNames() )
             {
-                if ( !Helper.isNullOrEmpty(coord.get()) )
+                if ( this._environment.isSoluteName( varName ) )
                 {
-                    if ( this._environment.isSoluteName( varName ) )
-                    {
-                        solute = this._environment.getSoluteGrid( varName );
-                        concn = solute.getValueAt( CONCN, coord.get() );
-                    }
-                    else if ( this._environment.isSpecialName( varName ) )
-                    {
-                        solute = this._environment.getSpecialGrid( varName );
-                        concn = solute.getValueAt( CONCN, coord.get() );
-                    }
+                    solute = this._environment.getSoluteGrid( varName );
+                    concn = solute.getValueAt( CONCN, coord.get() );
+                }
+                else if ( this._environment.isSpecialName( varName ) )
+                {
+                    solute = this._environment.getSpecialGrid( varName );
+                    concn = solute.getValueAt( CONCN, coord.get() );
                 }
                 
                 else if ( biomass.containsKey( varName ) )

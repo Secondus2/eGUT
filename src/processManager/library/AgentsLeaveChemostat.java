@@ -33,8 +33,7 @@ public class AgentsLeaveChemostat extends ProcessDeparture
 	{
 		super.init(xmlElem, environment, agents, compartmentName);
 		/* FIXME replace with obtain value as they are case dependent */
-		this._removalRate = Helper.setIfNone(
-				this.getDouble(REMOVAL_RATE), 0.0 );
+		this._removalRate = this.getDouble(REMOVAL_RATE);
 	}
 	
 	/**
