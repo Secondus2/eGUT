@@ -41,13 +41,13 @@ public class AgentScraper extends ProcessDeparture {
 	{
 		super.init(xmlElem, environment, agents, compartmentName);
 		
-		this._maxThickness = Helper.setIfNone( 
-				this.getDouble( MAX_THICKNESS ),
-				agents.getShape().getDimensionLengths()[1] );
+		this._maxThickness = this.isAspect(MAX_THICKNESS) ? 
+				this.getDouble(MAX_THICKNESS) : 
+					agents.getShape().getDimensionLengths()[1];
 
-		this._centerPointRemoval = Helper.setIfNone(
-				this.getBoolean( AspectRef.centerPointRemoval ),
-				false );
+		this._centerPointRemoval = 
+				this.isAspect( AspectRef.centerPointRemoval ) ?
+					this.getBoolean( AspectRef.centerPointRemoval ) : false;
 	}
 
 	/**
